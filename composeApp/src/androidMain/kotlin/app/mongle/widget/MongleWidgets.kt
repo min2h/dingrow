@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.mongle.ui.MochiBitmap
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
@@ -20,6 +19,7 @@ import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
+import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
@@ -34,12 +34,18 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import androidx.glance.Button
+import androidx.glance.ButtonDefaults
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.action.ActionParameters
 import app.mongle.AppGraph
 import app.mongle.MainActivity
+import androidx.glance.LocalContext
 import app.mongle.model.GameState
-import app.mongle.ui.hexColor
+import app.mongle.model.TimeOfDay
+import app.mongle.ui.ArtBitmaps
+import app.mongle.ui.petAct
+import app.mongle.ui.petAssetId
+import app.mongle.ui.roomAssetFor
 
 class SmallWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = SmallPetWidget()
@@ -97,7 +103,8 @@ internal fun SmallBody(state: GameState? = currentState()) {
         Button(
             "완료",
             actionRunCallback<CompleteAction>(),
-            modifier = GlanceModifier.fillMaxWidth().background(peach).cornerRadius(16.dp),
+            modifier = GlanceModifier.fillMaxWidth().cornerRadius(16.dp),
+            colors = ButtonDefaults.buttonColors(backgroundColor = peach, contentColor = ink),
         )
     }
 }
@@ -125,32 +132,40 @@ internal fun LargeBody(state: GameState? = currentState()) {
             )
         }
         Spacer(GlanceModifier.height(6.dp))
-        val wall = ColorProvider(hexColor(state.wallHex))
+        val context = LocalContext.current
+        val night = state.timeOfDay == TimeOfDay.NIGHT
+        val room = ArtBitmaps.decode(context, roomAssetFor(state.activeRoom.wallpaperId, night, square = true), 400)
         Box(
-            modifier = GlanceModifier.fillMaxWidth().defaultWeight().cornerRadius(22.dp).background(wall),
+            modifier = GlanceModifier.fillMaxWidth().defaultWeight().cornerRadius(22.dp),
             contentAlignment = Alignment.Center,
         ) {
-            PetImage(state, 120)
+            Image(
+                ImageProvider(room),
+                "방",
+                GlanceModifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+            PetImage(state, 96)
         }
         Spacer(GlanceModifier.height(6.dp))
         if (state.confirmText.isNotBlank()) {
             Text(state.confirmText, style = TextStyle(color = ink, fontSize = 12.sp), maxLines = 2)
             Row(modifier = GlanceModifier.fillMaxWidth()) {
-                Button("확인", actionRunCallback<ConfirmBuyAction>(), modifier = GlanceModifier.defaultWeight())
+                Button("확인", actionRunCallback<ConfirmBuyAction>(), modifier = GlanceModifier.defaultWeight(), colors = ButtonDefaults.buttonColors(backgroundColor = peach, contentColor = ink))
                 Spacer(GlanceModifier.width(4.dp))
-                Button("취소", actionRunCallback<CancelBuyAction>(), modifier = GlanceModifier.defaultWeight())
+                Button("취소", actionRunCallback<CancelBuyAction>(), modifier = GlanceModifier.defaultWeight(), colors = ButtonDefaults.buttonColors(backgroundColor = mint, contentColor = ink))
             }
         } else {
             Row(modifier = GlanceModifier.fillMaxWidth()) {
-                Button("밥주기", actionRunCallback<FeedAction>(), modifier = GlanceModifier.defaultWeight().background(peach).cornerRadius(16.dp))
+                Button("밥주기", actionRunCallback<FeedAction>(), modifier = GlanceModifier.defaultWeight().cornerRadius(16.dp), colors = ButtonDefaults.buttonColors(backgroundColor = peach, contentColor = ink))
                 Spacer(GlanceModifier.width(6.dp))
-                Button("선물 팔기", actionRunCallback<SellAction>(), modifier = GlanceModifier.defaultWeight().background(mint).cornerRadius(16.dp))
+                Button("선물 팔기", actionRunCallback<SellAction>(), modifier = GlanceModifier.defaultWeight().cornerRadius(16.dp), colors = ButtonDefaults.buttonColors(backgroundColor = mint, contentColor = ink))
             }
             Spacer(GlanceModifier.height(6.dp))
             Row(modifier = GlanceModifier.fillMaxWidth()) {
-                Button("오늘의 상품", actionRunCallback<BeginBuyAction>(), modifier = GlanceModifier.defaultWeight().background(butter).cornerRadius(16.dp))
+                Button("오늘의 상품", actionRunCallback<BeginBuyAction>(), modifier = GlanceModifier.defaultWeight().cornerRadius(16.dp), colors = ButtonDefaults.buttonColors(backgroundColor = butter, contentColor = ink))
                 Spacer(GlanceModifier.width(6.dp))
-                Button("꾸미기", actionRunCallback<PresetAction>(), modifier = GlanceModifier.defaultWeight().background(peach).cornerRadius(16.dp))
+                Button("꾸미기", actionRunCallback<PresetAction>(), modifier = GlanceModifier.defaultWeight().cornerRadius(16.dp), colors = ButtonDefaults.buttonColors(backgroundColor = peach, contentColor = ink))
             }
         }
     }
@@ -158,7 +173,9 @@ internal fun LargeBody(state: GameState? = currentState()) {
 
 @Composable
 private fun PetImage(state: GameState, size: Int) {
-    val bitmap = MochiBitmap.pet(state.speciesId, state.stage, state.pose, state.outfitId, size * 3)
+    val context = LocalContext.current
+    val act = petAct(state.stage, state.pose, state.energy, state.statusMessage)
+    val bitmap = ArtBitmaps.decode(context, petAssetId(state.speciesId, state.stage, act), size * 2)
     Image(ImageProvider(bitmap), state.petName, GlanceModifier.size(size.dp))
 }
 

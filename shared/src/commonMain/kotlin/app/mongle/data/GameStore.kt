@@ -53,7 +53,7 @@ object Seed {
             pendingGiftDefId = null,
             pendingGiftAt = null,
         )
-        val owned = listOf("sp_peach", "wall_peach", "wall_mint", "wall_night", "floor_wood", "floor_tile", "rug_leaf")
+        val owned = listOf("peach", "egg")
         return PersistedState(
             pet = pet,
             schedules = emptyList(),
@@ -74,9 +74,9 @@ object Seed {
                 ),
             ),
             presets = listOf(
-                RoomPreset(0, "포근한 방", "wall_peach", "floor_wood", null, "rug_leaf", null),
-                RoomPreset(1, "민트 방", "wall_mint", "floor_tile", null, null, null),
-                RoomPreset(2, "밤하늘 방", "wall_night", "floor_wood", null, null, null),
+                RoomPreset(0, "포근한 방", "wood", "wood", null, null, null),
+                RoomPreset(1, "민트 방", "mint", "mint", null, null, null),
+                RoomPreset(2, "밤하늘 방", "starry", "starry", null, null, null),
             ),
             activePreset = 0,
             onboarded = false,

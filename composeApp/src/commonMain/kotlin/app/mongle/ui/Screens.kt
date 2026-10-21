@@ -224,7 +224,8 @@ private fun Onboarding(name: String, onName: (String) -> Unit, onStart: () -> Un
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        AnimatedPet(app.mongle.model.Stage.EGG, app.mongle.model.Pose.EGG, null, Modifier.size(180.dp))
+        ArtImage("onboarding", Modifier.fillMaxWidth().height(280.dp).clip(RoundedCornerShape(28.dp)), "몽글")
+        Spacer(Modifier.height(16.dp))
         Text("몽글", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(8.dp))
         Text("같이 지낼 이름을 정해 주세요", color = InkSoft)
@@ -256,7 +257,7 @@ private fun HomeScreen(
     ) {
         RoomScene(
             state,
-            Modifier.fillMaxWidth().height(156.dp).clip(RoundedCornerShape(24.dp)).shadow(6.dp, RoundedCornerShape(24.dp)),
+            Modifier.fillMaxWidth().height(188.dp).clip(RoundedCornerShape(28.dp)),
         )
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -291,6 +292,26 @@ private fun HomeScreen(
             Spacer(Modifier.height(8.dp))
             Text(state.statusMessage, color = InkSoft, fontSize = 13.sp)
         }
+        state.pendingGift?.let { gift ->
+            Spacer(Modifier.height(10.dp))
+            SoftCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ArtImage(gift.defId, Modifier.size(48.dp), gift.name)
+                    Spacer(Modifier.width(8.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("${gift.name}이 도착했어요", style = MaterialTheme.typography.titleMedium)
+                        Text("${gift.sellPrice}코인", color = InkSoft)
+                    }
+                }
+                Row {
+                    TextButton(onClick = { scope.launch { service.keepGift() } }) { Text("보관") }
+                    TextButton(
+                        onClick = { scope.launch { service.sellPendingOrLatest() } },
+                        modifier = Modifier.testTag("sell-gift"),
+                    ) { Text("팔기") }
+                }
+            }
+        }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PillButton("밥주기", PeachSoft, Modifier.weight(1f).testTag("feed")) {
@@ -300,20 +321,6 @@ private fun HomeScreen(
                 scope.launch { service.startOuting() }
             }
             PillButton("선물", ButterSoft, Modifier.weight(1f)) { }
-        }
-        state.pendingGift?.let { gift ->
-            Spacer(Modifier.height(10.dp))
-            SoftCard {
-                Text("${gift.name}이 도착했어요", style = MaterialTheme.typography.titleMedium)
-                Text("${gift.sellPrice}코인", color = InkSoft)
-                Row {
-                    TextButton(onClick = { scope.launch { service.keepGift() } }) { Text("보관") }
-                    TextButton(
-                        onClick = { scope.launch { service.sellPendingOrLatest() } },
-                        modifier = Modifier.testTag("sell-gift"),
-                    ) { Text("팔기") }
-                }
-            }
         }
         state.outingBlockReason?.let {
             if (state.outing == null) {
@@ -357,7 +364,12 @@ private fun ScheduleScreen(
             val done = state.schedules.filter { it.done }
             Text("오늘의 할 일 · ${open.size}", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
-            if (open.isEmpty()) {
+            if (open.isEmpty() && done.isEmpty()) {
+                ArtImage("empty_schedule", Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(24.dp)), "빈 일정")
+                Spacer(Modifier.height(8.dp))
+                Text("아직 일정이 없어요", color = InkSoft)
+                Spacer(Modifier.height(8.dp))
+            } else if (open.isEmpty()) {
                 Text("아직 일정이 없어요", color = InkSoft)
                 Spacer(Modifier.height(8.dp))
             }
@@ -448,13 +460,11 @@ private fun ScheduleCard(
                 Text(item.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(item.repeatLabel, color = PeachDeep, fontSize = 11.sp)
             }
-            AnimatedPet(
+            StillPet(
+                speciesId,
                 app.mongle.model.Stage.BABY,
                 if (done) app.mongle.model.Pose.HAPPY else app.mongle.model.Pose.IDLE,
-                null,
                 Modifier.size(46.dp),
-                speciesId,
-                still = true,
             )
         }
         if (!done) {
@@ -546,9 +556,7 @@ private fun RoomScreen(
             .padding(16.dp)
             .testTag("room-scroll"),
     ) {
-        SoftCard {
-            RoomScene(state, Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(18.dp)))
-        }
+        RoomScene(state, Modifier.fillMaxWidth().height(168.dp).clip(RoundedCornerShape(24.dp)))
         Spacer(Modifier.height(8.dp))
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             state.presets.forEach { preset ->
@@ -574,7 +582,7 @@ private fun RoomScreen(
                 modifier = Modifier.testTag("buy-today"),
             ) { Text("${state.todayOffer.price}") }
         }
-        val hat = Catalog.byId("hat_sprout")
+        val hat = Catalog.byId("sprout_hat")
         if (hat != null && hat.id in state.owned) {
             Button(
                 onClick = { scope.launch { service.equipOutfit(hat.id) } },
@@ -583,10 +591,11 @@ private fun RoomScreen(
             ) { Text(hat.name) }
         } else if (hat != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                ArtImage(hat.id, Modifier.size(36.dp))
                 Text(hat.name)
                 TextButton(
                     onClick = { scope.launch { service.buy(hat.id) } },
-                    modifier = Modifier.testTag("buy-hat_sprout"),
+                    modifier = Modifier.testTag("buy-sprout_hat"),
                 ) { Text("${hat.price}") }
             }
         }
@@ -596,9 +605,9 @@ private fun RoomScreen(
             PaneTab("의상", pane == RoomPane.Outfit) { pane = RoomPane.Outfit }
         }
         val items = if (pane == RoomPane.Furniture) {
-            Catalog.furniture.filter { it.id != "hat_sprout" }
+            Catalog.furniture
         } else {
-            Catalog.outfits.filter { it.id != "hat_sprout" }
+            Catalog.outfits.filter { it.id != "sprout_hat" }
         }
         items.chunked(3).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -650,7 +659,7 @@ private fun DexScreen(
                             .padding(6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        AnimatedPet(app.mongle.model.Stage.CHILD, app.mongle.model.Pose.IDLE, null, Modifier.size(52.dp), species.id, still = true)
+                        ArtImage(species.id, Modifier.size(52.dp), species.name)
                         Text(species.name, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
                             if (owned) Korean.rarityLabel(species.rarity) else "${species.price}",
@@ -664,11 +673,15 @@ private fun DexScreen(
             Spacer(Modifier.height(8.dp))
         }
         Spacer(Modifier.height(8.dp))
+        if (state.gifts.isEmpty()) {
+            ArtImage("empty_gifts", Modifier.fillMaxWidth().height(140.dp).clip(RoundedCornerShape(20.dp)), "선물 없음")
+            Spacer(Modifier.height(8.dp))
+        }
         Text("수집", style = MaterialTheme.typography.titleMedium)
         Catalog.goods.filter { it.kind != ItemKind.FOOD }.take(24).forEach { item ->
             val owned = item.id in state.owned || item.kind == ItemKind.GIFT && state.gifts.any { it.defId == item.id }
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                ItemGlyph(item.motif, Modifier.size(36.dp))
+                ArtImage(item.id, Modifier.size(36.dp), item.name)
                 Spacer(Modifier.width(8.dp))
                 Text(item.name, modifier = Modifier.weight(1f))
                 Text(if (owned) "보유" else if (item.price > 0) "${item.price}" else "${item.sellPrice}", color = InkSoft, fontSize = 12.sp)
@@ -689,7 +702,7 @@ private fun ItemCard(item: ItemDef, owned: Boolean, modifier: Modifier, onClick:
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopEnd) {
-            ItemGlyph(item.motif, Modifier.fillMaxWidth().aspectRatio(1.15f))
+            ArtImage(item.id, Modifier.fillMaxWidth().aspectRatio(1.15f), item.name)
             if (item.fresh && !owned) {
                 Text("NEW", color = PeachDeep, fontSize = 9.sp, modifier = Modifier.padding(2.dp))
             }

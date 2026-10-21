@@ -16,6 +16,7 @@ import app.mongle.model.CompletionRecord
 import app.mongle.model.DecorSlot
 import app.mongle.model.GameBalance
 import app.mongle.model.ItemKind
+import app.mongle.model.LegacyIds
 import app.mongle.model.LedgerEntry
 import app.mongle.model.PersistedState
 import app.mongle.model.RepeatRule
@@ -52,7 +53,16 @@ class GameService(
     private var lastNotices: List<ScheduledNotice>? = null
     private var lastFingerprint: String? = null
 
-    private val initial = store.load() ?: Seed.create(time.now(), balance).also { store.save(it) }
+    private val initial = run {
+        val loaded = store.load()
+        if (loaded == null) {
+            Seed.create(time.now(), balance).also { store.save(it) }
+        } else {
+            val migrated = LegacyIds.migrate(loaded)
+            if (migrated != loaded) store.save(migrated)
+            migrated
+        }
+    }
     private val _state = MutableStateFlow(project(initial, time.now(), zone, balance))
     val state: StateFlow<app.mongle.model.GameState> = _state
 
@@ -397,7 +407,7 @@ class GameService(
         var immediate: Pair<String, String>? = null
         val result = mutex.withLock {
             val now = time.now()
-            val raw = store.load() ?: Seed.create(now, balance)
+            val raw = LegacyIds.migrate(store.load() ?: Seed.create(now, balance))
             val resolved = resolveState(raw, now, zone, balance)
             var working = resolved
             val returned = raw.pet.isOut && !resolved.pet.isOut && resolved.pet.pendingGiftDefId != null

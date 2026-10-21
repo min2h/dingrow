@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import WidgetKit
 
 struct PetEntry: TimelineEntry {
@@ -66,7 +67,7 @@ struct PetWidgetView: View {
     private func small(_ snap: WidgetSnapshot, ink: Color, muted: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 8) {
-                PetBlob(pose: snap.pose, outfitId: snap.outfitId, speciesId: snap.speciesId)
+                MongleArtImage(name: MongleArt.pet(speciesId: snap.speciesId, pose: snap.pose, stageLabel: snap.stageLabel))
                     .frame(width: 56, height: 56)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("오늘의 기분").font(.caption2).foregroundStyle(muted)
@@ -96,12 +97,15 @@ struct PetWidgetView: View {
     private func large(_ snap: WidgetSnapshot, ink: Color, muted: Color) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color(hex: snap.wallHex))
+                MongleArtImage(name: MongleArt.room(wallHex: snap.wallHex, timeOfDay: snap.timeOfDay, dark: snap.darkRoom), fill: true)
+                    .frame(maxWidth: .infinity)
                     .frame(height: 150)
-                PetBlob(pose: snap.pose, outfitId: snap.outfitId, speciesId: snap.speciesId)
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                MongleArtImage(name: MongleArt.pet(speciesId: snap.speciesId, pose: snap.pose, stageLabel: snap.stageLabel))
                     .frame(width: 96, height: 96)
+                    .offset(y: 18)
             }
+            .frame(height: 150)
             HStack {
                 Text("\(snap.petName)의 아늑한 방")
                     .font(.headline)
@@ -168,92 +172,56 @@ struct PetWidgetView: View {
     }
 }
 
-struct PetBlob: View {
-    let pose: String
-    let outfitId: String
-    var speciesId: String = "sp_peach"
-
-    var body: some View {
-        ZStack {
-            Ellipse()
-                .fill(Color(hex: "#F6C7B0").opacity(0.45))
-                .frame(width: 36, height: 10)
-                .offset(y: 24)
-            bodyShape
-                .fill(Color(hex: bodyColor))
-                .overlay(bodyShape.stroke(Color(hex: "#E7A88F"), lineWidth: 1))
-            if pose != "egg" && pose != "sleep" {
-                HStack(spacing: 8) {
-                    Circle().fill(Color(hex: "#4A3728")).frame(width: 4, height: 4)
-                    Circle().fill(Color(hex: "#4A3728")).frame(width: 4, height: 4)
-                }
-                .offset(y: -2)
-            }
-            if pose == "sleep" {
-                Text("z")
-                    .font(.caption2)
-                    .foregroundStyle(Color(hex: "#8A6A55"))
-                    .offset(x: 16, y: -16)
-            }
-            outfit
+enum MongleArt {
+    static func pet(speciesId: String, pose: String, stageLabel: String) -> String {
+        if stageLabel == "알" || pose == "egg" { return "egg" }
+        let base = speciesId == "base" || speciesId == "sp_peach" || speciesId.isEmpty
+        if !base { return speciesId }
+        switch pose {
+        case "sleep": return "base_sleep"
+        case "happy": return "base_happy"
+        case "walk", "out": return "base_walk_left"
+        default: return "base_idle"
         }
     }
 
-    private var bodyShape: some Shape {
-        if pose == "egg" {
-            return AnyShape(Ellipse())
+    static func room(wallHex: String, timeOfDay: String, dark: Bool) -> String {
+        let theme: String
+        if dark || wallHex.uppercased().contains("2C3A5A") {
+            theme = "starry"
+        } else if wallHex.uppercased().contains("D7F3EC") {
+            theme = "mint"
+        } else {
+            theme = "wood"
         }
-        return AnyShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        let day = timeOfDay == "night" ? "night" : "day"
+        return "room_\(theme)_\(day)_1x1"
     }
 
-    private var bodyColor: String {
-        switch speciesId {
-        case "sp_bunny": return "#D9F3EA"
-        case "sp_bear": return "#FFE7A8"
-        case "sp_frog": return "#D7F3E4"
-        case "sp_cat": return "#FFD7C2"
-        case "sp_penguin": return "#F7F4EF"
-        case "sp_panda": return "#FFF7EF"
-        case "sp_dragon": return "#D5F4EE"
-        case "sp_ghost": return "#E6D9F6"
-        case "sp_cloud": return "#E4DDF8"
-        default: return "#FFE3D2"
+    static func image(_ name: String) -> UIImage? {
+        let bundle = Bundle.main
+        if let url = bundle.url(forResource: name, withExtension: "webp", subdirectory: "Art") {
+            return UIImage(contentsOfFile: url.path)
         }
-    }
-
-    @ViewBuilder
-    private var outfit: some View {
-        switch outfitId {
-        case "hat_sprout":
-            Capsule()
-                .fill(Color(hex: "#7DCEA0"))
-                .frame(width: 8, height: 14)
-                .offset(y: -28)
-        case "scarf_cloud":
-            Capsule()
-                .fill(Color.white)
-                .frame(width: 28, height: 8)
-                .offset(y: 10)
-        case "ribbon_berry":
-            Circle()
-                .fill(Color(hex: "#E25B5B"))
-                .frame(width: 8, height: 8)
-                .offset(x: 14, y: -8)
-        default:
-            EmptyView()
+        if let url = bundle.url(forResource: name, withExtension: "webp") {
+            return UIImage(contentsOfFile: url.path)
         }
+        return nil
     }
 }
 
-struct AnyShape: Shape {
-    private let pathBuilder: (CGRect) -> Path
+struct MongleArtImage: View {
+    let name: String
+    var fill = false
 
-    init<S: Shape>(_ shape: S) {
-        pathBuilder = { rect in shape.path(in: rect) }
-    }
-
-    func path(in rect: CGRect) -> Path {
-        pathBuilder(rect)
+    var body: some View {
+        if let ui = MongleArt.image(name) {
+            Image(uiImage: ui)
+                .resizable()
+                .aspectRatio(contentMode: fill ? .fill : .fit)
+        } else {
+            Color.clear
+        }
     }
 }
 

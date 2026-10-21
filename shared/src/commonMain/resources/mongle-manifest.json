@@ -1,0 +1,1399 @@
+{
+  "base_idle": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/base_idle.webp",
+      "original": "characters/orig/base_idle.jpg",
+      "cutout_png": "characters/orig/base_idle_cutout.png"
+    },
+    "subcategory": "base_variant",
+    "korean_name": "몽글(기본)",
+    "price": null
+  },
+  "base_blink": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/base_blink.webp",
+      "original": "characters/orig/base_blink.jpg",
+      "cutout_png": "characters/orig/base_blink_cutout.png"
+    },
+    "subcategory": "base_variant",
+    "korean_name": "몽글(눈깜빡)",
+    "price": null
+  },
+  "base_happy": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/base_happy.webp",
+      "original": "characters/orig/base_happy.jpg",
+      "cutout_png": "characters/orig/base_happy_cutout.png"
+    },
+    "subcategory": "base_variant",
+    "korean_name": "몽글(기쁨)",
+    "price": null
+  },
+  "base_sleep": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/base_sleep.webp",
+      "original": "characters/orig/base_sleep.jpg",
+      "cutout_png": "characters/orig/base_sleep_cutout.png"
+    },
+    "subcategory": "base_variant",
+    "korean_name": "몽글(잠)",
+    "price": null
+  },
+  "base_eat": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/base_eat.webp",
+      "original": "characters/orig/base_eat.jpg",
+      "cutout_png": "characters/orig/base_eat_cutout.png"
+    },
+    "subcategory": "base_variant",
+    "korean_name": "몽글(먹기)",
+    "price": null
+  },
+  "base_walk_left": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/base_walk_left.webp",
+      "original": "characters/orig/base_walk_left.jpg",
+      "cutout_png": "characters/orig/base_walk_left_cutout.png"
+    },
+    "subcategory": "base_variant",
+    "korean_name": "몽글(걷기-왼쪽)",
+    "price": null
+  },
+  "cat": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/cat.webp",
+      "original": "characters/orig/cat.jpg",
+      "cutout_png": "characters/orig/cat_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "고양이",
+    "price": null
+  },
+  "rabbit": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/rabbit.webp",
+      "original": "characters/orig/rabbit.jpg",
+      "cutout_png": "characters/orig/rabbit_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "토끼",
+    "price": null
+  },
+  "bear": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/bear.webp",
+      "original": "characters/orig/bear.jpg",
+      "cutout_png": "characters/orig/bear_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "곰",
+    "price": null
+  },
+  "frog": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/frog.webp",
+      "original": "characters/orig/frog.jpg",
+      "cutout_png": "characters/orig/frog_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "개구리",
+    "price": null
+  },
+  "chick": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/chick.webp",
+      "original": "characters/orig/chick.jpg",
+      "cutout_png": "characters/orig/chick_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "병아리",
+    "price": null
+  },
+  "mandu": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/mandu.webp",
+      "original": "characters/orig/mandu.jpg",
+      "cutout_png": "characters/orig/mandu_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "만두",
+    "price": null
+  },
+  "strawberry": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/strawberry.webp",
+      "original": "characters/orig/strawberry.jpg",
+      "cutout_png": "characters/orig/strawberry_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "딸기",
+    "price": null
+  },
+  "greentea": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/greentea.webp",
+      "original": "characters/orig/greentea.jpg",
+      "cutout_png": "characters/orig/greentea_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "녹차",
+    "price": null
+  },
+  "peach": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/peach.webp",
+      "original": "characters/orig/peach.jpg",
+      "cutout_png": "characters/orig/peach_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "복숭아",
+    "price": null
+  },
+  "cloud": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/cloud.webp",
+      "original": "characters/orig/cloud.jpg",
+      "cutout_png": "characters/orig/cloud_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "구름",
+    "price": null
+  },
+  "star": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/star.webp",
+      "original": "characters/orig/star.jpg",
+      "cutout_png": "characters/orig/star_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "별",
+    "price": null
+  },
+  "ghost": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/ghost.webp",
+      "original": "characters/orig/ghost.jpg",
+      "cutout_png": "characters/orig/ghost_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "유령",
+    "price": null
+  },
+  "sprout": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/sprout.webp",
+      "original": "characters/orig/sprout.jpg",
+      "cutout_png": "characters/orig/sprout_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "새싹",
+    "price": null
+  },
+  "penguin": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/penguin.webp",
+      "original": "characters/orig/penguin.jpg",
+      "cutout_png": "characters/orig/penguin_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "펭귄",
+    "price": null
+  },
+  "hamster": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/hamster.webp",
+      "original": "characters/orig/hamster.jpg",
+      "cutout_png": "characters/orig/hamster_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "햄스터",
+    "price": null
+  },
+  "fox": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/fox.webp",
+      "original": "characters/orig/fox.jpg",
+      "cutout_png": "characters/orig/fox_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "여우",
+    "price": null
+  },
+  "seal": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/seal.webp",
+      "original": "characters/orig/seal.jpg",
+      "cutout_png": "characters/orig/seal_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "물범",
+    "price": null
+  },
+  "panda": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/panda.webp",
+      "original": "characters/orig/panda.jpg",
+      "cutout_png": "characters/orig/panda_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "판다",
+    "price": null
+  },
+  "babydragon": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/babydragon.webp",
+      "original": "characters/orig/babydragon.jpg",
+      "cutout_png": "characters/orig/babydragon_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "아기용",
+    "price": null
+  },
+  "egg": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/egg.webp",
+      "original": "characters/orig/egg.jpg",
+      "cutout_png": "characters/orig/egg_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "달걀",
+    "price": null
+  },
+  "milk": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/milk.webp",
+      "original": "characters/orig/milk.jpg",
+      "cutout_png": "characters/orig/milk_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "우유",
+    "price": null
+  },
+  "injeolmi": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/injeolmi.webp",
+      "original": "characters/orig/injeolmi.jpg",
+      "cutout_png": "characters/orig/injeolmi_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "인절미",
+    "price": null
+  },
+  "lion": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/lion.webp",
+      "original": "characters/orig/lion.jpg",
+      "cutout_png": "characters/orig/lion_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "사자",
+    "price": null
+  },
+  "chestnut": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/chestnut.webp",
+      "original": "characters/orig/chestnut.jpg",
+      "cutout_png": "characters/orig/chestnut_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "밤",
+    "price": null
+  },
+  "tiger": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/tiger.webp",
+      "original": "characters/orig/tiger.jpg",
+      "cutout_png": "characters/orig/tiger_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "호랑이",
+    "price": null
+  },
+  "squirrel": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/squirrel.webp",
+      "original": "characters/orig/squirrel.jpg",
+      "cutout_png": "characters/orig/squirrel_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "다람쥐",
+    "price": null
+  },
+  "duck": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/duck.webp",
+      "original": "characters/orig/duck.jpg",
+      "cutout_png": "characters/orig/duck_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "오리",
+    "price": null
+  },
+  "sheep": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/sheep.webp",
+      "original": "characters/orig/sheep.jpg",
+      "cutout_png": "characters/orig/sheep_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "양",
+    "price": null
+  },
+  "whale": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/whale.webp",
+      "original": "characters/orig/whale.jpg",
+      "cutout_png": "characters/orig/whale_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "고래",
+    "price": null
+  },
+  "octopus": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/octopus.webp",
+      "original": "characters/orig/octopus.jpg",
+      "cutout_png": "characters/orig/octopus_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "문어",
+    "price": null
+  },
+  "mushroom": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/mushroom.webp",
+      "original": "characters/orig/mushroom.jpg",
+      "cutout_png": "characters/orig/mushroom_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "버섯",
+    "price": null
+  },
+  "sunflower": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/sunflower.webp",
+      "original": "characters/orig/sunflower.jpg",
+      "cutout_png": "characters/orig/sunflower_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "해바라기",
+    "price": null
+  },
+  "lemon": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/lemon.webp",
+      "original": "characters/orig/lemon.jpg",
+      "cutout_png": "characters/orig/lemon_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "레몬",
+    "price": null
+  },
+  "pudding": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/pudding.webp",
+      "original": "characters/orig/pudding.jpg",
+      "cutout_png": "characters/orig/pudding_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "푸딩",
+    "price": null
+  },
+  "macaron": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/macaron.webp",
+      "original": "characters/orig/macaron.jpg",
+      "cutout_png": "characters/orig/macaron_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "마카롱",
+    "price": null
+  },
+  "donut": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/donut.webp",
+      "original": "characters/orig/donut.jpg",
+      "cutout_png": "characters/orig/donut_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "도넛",
+    "price": null
+  },
+  "sweetpotato": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/sweetpotato.webp",
+      "original": "characters/orig/sweetpotato.jpg",
+      "cutout_png": "characters/orig/sweetpotato_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "고구마",
+    "price": null
+  },
+  "snowman": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/snowman.webp",
+      "original": "characters/orig/snowman.jpg",
+      "cutout_png": "characters/orig/snowman_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "눈사람",
+    "price": null
+  },
+  "rainbow": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/rainbow.webp",
+      "original": "characters/orig/rainbow.jpg",
+      "cutout_png": "characters/orig/rainbow_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "무지개",
+    "price": null
+  },
+  "moon": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/moon.webp",
+      "original": "characters/orig/moon.jpg",
+      "cutout_png": "characters/orig/moon_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "달",
+    "price": null
+  },
+  "owl": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/owl.webp",
+      "original": "characters/orig/owl.jpg",
+      "cutout_png": "characters/orig/owl_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "부엉이",
+    "price": null
+  },
+  "koala": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/koala.webp",
+      "original": "characters/orig/koala.jpg",
+      "cutout_png": "characters/orig/koala_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "코알라",
+    "price": null
+  },
+  "otter": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/otter.webp",
+      "original": "characters/orig/otter.jpg",
+      "cutout_png": "characters/orig/otter_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "수달",
+    "price": null
+  },
+  "hen": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/hen.webp",
+      "original": "characters/orig/hen.jpg",
+      "cutout_png": "characters/orig/hen_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "암탉",
+    "price": null
+  },
+  "pig": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/pig.webp",
+      "original": "characters/orig/pig.jpg",
+      "cutout_png": "characters/orig/pig_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "돼지",
+    "price": null
+  },
+  "puppy": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/puppy.webp",
+      "original": "characters/orig/puppy.jpg",
+      "cutout_png": "characters/orig/puppy_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "강아지",
+    "price": null
+  },
+  "shark": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/shark.webp",
+      "original": "characters/orig/shark.jpg",
+      "cutout_png": "characters/orig/shark_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "상어",
+    "price": null
+  },
+  "butter": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/butter.webp",
+      "original": "characters/orig/butter.jpg",
+      "cutout_png": "characters/orig/butter_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "버터",
+    "price": null
+  },
+  "palette": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/palette.webp",
+      "original": "characters/orig/palette.jpg",
+      "cutout_png": "characters/orig/palette_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "팔레트",
+    "price": null
+  },
+  "barley": {
+    "category": "characters",
+    "files": {
+      "webp": "characters/barley.webp",
+      "original": "characters/orig/barley.jpg",
+      "cutout_png": "characters/orig/barley_cutout.png"
+    },
+    "subcategory": "species",
+    "korean_name": "보리",
+    "price": null
+  },
+  "cushion_bed": {
+    "category": "items",
+    "files": {
+      "webp": "items/cushion_bed.webp",
+      "original": "items/orig/cushion_bed.jpg",
+      "cutout_png": "items/orig/cushion_bed_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 800,
+    "price_source": "sheet",
+    "korean_name": "쿠션 침대"
+  },
+  "wood_bed": {
+    "category": "items",
+    "files": {
+      "webp": "items/wood_bed.webp",
+      "original": "items/orig/wood_bed.jpg",
+      "cutout_png": "items/orig/wood_bed_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 800,
+    "price_source": "sheet",
+    "korean_name": "원목 침대"
+  },
+  "bookshelf": {
+    "category": "items",
+    "files": {
+      "webp": "items/bookshelf.webp",
+      "original": "items/orig/bookshelf.jpg",
+      "cutout_png": "items/orig/bookshelf_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 600,
+    "price_source": "sheet",
+    "korean_name": "책장"
+  },
+  "round_table": {
+    "category": "items",
+    "files": {
+      "webp": "items/round_table.webp",
+      "original": "items/orig/round_table.jpg",
+      "cutout_png": "items/orig/round_table_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 550,
+    "price_source": "sheet",
+    "korean_name": "원형 테이블"
+  },
+  "floor_lamp": {
+    "category": "items",
+    "files": {
+      "webp": "items/floor_lamp.webp",
+      "original": "items/orig/floor_lamp.jpg",
+      "cutout_png": "items/orig/floor_lamp_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 450,
+    "price_source": "sheet",
+    "korean_name": "스탠드 조명"
+  },
+  "round_chair": {
+    "category": "items",
+    "files": {
+      "webp": "items/round_chair.webp",
+      "original": "items/orig/round_chair.jpg",
+      "cutout_png": "items/orig/round_chair_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 500,
+    "price_source": "sheet",
+    "korean_name": "동글 의자"
+  },
+  "mint_rug": {
+    "category": "items",
+    "files": {
+      "webp": "items/mint_rug.webp",
+      "original": "items/orig/mint_rug.jpg",
+      "cutout_png": "items/orig/mint_rug_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 300,
+    "price_source": "sheet",
+    "korean_name": "민트 러그"
+  },
+  "flower_pot": {
+    "category": "items",
+    "files": {
+      "webp": "items/flower_pot.webp",
+      "original": "items/orig/flower_pot.jpg",
+      "cutout_png": "items/orig/flower_pot_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 300,
+    "price_source": "sheet",
+    "korean_name": "화분"
+  },
+  "window": {
+    "category": "items",
+    "files": {
+      "webp": "items/window.webp",
+      "original": "items/orig/window.jpg",
+      "cutout_png": "items/orig/window_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 500,
+    "price_source": "sheet",
+    "korean_name": "창문"
+  },
+  "string_lights": {
+    "category": "items",
+    "files": {
+      "webp": "items/string_lights.webp",
+      "original": "items/orig/string_lights.jpg",
+      "cutout_png": "items/orig/string_lights_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 400,
+    "price_source": "sheet",
+    "korean_name": "줄 조명"
+  },
+  "fish_tank": {
+    "category": "items",
+    "files": {
+      "webp": "items/fish_tank.webp",
+      "original": "items/orig/fish_tank.jpg",
+      "cutout_png": "items/orig/fish_tank_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 700,
+    "price_source": "sheet",
+    "korean_name": "어항"
+  },
+  "piano": {
+    "category": "items",
+    "files": {
+      "webp": "items/piano.webp",
+      "original": "items/orig/piano.jpg",
+      "cutout_png": "items/orig/piano_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 900,
+    "price_source": "sheet",
+    "korean_name": "피아노"
+  },
+  "ribbon": {
+    "category": "items",
+    "files": {
+      "webp": "items/ribbon.webp",
+      "original": "items/orig/ribbon.jpg",
+      "cutout_png": "items/orig/ribbon_cutout.png"
+    },
+    "subcategory": "outfit",
+    "price": 150,
+    "price_source": "sheet",
+    "korean_name": "리본"
+  },
+  "beret": {
+    "category": "items",
+    "files": {
+      "webp": "items/beret.webp",
+      "original": "items/orig/beret.jpg",
+      "cutout_png": "items/orig/beret_cutout.png"
+    },
+    "subcategory": "outfit",
+    "price": 200,
+    "price_source": "sheet",
+    "korean_name": "베레모"
+  },
+  "knit_scarf": {
+    "category": "items",
+    "files": {
+      "webp": "items/knit_scarf.webp",
+      "original": "items/orig/knit_scarf.jpg",
+      "cutout_png": "items/orig/knit_scarf_cutout.png"
+    },
+    "subcategory": "outfit",
+    "price": 250,
+    "price_source": "sheet",
+    "korean_name": "니트 목도리"
+  },
+  "raincoat": {
+    "category": "items",
+    "files": {
+      "webp": "items/raincoat.webp",
+      "original": "items/orig/raincoat.jpg",
+      "cutout_png": "items/orig/raincoat_cutout.png"
+    },
+    "subcategory": "outfit",
+    "price": 300,
+    "price_source": "sheet",
+    "korean_name": "우비"
+  },
+  "crown": {
+    "category": "items",
+    "files": {
+      "webp": "items/crown.webp",
+      "original": "items/orig/crown.jpg",
+      "cutout_png": "items/orig/crown_cutout.png"
+    },
+    "subcategory": "outfit",
+    "price": 500,
+    "price_source": "sheet",
+    "korean_name": "왕관"
+  },
+  "sunglasses": {
+    "category": "items",
+    "files": {
+      "webp": "items/sunglasses.webp",
+      "original": "items/orig/sunglasses.jpg",
+      "cutout_png": "items/orig/sunglasses_cutout.png"
+    },
+    "subcategory": "outfit",
+    "price": 200,
+    "price_source": "sheet",
+    "korean_name": "선글라스"
+  },
+  "sprout_hat": {
+    "category": "items",
+    "files": {
+      "webp": "items/sprout_hat.webp",
+      "original": "items/orig/sprout_hat.jpg",
+      "cutout_png": "items/orig/sprout_hat_cutout.png"
+    },
+    "subcategory": "outfit",
+    "price": 350,
+    "price_source": "sheet",
+    "korean_name": "새싹 모자"
+  },
+  "hoodie": {
+    "category": "items",
+    "files": {
+      "webp": "items/hoodie.webp",
+      "original": "items/orig/hoodie.jpg",
+      "cutout_png": "items/orig/hoodie_cutout.png"
+    },
+    "subcategory": "outfit",
+    "price": 400,
+    "price_source": "sheet",
+    "korean_name": "후드티"
+  },
+  "seashell": {
+    "category": "items",
+    "files": {
+      "webp": "items/seashell.webp",
+      "original": "items/orig/seashell.jpg",
+      "cutout_png": "items/orig/seashell_cutout.png"
+    },
+    "subcategory": "outdoor_gift",
+    "price": 100,
+    "price_source": "sheet",
+    "korean_name": "조개껍데기"
+  },
+  "clover": {
+    "category": "items",
+    "files": {
+      "webp": "items/clover.webp",
+      "original": "items/orig/clover.jpg",
+      "cutout_png": "items/orig/clover_cutout.png"
+    },
+    "subcategory": "outdoor_gift",
+    "price": 150,
+    "price_source": "sheet",
+    "korean_name": "네잎클로버"
+  },
+  "acorn": {
+    "category": "items",
+    "files": {
+      "webp": "items/acorn.webp",
+      "original": "items/orig/acorn.jpg",
+      "cutout_png": "items/orig/acorn_cutout.png"
+    },
+    "subcategory": "outdoor_gift",
+    "price": 100,
+    "price_source": "sheet",
+    "korean_name": "도토리"
+  },
+  "pebble": {
+    "category": "items",
+    "files": {
+      "webp": "items/pebble.webp",
+      "original": "items/orig/pebble.jpg",
+      "cutout_png": "items/orig/pebble_cutout.png"
+    },
+    "subcategory": "outdoor_gift",
+    "price": 50,
+    "price_source": "sheet",
+    "korean_name": "조약돌"
+  },
+  "feather": {
+    "category": "items",
+    "files": {
+      "webp": "items/feather.webp",
+      "original": "items/orig/feather.jpg",
+      "cutout_png": "items/orig/feather_cutout.png"
+    },
+    "subcategory": "outdoor_gift",
+    "price": 100,
+    "price_source": "sheet",
+    "korean_name": "깃털"
+  },
+  "star_piece": {
+    "category": "items",
+    "files": {
+      "webp": "items/star_piece.webp",
+      "original": "items/orig/star_piece.jpg",
+      "cutout_png": "items/orig/star_piece_cutout.png"
+    },
+    "subcategory": "outdoor_gift",
+    "price": 300,
+    "price_source": "sheet",
+    "korean_name": "별조각"
+  },
+  "mushroom_item": {
+    "category": "items",
+    "files": {
+      "webp": "items/mushroom_item.webp",
+      "original": "items/orig/mushroom_item.jpg",
+      "cutout_png": "items/orig/mushroom_item_cutout.png"
+    },
+    "subcategory": "outdoor_gift",
+    "price": 150,
+    "price_source": "sheet",
+    "korean_name": "버섯"
+  },
+  "letter": {
+    "category": "items",
+    "files": {
+      "webp": "items/letter.webp",
+      "original": "items/orig/letter.jpg",
+      "cutout_png": "items/orig/letter_cutout.png"
+    },
+    "subcategory": "outdoor_gift",
+    "price": 100,
+    "price_source": "sheet",
+    "korean_name": "편지"
+  },
+  "tv": {
+    "category": "items",
+    "files": {
+      "webp": "items/tv.webp",
+      "original": "items/orig/tv.jpg",
+      "cutout_png": "items/orig/tv_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 600,
+    "price_source": "sheet",
+    "korean_name": "TV"
+  },
+  "desk": {
+    "category": "items",
+    "files": {
+      "webp": "items/desk.webp",
+      "original": "items/orig/desk.jpg",
+      "cutout_png": "items/orig/desk_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 500,
+    "price_source": "sheet",
+    "korean_name": "책상"
+  },
+  "wardrobe": {
+    "category": "items",
+    "files": {
+      "webp": "items/wardrobe.webp",
+      "original": "items/orig/wardrobe.jpg",
+      "cutout_png": "items/orig/wardrobe_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 700,
+    "price_source": "sheet",
+    "korean_name": "옷장"
+  },
+  "bathtub": {
+    "category": "items",
+    "files": {
+      "webp": "items/bathtub.webp",
+      "original": "items/orig/bathtub.jpg",
+      "cutout_png": "items/orig/bathtub_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 600,
+    "price_source": "sheet",
+    "korean_name": "욕조"
+  },
+  "cat_tower": {
+    "category": "items",
+    "files": {
+      "webp": "items/cat_tower.webp",
+      "original": "items/orig/cat_tower.jpg",
+      "cutout_png": "items/orig/cat_tower_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 800,
+    "price_source": "sheet",
+    "korean_name": "캣타워"
+  },
+  "food_bowl": {
+    "category": "items",
+    "files": {
+      "webp": "items/food_bowl.webp",
+      "original": "items/orig/food_bowl.jpg",
+      "cutout_png": "items/orig/food_bowl_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 200,
+    "price_source": "sheet",
+    "korean_name": "밥그릇"
+  },
+  "wall_clock": {
+    "category": "items",
+    "files": {
+      "webp": "items/wall_clock.webp",
+      "original": "items/orig/wall_clock.jpg",
+      "cutout_png": "items/orig/wall_clock_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 300,
+    "price_source": "sheet",
+    "korean_name": "벽시계"
+  },
+  "blanket": {
+    "category": "items",
+    "files": {
+      "webp": "items/blanket.webp",
+      "original": "items/orig/blanket.jpg",
+      "cutout_png": "items/orig/blanket_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 250,
+    "price_source": "sheet",
+    "korean_name": "담요"
+  },
+  "sofa": {
+    "category": "items",
+    "files": {
+      "webp": "items/sofa.webp",
+      "original": "items/orig/sofa.jpg",
+      "cutout_png": "items/orig/sofa_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 650,
+    "price_source": "suggested",
+    "korean_name": "미니 소파"
+  },
+  "cloud_lamp": {
+    "category": "items",
+    "files": {
+      "webp": "items/cloud_lamp.webp",
+      "original": "items/orig/cloud_lamp.jpg",
+      "cutout_png": "items/orig/cloud_lamp_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 450,
+    "price_source": "suggested",
+    "korean_name": "구름 조명"
+  },
+  "picture_frame": {
+    "category": "items",
+    "files": {
+      "webp": "items/picture_frame.webp",
+      "original": "items/orig/picture_frame.jpg",
+      "cutout_png": "items/orig/picture_frame_cutout.png"
+    },
+    "subcategory": "furniture",
+    "price": 300,
+    "price_source": "suggested",
+    "korean_name": "액자"
+  },
+  "straw_hat": {
+    "category": "items",
+    "files": {
+      "webp": "items/straw_hat.webp",
+      "original": "items/orig/straw_hat.jpg",
+      "cutout_png": "items/orig/straw_hat_cutout.png"
+    },
+    "subcategory": "outfit",
+    "price": 250,
+    "price_source": "suggested",
+    "korean_name": "밀짚모자"
+  },
+  "bunny_ears": {
+    "category": "items",
+    "files": {
+      "webp": "items/bunny_ears.webp",
+      "original": "items/orig/bunny_ears.jpg",
+      "cutout_png": "items/orig/bunny_ears_cutout.png"
+    },
+    "subcategory": "outfit",
+    "price": 300,
+    "price_source": "suggested",
+    "korean_name": "토끼 귀 머리띠"
+  },
+  "flower_crown": {
+    "category": "items",
+    "files": {
+      "webp": "items/flower_crown.webp",
+      "original": "items/orig/flower_crown.jpg",
+      "cutout_png": "items/orig/flower_crown_cutout.png"
+    },
+    "subcategory": "outfit",
+    "price": 350,
+    "price_source": "suggested",
+    "korean_name": "꽃 화관"
+  },
+  "bow_tie": {
+    "category": "items",
+    "files": {
+      "webp": "items/bow_tie.webp",
+      "original": "items/orig/bow_tie.jpg",
+      "cutout_png": "items/orig/bow_tie_cutout.png"
+    },
+    "subcategory": "outfit",
+    "price": 150,
+    "price_source": "suggested",
+    "korean_name": "나비넥타이"
+  },
+  "rain_boots": {
+    "category": "items",
+    "files": {
+      "webp": "items/rain_boots.webp",
+      "original": "items/orig/rain_boots.jpg",
+      "cutout_png": "items/orig/rain_boots_cutout.png"
+    },
+    "subcategory": "outfit",
+    "price": 250,
+    "price_source": "suggested",
+    "korean_name": "노란 장화"
+  },
+  "maple_leaf": {
+    "category": "items",
+    "files": {
+      "webp": "items/maple_leaf.webp",
+      "original": "items/orig/maple_leaf.jpg",
+      "cutout_png": "items/orig/maple_leaf_cutout.png"
+    },
+    "subcategory": "outdoor_gift",
+    "price": 100,
+    "price_source": "suggested",
+    "korean_name": "단풍잎"
+  },
+  "wildflower": {
+    "category": "items",
+    "files": {
+      "webp": "items/wildflower.webp",
+      "original": "items/orig/wildflower.jpg",
+      "cutout_png": "items/orig/wildflower_cutout.png"
+    },
+    "subcategory": "outdoor_gift",
+    "price": 100,
+    "price_source": "suggested",
+    "korean_name": "들꽃"
+  },
+  "strawberry_cake": {
+    "category": "items",
+    "files": {
+      "webp": "items/strawberry_cake.webp",
+      "original": "items/orig/strawberry_cake.jpg",
+      "cutout_png": "items/orig/strawberry_cake_cutout.png"
+    },
+    "subcategory": "food",
+    "price": 200,
+    "price_source": "suggested",
+    "korean_name": "딸기 케이크"
+  },
+  "rice_ball": {
+    "category": "items",
+    "files": {
+      "webp": "items/rice_ball.webp",
+      "original": "items/orig/rice_ball.jpg",
+      "cutout_png": "items/orig/rice_ball_cutout.png"
+    },
+    "subcategory": "food",
+    "price": 100,
+    "price_source": "suggested",
+    "korean_name": "주먹밥"
+  },
+  "milk_bottle": {
+    "category": "items",
+    "files": {
+      "webp": "items/milk_bottle.webp",
+      "original": "items/orig/milk_bottle.jpg",
+      "cutout_png": "items/orig/milk_bottle_cutout.png"
+    },
+    "subcategory": "food",
+    "price": 100,
+    "price_source": "suggested",
+    "korean_name": "우유병"
+  },
+  "cookie": {
+    "category": "items",
+    "files": {
+      "webp": "items/cookie.webp",
+      "original": "items/orig/cookie.jpg",
+      "cutout_png": "items/orig/cookie_cutout.png"
+    },
+    "subcategory": "food",
+    "price": 80,
+    "price_source": "suggested",
+    "korean_name": "쿠키"
+  },
+  "room_wood_day_3x4": {
+    "category": "rooms",
+    "files": {
+      "webp": "rooms/room_wood_day_3x4.webp",
+      "original": "rooms/orig/room_wood_day_3x4.jpg"
+    },
+    "korean_name": "기본 원목 방 (낮, 3:4)",
+    "theme": "wood",
+    "time": "day",
+    "aspect": "3:4",
+    "price": null
+  },
+  "room_wood_night_3x4": {
+    "category": "rooms",
+    "files": {
+      "webp": "rooms/room_wood_night_3x4.webp",
+      "original": "rooms/orig/room_wood_night_3x4.jpg"
+    },
+    "korean_name": "기본 원목 방 (밤, 3:4)",
+    "theme": "wood",
+    "time": "night",
+    "aspect": "3:4",
+    "price": null
+  },
+  "room_wood_day_1x1": {
+    "category": "rooms",
+    "files": {
+      "webp": "rooms/room_wood_day_1x1.webp",
+      "original": "rooms/orig/room_wood_day_1x1.jpg"
+    },
+    "korean_name": "기본 원목 방 (낮, 1:1)",
+    "theme": "wood",
+    "time": "day",
+    "aspect": "1:1",
+    "price": null
+  },
+  "room_wood_night_1x1": {
+    "category": "rooms",
+    "files": {
+      "webp": "rooms/room_wood_night_1x1.webp",
+      "original": "rooms/orig/room_wood_night_1x1.jpg"
+    },
+    "korean_name": "기본 원목 방 (밤, 1:1)",
+    "theme": "wood",
+    "time": "night",
+    "aspect": "1:1",
+    "price": null
+  },
+  "room_mint_day_3x4": {
+    "category": "rooms",
+    "files": {
+      "webp": "rooms/room_mint_day_3x4.webp",
+      "original": "rooms/orig/room_mint_day_3x4.jpg"
+    },
+    "korean_name": "민트 방 (낮, 3:4)",
+    "theme": "mint",
+    "time": "day",
+    "aspect": "3:4",
+    "price": null
+  },
+  "room_starry_day_3x4": {
+    "category": "rooms",
+    "files": {
+      "webp": "rooms/room_starry_day_3x4.webp",
+      "original": "rooms/orig/room_starry_day_3x4.jpg"
+    },
+    "korean_name": "밤하늘 방 (낮, 3:4)",
+    "theme": "starry",
+    "time": "day",
+    "aspect": "3:4",
+    "price": null
+  },
+  "room_mint_night_3x4": {
+    "category": "rooms",
+    "files": {
+      "webp": "rooms/room_mint_night_3x4.webp",
+      "original": "rooms/orig/room_mint_night_3x4.jpg"
+    },
+    "korean_name": "민트 방 (밤, 3:4)",
+    "theme": "mint",
+    "time": "night",
+    "aspect": "3:4",
+    "price": null
+  },
+  "room_mint_day_1x1": {
+    "category": "rooms",
+    "files": {
+      "webp": "rooms/room_mint_day_1x1.webp",
+      "original": "rooms/orig/room_mint_day_1x1.jpg"
+    },
+    "korean_name": "민트 방 (낮, 1:1)",
+    "theme": "mint",
+    "time": "day",
+    "aspect": "1:1",
+    "price": null
+  },
+  "room_mint_night_1x1": {
+    "category": "rooms",
+    "files": {
+      "webp": "rooms/room_mint_night_1x1.webp",
+      "original": "rooms/orig/room_mint_night_1x1.jpg"
+    },
+    "korean_name": "민트 방 (밤, 1:1)",
+    "theme": "mint",
+    "time": "night",
+    "aspect": "1:1",
+    "price": null
+  },
+  "room_starry_night_3x4": {
+    "category": "rooms",
+    "files": {
+      "webp": "rooms/room_starry_night_3x4.webp",
+      "original": "rooms/orig/room_starry_night_3x4.jpg"
+    },
+    "korean_name": "밤하늘 방 (밤, 3:4)",
+    "theme": "starry",
+    "time": "night",
+    "aspect": "3:4",
+    "price": null
+  },
+  "room_starry_day_1x1": {
+    "category": "rooms",
+    "files": {
+      "webp": "rooms/room_starry_day_1x1.webp",
+      "original": "rooms/orig/room_starry_day_1x1.jpg"
+    },
+    "korean_name": "밤하늘 방 (낮, 1:1)",
+    "theme": "starry",
+    "time": "day",
+    "aspect": "1:1",
+    "price": null
+  },
+  "room_starry_night_1x1": {
+    "category": "rooms",
+    "files": {
+      "webp": "rooms/room_starry_night_1x1.webp",
+      "original": "rooms/orig/room_starry_night_1x1.jpg"
+    },
+    "korean_name": "밤하늘 방 (밤, 1:1)",
+    "theme": "starry",
+    "time": "night",
+    "aspect": "1:1",
+    "price": null
+  },
+  "app_icon": {
+    "category": "ui",
+    "files": {
+      "webp": "ui/app_icon.webp",
+      "original": "ui/orig/app_icon.jpg",
+      "png_1024": "ui/app_icon_1024.png"
+    },
+    "korean_name": "앱 아이콘",
+    "price": null
+  },
+  "onboarding": {
+    "category": "ui",
+    "files": {
+      "webp": "ui/onboarding.webp",
+      "original": "ui/orig/onboarding.jpg"
+    },
+    "korean_name": "온보딩",
+    "price": null
+  },
+  "empty_schedule": {
+    "category": "ui",
+    "files": {
+      "webp": "ui/empty_schedule.webp",
+      "original": "ui/orig/empty_schedule.jpg"
+    },
+    "korean_name": "빈 상태-일정 없음",
+    "price": null
+  },
+  "empty_gifts": {
+    "category": "ui",
+    "files": {
+      "webp": "ui/empty_gifts.webp",
+      "original": "ui/orig/empty_gifts.jpg"
+    },
+    "korean_name": "빈 상태-선물 없음",
+    "price": null
+  }
+}

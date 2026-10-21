@@ -88,7 +88,7 @@ data class PetRecord(
     val outingGiftDefId: String?,
     val pendingGiftDefId: String?,
     val pendingGiftAt: Long?,
-    val speciesId: String = "sp_peach",
+    val speciesId: String = "base",
 )
 
 data class ScheduleRecord(
@@ -242,7 +242,7 @@ data class GameState(
     val wallHex: String,
     val floorHex: String,
     val darkRoom: Boolean,
-    val speciesId: String = "sp_peach",
+    val speciesId: String = "base",
     val level: Int = 1,
 ) {
     val activeRoom: RoomPreset get() = presets[activePreset.coerceIn(0, presets.lastIndex.coerceAtLeast(0))]

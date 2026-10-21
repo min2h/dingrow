@@ -256,12 +256,12 @@ object PetRules {
 
 object GiftRoller {
     private val weights = listOf(
-        350 to "gift_shell",
-        350 to "gift_clover",
-        140 to "gift_pebble",
-        80 to "gift_letter",
-        60 to "gift_acorn",
-        20 to "gift_star",
+        350 to "seashell",
+        350 to "clover",
+        140 to "pebble",
+        80 to "letter",
+        60 to "acorn",
+        20 to "star_piece",
     )
 
     fun roll(seed: Long): ItemDef {
@@ -271,7 +271,7 @@ object GiftRoller {
             cursor += weight
             if (ticket < cursor) return Catalog.byId(id)!!
         }
-        return Catalog.byId("gift_shell")!!
+        return Catalog.byId("seashell")!!
     }
 }
 

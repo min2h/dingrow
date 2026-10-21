@@ -193,7 +193,7 @@ data class WidgetSnapshot(
     val outingText: String = "",
     val darkRoom: Boolean = false,
     val progressLabel: String = "",
-    val speciesId: String = "sp_peach",
+    val speciesId: String = "base",
     val level: Int = 1,
 )
 

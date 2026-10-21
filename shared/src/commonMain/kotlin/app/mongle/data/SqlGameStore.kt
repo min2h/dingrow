@@ -37,7 +37,7 @@ class SqlGameStore(private val db: MongleDatabase) : GameStore {
                 outingGiftDefId = pet.outing_gift_def_id,
                 pendingGiftDefId = pet.pending_gift_def_id,
                 pendingGiftAt = pet.pending_gift_at,
-                speciesId = meta["species_id"]?.takeIf { it.isNotBlank() } ?: "sp_peach",
+                speciesId = meta["species_id"]?.takeIf { it.isNotBlank() } ?: "base",
             ),
             schedules = q.selectSchedules().executeAsList().map { row ->
                 ScheduleRecord(

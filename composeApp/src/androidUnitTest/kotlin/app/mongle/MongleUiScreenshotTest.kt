@@ -51,7 +51,9 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import java.io.File
 import java.io.FileOutputStream
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -77,7 +79,6 @@ class MongleFlowScreenshotTest {
     fun onboardingNamingAndHome() {
         val harness = Harness()
         harness.show()
-        harness.capture("onboarding.png")
         composeRule.onNode(hasSetTextAction()).performTextReplacement("보리")
         composeRule.onNodeWithText("같이 시작하기").performClick()
         harness.settle()
@@ -132,6 +133,9 @@ class MongleFlowScreenshotTest {
         assertEquals(Stage.CHILD, harness.service.state.value.stage)
         composeRule.onNodeWithTag("tab-Home").performClick()
         harness.settle()
+        harness.clock.now = seoulMillis(2026, 10, 21, 15, 0)
+        runBlocking { harness.service.refresh() }
+        harness.settle()
         harness.capture("home.png")
         harness.clickTag("outing")
         harness.settle()
@@ -145,6 +149,12 @@ class MongleFlowScreenshotTest {
         harness.settle()
         assertTrue(harness.service.state.value.coins > coins)
         assertEquals(null, harness.service.state.value.pendingGift)
+        harness.clock.now = seoulMillis(2026, 10, 21, 23, 0)
+        runBlocking { harness.service.refresh() }
+        harness.settle()
+        composeRule.onNodeWithTag("tab-Home").performClick()
+        harness.settle()
+        harness.capture("home-night.png")
     }
 
     @Test
@@ -154,7 +164,7 @@ class MongleFlowScreenshotTest {
         runBlocking {
             harness.service.completeOnboarding("보리")
             harness.growTo(Stage.CHILD)
-            val hatPrice = app.mongle.model.Catalog.byId("hat_sprout")!!.price
+            val hatPrice = app.mongle.model.Catalog.byId("sprout_hat")!!.price
             var guard = 0
             while (harness.service.state.value.coins < harness.service.state.value.todayOffer.price + hatPrice && guard < 80) {
                 if (guard > 0 && guard % 6 == 0) harness.clock.now += 26L * 60 * 60 * 1000
@@ -177,11 +187,11 @@ class MongleFlowScreenshotTest {
             "coins $before -> ${harness.service.state.value.coins} (${harness.service.state.value.statusMessage})",
             harness.service.state.value.coins < before,
         )
-        harness.clickTag("buy-hat_sprout")
+        harness.clickTag("buy-sprout_hat")
         harness.settle()
         assertTrue(
             "owned=${harness.service.state.value.owned} coins=${harness.service.state.value.coins} ${harness.service.state.value.statusMessage}",
-            "hat_sprout" in harness.service.state.value.owned,
+            "sprout_hat" in harness.service.state.value.owned,
         )
         harness.clickText("밤하늘 방")
         harness.settle()
@@ -189,7 +199,7 @@ class MongleFlowScreenshotTest {
         harness.capture("room.png")
         harness.clickText("새싹 모자")
         harness.settle()
-        assertEquals("hat_sprout", harness.service.state.value.outfitId)
+        assertEquals("sprout_hat", harness.service.state.value.outfitId)
         var opened = false
         harness.onWallpaper = { opened = true }
         harness.clickTag("wallpaper")
@@ -207,6 +217,7 @@ class MongleFlowScreenshotTest {
         var motion by mutableStateOf(0.15f to 0.05f)
 
         init {
+            primeComposeResources()
             AndroidHooks.sync = {}
             AndroidHooks.notifyNow = { _, _ -> }
             AndroidHooks.reloadWidgets = {}
@@ -399,6 +410,16 @@ class MongleWidgetAlarmWallpaperTest {
     }
 }
 
+private fun primeComposeResources() {
+    val provider = Class.forName("org.jetbrains.compose.resources.AndroidContextProvider")
+    val companion = provider.getField("Companion").get(null)
+    val setter = companion.javaClass.methods.first { it.name == "setANDROID_CONTEXT" }
+    setter.invoke(companion, RuntimeEnvironment.getApplication())
+}
+
+private fun seoulMillis(year: Int, month: Int, day: Int, hour: Int, minute: Int): Long =
+    LocalDateTime(year, month, day, hour, minute).toInstant(TimeZone.of("Asia/Seoul")).toEpochMilliseconds()
+
 private class MutableClock(var now: Long) : TimeProvider {
     override fun now(): Long = now
 }
@@ -415,7 +436,7 @@ private fun saveBitmap(bitmap: Bitmap, name: String, publish: Boolean = true) {
 
 private fun drawWallpaper(state: app.mongle.model.GameState, shift: Long): Bitmap {
     val bitmap = Bitmap.createBitmap(540, 960, Bitmap.Config.ARGB_8888)
-    WallpaperPainter.draw(Canvas(bitmap), state, shift)
+    WallpaperPainter.draw(Canvas(bitmap), state, shift, RuntimeEnvironment.getApplication())
     return bitmap
 }
 

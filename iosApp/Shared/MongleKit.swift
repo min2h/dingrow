@@ -47,7 +47,7 @@ struct WidgetSnapshot: Codable {
     var outingText: String = ""
     var darkRoom: Bool = false
     var progressLabel: String = ""
-    var speciesId: String = "sp_peach"
+    var speciesId: String = "base"
     var level: Int = 1
 
     static let placeholder = WidgetSnapshot(

@@ -11,7 +11,9 @@ import app.mongle.logic.ScheduleRules
 import app.mongle.logic.ShopRotation
 import app.mongle.model.Catalog
 import app.mongle.model.GameBalance
+import app.mongle.model.LegacyIds
 import app.mongle.model.Rarity
+import app.mongle.model.RoomPreset
 import app.mongle.model.RepeatRule
 import app.mongle.model.SpeciesCatalog
 import app.mongle.model.Stage
@@ -110,17 +112,43 @@ class MongleRulesTest {
         assertTrue(SpeciesCatalog.all.size >= 50)
         assertEquals(SpeciesCatalog.all.size, SpeciesCatalog.all.map { it.id }.toSet().size)
         assertTrue(Catalog.goods.size >= 50)
-        assertEquals(800, Catalog.byId("bed_cloud")!!.price)
-        assertEquals("쿠션 침대", Catalog.byId("bed_cloud")!!.name)
-        assertEquals(350, Catalog.byId("hat_sprout")!!.price)
-        assertEquals("새싹 모자", Catalog.byId("hat_sprout")!!.name)
-        assertEquals(50, Catalog.byId("gift_pebble")!!.sellPrice)
-        assertEquals("돌멩이", Catalog.byId("gift_pebble")!!.name)
+        assertEquals(800, Catalog.byId("cushion_bed")!!.price)
+        assertEquals("쿠션 침대", Catalog.byId("cushion_bed")!!.name)
+        assertEquals(350, Catalog.byId("sprout_hat")!!.price)
+        assertEquals("새싹 모자", Catalog.byId("sprout_hat")!!.name)
+        assertEquals(50, Catalog.byId("pebble")!!.sellPrice)
+        assertEquals("조약돌", Catalog.byId("pebble")!!.name)
         assertEquals(900, Catalog.byId("piano")!!.price)
-        assertTrue(Catalog.byId("hood_yellow")!!.fresh)
+        assertTrue(Catalog.byId("hoodie")!!.fresh)
         assertTrue(Catalog.rotating().any { it.stackable })
         assertTrue(Catalog.rotating().filter { !it.stackable }.all { it.price in 1..80 })
-        assertEquals("sp_peach", SpeciesCatalog.byId("missing").id)
+        assertEquals("peach", SpeciesCatalog.byId("missing").id)
+    }
+
+    @Test
+    fun legacyIdsMigrateExistingSaves() {
+        val now = at(2026, 10, 21, 9, 0)
+        val seed = Seed.create(now)
+        val old = seed.copy(
+            pet = seed.pet.copy(speciesId = "sp_peach", outfitId = "hat_sprout", pendingGiftDefId = "gift_shell"),
+            foods = mapOf("food_basic" to 2, "cookie" to 1),
+            owned = setOf("hat_sprout", "wall_night", "sp_cat"),
+            presets = listOf(RoomPreset(0, "포근한 방", "wall_peach", "floor_wood", "bed_cloud", "rug_leaf", "lamp_sun")),
+        )
+        val next = LegacyIds.migrate(old)
+        assertEquals("base", next.pet.speciesId)
+        assertEquals("sprout_hat", next.pet.outfitId)
+        assertEquals("seashell", next.pet.pendingGiftDefId)
+        assertEquals(3, next.foods["cookie"])
+        assertTrue("sprout_hat" in next.owned)
+        assertTrue("cat" in next.owned)
+        assertTrue("starry" in next.owned)
+        assertEquals("wood", next.presets[0].wallpaperId)
+        assertEquals("wood", next.presets[0].floorId)
+        assertEquals("cushion_bed", next.presets[0].bedId)
+        assertEquals("mint_rug", next.presets[0].rugId)
+        assertEquals("floor_lamp", next.presets[0].lampId)
+        assertEquals(next, LegacyIds.migrate(next))
     }
 
     @Test
@@ -223,7 +251,7 @@ class MongleRulesTest {
         val fed = service.feed()
         assertTrue(fed.ok)
         assertTrue(service.state.value.hunger > before)
-        assertEquals(balance.starterFood - 1, service.state.value.foods.first { it.defId == "food_basic" }.quantity)
+        assertEquals(balance.starterFood - 1, service.state.value.foods.first { it.defId == "cookie" }.quantity)
         val full = GameService(
             MemoryGameStore(rich.copy(pet = rich.pet.copy(hunger = 100))),
             clock,
