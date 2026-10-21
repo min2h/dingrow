@@ -68,8 +68,7 @@ private val ink = ColorProvider(Color(0xFF4A3728))
 private val cream = ColorProvider(Color(0xFFFFF8F3))
 
 @Composable
-private fun SmallBody() {
-    val state = currentState()
+internal fun SmallBody(state: GameState? = currentState()) {
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -105,8 +104,7 @@ private fun SmallBody() {
 }
 
 @Composable
-private fun LargeBody() {
-    val state = currentState()
+internal fun LargeBody(state: GameState? = currentState()) {
     Column(
         modifier = GlanceModifier.fillMaxSize().background(cream).padding(12.dp),
     ) {

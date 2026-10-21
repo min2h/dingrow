@@ -53,6 +53,13 @@ class PetWallpaperService : WallpaperService() {
 
         private fun drawPet(canvas: Canvas) {
             val state = if (AppGraph.ready) AppGraph.service.state.value else null
+            WallpaperPainter.draw(canvas, state, System.currentTimeMillis())
+        }
+    }
+}
+
+internal object WallpaperPainter {
+    fun draw(canvas: Canvas, state: app.mongle.model.GameState?, nowMillis: Long) {
             val night = state?.darkRoom == true || state?.timeOfDay?.name == "NIGHT"
             canvas.drawColor(if (night) Color.parseColor("#243044") else Color.parseColor("#FFF3EA"))
             val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -60,7 +67,7 @@ class PetWallpaperService : WallpaperService() {
             val h = canvas.height.toFloat()
             paint.color = Color.parseColor("#E7C8A4")
             canvas.drawRect(0f, h * 0.72f, w, h, paint)
-            val phase = (System.currentTimeMillis() % 2400) / 2400f
+            val phase = (nowMillis % 2400) / 2400f
             val walking = state?.pose == Pose.WALK || state?.pose == Pose.OUT
             val bob = if (walking) kotlin.math.abs(sin(phase * 4 * PI)).toFloat() * 18f else sin(phase * 2 * PI).toFloat() * 14f
             val dx = if (walking) sin(phase * 2 * PI).toFloat() * w * 0.12f else 0f
@@ -85,6 +92,5 @@ class PetWallpaperService : WallpaperService() {
             paint.color = Color.parseColor("#F4A6A4")
             canvas.drawCircle(cx - radius * 0.48f, cy + radius * 0.22f, radius * 0.12f, paint)
             canvas.drawCircle(cx + radius * 0.48f, cy + radius * 0.22f, radius * 0.12f, paint)
-        }
     }
 }

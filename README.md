@@ -12,10 +12,11 @@
 | --- | --- |
 | `:shared:jvmTest` 14개 (성장, 보상, 외출, 상점, SQLite 왕복) | Linux에서 통과 |
 | `:composeApp:assembleDebug` | Linux에서 통과 |
+| `:composeApp:testDebugUnitTest` 7개 (Compose UI, Glance, 알람, 배경화면) | Linux에서 통과. Robolectric 4.14 + Roborazzi |
 | 디버그 APK | `composeApp/build/outputs/apk/debug/composeApp-debug.apk` |
-| Android 위젯을 실제 런처에 올려 본 것 | 미검증 |
-| Android 12+ 정확한 알람 권한 UX | 미검증 |
-| 에뮬레이터 스크린샷 | 시도했으나 게스트가 adb에 붙지 않아 캡처하지 않음 |
+| Android 위젯을 실제 런처에 올려 본 것 | 미검증. 화면은 Glance `RemoteViews` 테스트 호스트로 그렸음 |
+| Android 12+ 정확한 알람 권한 UX | 미검증. 테스트는 권한이 있는 상태로 알람 시각만 확인 |
+| 에뮬레이터 | 이 커널에서 부팅되지 않음. `/dev/kvm`은 열리지만 vCPU 생성이 `kvm_arch_vcpu_create`에서 커널 버그로 멈춤 |
 | iOS 앱, WidgetKit, App Intents, 알림 | 미검증. Mac과 Xcode, Apple Developer 팀이 필요 |
 
 ## 지금 되는 것
@@ -64,9 +65,13 @@ iOS 타깃(`iosX64`, `iosArm64`, `iosSimulatorArm64`)은 `os.name`에 `mac`이 �
 JDK 17 이상, Android SDK(compileSdk 35)가 필요합니다. SDK 경로는 `local.properties`의 `sdk.dir`에 둡니다. 이 파일은 저장소에 넣지 않습니다.
 
 ```bash
-./gradlew :shared:jvmTest :composeApp:assembleDebug
+./gradlew :shared:jvmTest :composeApp:assembleDebug :composeApp:testDebugUnitTest
 adb install -r composeApp/build/outputs/apk/debug/composeApp-debug.apk
 ```
+
+UI 테스트는 에뮬레이터 없이 Robolectric(API 34, `graphicsMode=NATIVE`)으로 Compose 화면을 누르고, Roborazzi(`roborazzi.test.record=true`)로 PNG를 남깁니다. 위젯은 `GlanceRemoteViews`로 그린 뒤 버튼 콜백을 직접 호출합니다. 알람은 Robolectric `ShadowAlarmManager`와 `ReminderReceiver`로 1분 뒤 트리거, 완료, 10분 뒤, 알림 닫힘을 확인합니다. 배경화면은 `WallpaperPainter`가 두 시각에 그린 프레임이 다른지로 확인합니다.
+
+일정 작성 화면의 분은 10분 단위입니다. 정확히 60초 뒤 알람은 서비스 API로 겁니다.
 
 처음 켜면 이름을 정합니다. 알림을 허용하고, Android 12 이상이면 방 화면의 링크나 시스템 설정에서 알람 및 리마인더(정확한 알람)를 켜야 제시간에 울립니다. Android 13 이상은 알림 권한도 필요합니다.
 

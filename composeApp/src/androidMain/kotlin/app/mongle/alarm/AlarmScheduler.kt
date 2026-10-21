@@ -48,6 +48,10 @@ class AlarmScheduler(private val context: Context) {
         notifications.notify(GIFT_ID, notification)
     }
 
+    fun dismiss(scheduleId: String) {
+        notifications.cancel(scheduleId.hashCode())
+    }
+
     fun showReminder(title: String, body: String, scheduleId: String) {
         ensureChannels()
         val open = PendingIntent.getActivity(

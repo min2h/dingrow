@@ -25,6 +25,23 @@ object AppGraph {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val lock = Any()
 
+    /** 단위 테스트가 시계나 메모리 저장소를 넣은 서비스를 위젯 버튼에 연결한다. */
+    internal fun installForTests(game: GameService) {
+        synchronized(lock) {
+            service = game
+            ready = true
+            AndroidHooks.sync = {}
+            AndroidHooks.notifyNow = { _, _ -> }
+            AndroidHooks.reloadWidgets = {}
+        }
+    }
+
+    internal fun resetForTests() {
+        synchronized(lock) {
+            ready = false
+        }
+    }
+
     fun ensure(context: Context) {
         if (ready) return
         synchronized(lock) {

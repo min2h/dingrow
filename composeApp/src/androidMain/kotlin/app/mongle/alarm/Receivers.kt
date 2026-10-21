@@ -17,14 +17,21 @@ class ReminderReceiver : BroadcastReceiver() {
             try {
                 AppGraph.ensure(app)
                 val scheduleId = intent.getStringExtra(AlarmScheduler.EXTRA_SCHEDULE_ID).orEmpty()
+                val scheduler = AlarmScheduler(app)
                 when (intent.action) {
-                    AlarmScheduler.ACTION_DONE -> if (scheduleId.isNotBlank()) AppGraph.service.completeSchedule(scheduleId)
-                    AlarmScheduler.ACTION_SNOOZE -> if (scheduleId.isNotBlank()) AppGraph.service.snooze(scheduleId)
+                    AlarmScheduler.ACTION_DONE -> if (scheduleId.isNotBlank()) {
+                        AppGraph.service.completeSchedule(scheduleId)
+                        scheduler.dismiss(scheduleId)
+                    }
+                    AlarmScheduler.ACTION_SNOOZE -> if (scheduleId.isNotBlank()) {
+                        AppGraph.service.snooze(scheduleId)
+                        scheduler.dismiss(scheduleId)
+                    }
                     else -> {
                         val state = AppGraph.service.state.value
                         val schedule = state.schedules.find { it.id == scheduleId }
                         if (schedule != null && !schedule.done) {
-                            AlarmScheduler(app).showReminder(
+                            scheduler.showReminder(
                                 title = state.petName,
                                 body = Korean.reminder(state.petName, state.stage, schedule.title),
                                 scheduleId = scheduleId,

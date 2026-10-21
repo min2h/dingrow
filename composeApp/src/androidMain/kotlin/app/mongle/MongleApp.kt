@@ -1,6 +1,7 @@
 package app.mongle
 
 import android.app.Application
+import androidx.work.Configuration
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -11,6 +12,9 @@ class MongleApp : Application() {
     override fun onCreate() {
         super.onCreate()
         AppGraph.ensure(this)
+        if (!WorkManager.isInitialized()) {
+            WorkManager.initialize(this, Configuration.Builder().build())
+        }
         val request = PeriodicWorkRequestBuilder<PetTickWorker>(15, TimeUnit.MINUTES).build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "mongle-tick",

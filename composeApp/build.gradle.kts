@@ -1,3 +1,5 @@
+@file:OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -40,6 +42,15 @@ kotlin {
             implementation(libs.core.ktx)
             implementation(libs.coroutines.core)
         }
+        getByName("androidUnitTest").dependencies {
+            implementation(kotlin("test"))
+            implementation(compose.uiTestJUnit4)
+            implementation(libs.junit4)
+            implementation(libs.robolectric)
+            implementation(libs.roborazzi)
+            implementation(libs.roborazzi.compose)
+            implementation(libs.coroutines.core)
+        }
     }
 }
 
@@ -65,6 +76,15 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        unitTests.isReturnDefaultValues = true
+        unitTests.all {
+            it.maxHeapSize = "2048m"
+            it.systemProperty("robolectric.graphicsMode", "NATIVE")
+            it.systemProperty("roborazzi.test.record", "true")
         }
     }
 }

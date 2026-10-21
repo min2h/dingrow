@@ -1,6 +1,7 @@
 package app.mongle.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,13 +19,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -39,9 +37,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.mongle.logic.Korean
@@ -80,14 +80,15 @@ fun MongleAppScreen(
 ) {
     val state by service.state.collectAsState()
     val scope = rememberCoroutineScope()
-    var tab by remember { mutableStateOf(Tab.Home) }
+    val tabState = remember { mutableStateOf(Tab.Home) }
+    val tab = tabState.value
     var showComposer by remember { mutableStateOf(false) }
     var name by remember(state.onboarded) { mutableStateOf(state.petName) }
 
     LaunchedEffect(Unit) {
         NavigationBus.route.collect { route ->
             if (route == "add-schedule") {
-                tab = Tab.Schedule
+                tabState.value = Tab.Schedule
                 showComposer = true
                 NavigationBus.consume()
             }
@@ -113,14 +114,29 @@ fun MongleAppScreen(
     Scaffold(
         containerColor = Cream,
         bottomBar = {
-            NavigationBar(containerColor = CardWhite) {
+            Row(
+                Modifier.fillMaxWidth().background(CardWhite).padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Tab.entries.forEach { item ->
-                    NavigationBarItem(
-                        selected = tab == item,
-                        onClick = { tab = item },
-                        icon = { Text(item.mark, fontWeight = FontWeight.Bold) },
-                        label = { Text(item.label) },
-                    )
+                    val selected = tab == item
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .testTag("tab-${item.name}")
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (selected) PeachSoft else CardWhite)
+                            .clickable {
+                                tabState.value = item
+                                // Compose UI 테스트는 클릭을 스냅샷 안에서 실행한다. 알리지 않으면 탭이 바뀌지 않는다.
+                                Snapshot.sendApplyNotifications()
+                            }
+                            .padding(vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(item.mark, fontWeight = FontWeight.Bold, color = if (selected) Peach else Ink)
+                        Text(item.label, color = if (selected) Peach else Ink.copy(alpha = 0.65f))
+                    }
                 }
             }
         },
@@ -166,7 +182,7 @@ private fun HomeScreen(
     onRequestNotifications: () -> Unit,
     onOpenExactAlarm: () -> Unit,
 ) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp).testTag("home-scroll")) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column {
                 Text(state.petName, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
@@ -180,14 +196,43 @@ private fun HomeScreen(
             Spacer(Modifier.height(10.dp))
         }
         Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = CardWhite)) {
-            Box(Modifier.fillMaxWidth().height(280.dp)) {
+            Box(Modifier.fillMaxWidth().height(220.dp)) {
                 RoomScene(state, Modifier.fillMaxSize())
                 AnimatedPet(
                     state.stage,
                     state.pose,
                     state.outfitId,
-                    Modifier.align(Alignment.Center).size(190.dp),
+                    Modifier.align(Alignment.Center).size(168.dp),
                 )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = { scope.launch { service.feed() } },
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.weight(1f).testTag("feed"),
+            ) { Text("먹이 주기") }
+            OutlinedButton(
+                onClick = { scope.launch { service.startOuting() } },
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.weight(1f).testTag("outing"),
+            ) { Text(if (state.outing != null) "외출 중" else "외출") }
+        }
+        state.pendingGift?.let { gift ->
+            Spacer(Modifier.height(10.dp))
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Butter.copy(alpha = 0.55f))) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("${gift.name}${Korean.eulReul(gift.name)} 가져왔어요", fontWeight = FontWeight.Bold)
+                    Text("${Korean.rarityLabel(gift.rarity)} · 판매 ${gift.sellPrice}코인")
+                    Row {
+                        TextButton(onClick = { scope.launch { service.keepGift() } }) { Text("보관") }
+                        TextButton(
+                            onClick = { scope.launch { service.sellPendingOrLatest() } },
+                            modifier = Modifier.testTag("sell-gift"),
+                        ) { Text("팔기") }
+                    }
+                }
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -205,37 +250,11 @@ private fun HomeScreen(
         )
         Spacer(Modifier.height(16.dp))
         NextScheduleCard(state)
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
-                onClick = { scope.launch { service.feed() } },
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.weight(1f),
-            ) { Text("먹이 주기") }
-            OutlinedButton(
-                onClick = { scope.launch { service.startOuting() } },
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.weight(1f),
-            ) { Text(if (state.outing != null) "외출 중" else "외출") }
-        }
         state.outing?.let {
             Text(it.label, modifier = Modifier.padding(top = 8.dp))
         }
         state.outingBlockReason?.let {
             if (state.outing == null) Text(it, color = Ink.copy(alpha = 0.7f), modifier = Modifier.padding(top = 6.dp))
-        }
-        state.pendingGift?.let { gift ->
-            Spacer(Modifier.height(12.dp))
-            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Butter.copy(alpha = 0.55f))) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("${gift.name}을 가져왔어요", fontWeight = FontWeight.Bold)
-                    Text("${Korean.rarityLabel(gift.rarity)} · 판매 ${gift.sellPrice}코인")
-                    Row {
-                        TextButton(onClick = { scope.launch { service.keepGift() } }) { Text("보관") }
-                        TextButton(onClick = { scope.launch { service.sellPendingOrLatest() } }) { Text("팔기") }
-                    }
-                }
-            }
         }
         if (!permissions.notificationsOn) {
             Spacer(Modifier.height(12.dp))
@@ -289,7 +308,10 @@ private fun ScheduleScreen(
                     Text("${item.timeLabel} · ${item.repeatLabel}" + if (item.overdue) " · 지남" else "")
                     Row {
                         if (!item.done) {
-                            TextButton(onClick = { scope.launch { service.completeSchedule(item.id) } }) { Text("완료") }
+                            TextButton(
+                                onClick = { scope.launch { service.completeSchedule(item.id) } },
+                                modifier = Modifier.testTag("complete-${item.id}"),
+                            ) { Text("완료") }
                             TextButton(onClick = { scope.launch { service.snooze(item.id) } }) { Text("10분 뒤") }
                         }
                         TextButton(onClick = { scope.launch { service.deleteSchedule(item.id) } }) { Text("삭제") }
@@ -302,10 +324,11 @@ private fun ScheduleScreen(
 
 @Composable
 private fun ScheduleComposer(onSave: (String, Long, RepeatRule) -> Unit) {
+    val initial = remember { nextSlot() }
     var title by remember { mutableStateOf("") }
-    var dayOffset by remember { mutableIntStateOf(0) }
-    var hour by remember { mutableIntStateOf(9) }
-    var minute by remember { mutableIntStateOf(0) }
+    var dayOffset by remember { mutableIntStateOf(initial.dayOffset) }
+    var hour by remember { mutableIntStateOf(initial.hour) }
+    var minute by remember { mutableIntStateOf(initial.minute) }
     var repeat by remember { mutableStateOf(RepeatRule.NONE) }
     Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = CardWhite)) {
         Column(Modifier.padding(14.dp)) {
@@ -330,6 +353,31 @@ private fun ScheduleComposer(onSave: (String, Long, RepeatRule) -> Unit) {
             ) { Text("알림 맡기기") }
         }
     }
+}
+
+private data class Slot(val dayOffset: Int, val hour: Int, val minute: Int)
+
+/** 기본 시각은 지금 이후의 10분 단위다. 밤 10시가 지났으면 내일 아침. */
+private fun nextSlot(now: kotlinx.datetime.Instant = Clock.System.now()): Slot {
+    val zone = TimeZone.currentSystemDefault()
+    val ldt = now.toLocalDateTime(zone)
+    var day = 0
+    var hour = ldt.hour
+    var minute = ((ldt.minute / 10) + 1) * 10
+    if (minute >= 60) {
+        minute = 0
+        hour += 1
+    }
+    if (hour < 6) {
+        hour = 6
+        minute = 0
+    }
+    if (hour > 22) {
+        day = 1
+        hour = 9
+        minute = 0
+    }
+    return Slot(day, hour, minute)
 }
 
 private fun composeTime(dayOffset: Int, hour: Int, minute: Int): Long {
@@ -357,7 +405,11 @@ private fun ShopScreen(
                 Text("오늘의 상점", fontWeight = FontWeight.Bold)
                 Text("${state.todayOffer.item.name} · ${state.todayOffer.price}코인")
                 Text(state.todayOffer.item.blurb)
-                Button(onClick = { scope.launch { service.buy(state.todayOffer.item.id) } }, shape = RoundedCornerShape(14.dp)) {
+                Button(
+                    onClick = { scope.launch { service.buy(state.todayOffer.item.id) } },
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.testTag("buy-today"),
+                ) {
                     Text("사기")
                 }
             }
@@ -365,12 +417,14 @@ private fun ShopScreen(
         SectionTitle("먹이")
         Catalog.foods().forEach { item ->
             val qty = state.foods.find { it.defId == item.id }?.quantity ?: 0
-            ShopRow(item, "${item.price}코인 · 가진 개수 $qty", "사기") { scope.launch { service.buy(item.id) } }
+            ShopRow(item, "${item.price}코인 · 가진 개수 $qty", "사기", "buy-${item.id}") {
+                scope.launch { service.buy(item.id) }
+            }
         }
         SectionTitle("옷과 가구")
         (Catalog.outfits + Catalog.furniture).forEach { item ->
             val owned = item.id in state.owned
-            ShopRow(item, if (owned) "가지고 있어요" else "${item.price}코인", if (owned) "보유" else "사기") {
+            ShopRow(item, if (owned) "가지고 있어요" else "${item.price}코인", if (owned) "보유" else "사기", "buy-${item.id}") {
                 if (!owned) scope.launch { service.buy(item.id) }
             }
         }
@@ -401,9 +455,17 @@ private fun RoomScreen(
     onOpenWallpaper: () -> Unit,
     onOpenExactAlarm: () -> Unit,
 ) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp).testTag("room-scroll")) {
         Text("방 꾸미기", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text(state.activeRoom.name, color = Ink.copy(alpha = 0.7f))
+        if (permissions.supportsWallpaper) {
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = onOpenWallpaper,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.testTag("wallpaper"),
+            ) { Text("움직이는 배경화면") }
+        }
         Spacer(Modifier.height(10.dp))
         Card(shape = RoundedCornerShape(28.dp)) {
             Box(Modifier.fillMaxWidth().height(220.dp)) {
@@ -412,18 +474,24 @@ private fun RoomScreen(
             }
         }
         Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             state.presets.forEach { preset ->
                 val selected = preset.index == state.activePreset
-                Button(
-                    onClick = { scope.launch { service.selectPreset(preset.index) } },
-                    shape = RoundedCornerShape(14.dp),
-                    colors = if (selected) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors(),
-                ) { Text(preset.name) }
+                if (selected) {
+                    Button(
+                        onClick = { scope.launch { service.selectPreset(preset.index) } },
+                        shape = RoundedCornerShape(14.dp),
+                    ) { Text(preset.name) }
+                } else {
+                    OutlinedButton(
+                        onClick = { scope.launch { service.selectPreset(preset.index) } },
+                        shape = RoundedCornerShape(14.dp),
+                    ) { Text(preset.name) }
+                }
             }
         }
         SectionTitle("옷")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { scope.launch { service.equipOutfit(null) } }) { Text("맨몸") }
             Catalog.outfits.filter { it.id in state.owned }.forEach { item ->
                 Button(onClick = { scope.launch { service.equipOutfit(item.id) } }, shape = RoundedCornerShape(14.dp)) {
@@ -440,10 +508,6 @@ private fun RoomScreen(
         Spacer(Modifier.height(16.dp))
         Text("홈 화면", fontWeight = FontWeight.Bold)
         Text("작은 위젯은 기분과 다음 일정, 큰 위젯은 이 방을 보여 줘요. 버튼으로 먹이, 완료, 판매, 구매, 방 바꾸기를 할 수 있어요.")
-        if (permissions.supportsWallpaper) {
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = onOpenWallpaper, shape = RoundedCornerShape(14.dp)) { Text("움직이는 배경화면") }
-        }
         if (permissions.supportsExactAlarm) {
             TextButton(onClick = onOpenExactAlarm) { Text("정확한 알람 설정") }
         }
@@ -533,7 +597,7 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun ShopRow(item: ItemDef, detail: String, action: String, onClick: () -> Unit) {
+private fun ShopRow(item: ItemDef, detail: String, action: String, tag: String, onClick: () -> Unit) {
     Card(Modifier.fillMaxWidth().padding(vertical = 4.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = CardWhite)) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -541,7 +605,7 @@ private fun ShopRow(item: ItemDef, detail: String, action: String, onClick: () -
                 Text(detail)
                 if (item.blurb.isNotBlank()) Text(item.blurb, color = Ink.copy(alpha = 0.7f))
             }
-            TextButton(onClick = onClick) { Text(action) }
+            TextButton(onClick = onClick, modifier = Modifier.testTag(tag)) { Text(action) }
         }
     }
 }

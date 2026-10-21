@@ -10,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -35,6 +36,12 @@ private val Blush = Color(0xFFF4A6A4)
 private val Eye = Color(0xFF4A3728)
 private val Belly = Color(0xFFFFF7EF)
 
+/**
+ * 테스트에서만 쓴다. 값을 주면 무한 애니메이션을 켜지 않고 그 위상으로 그린다.
+ * Compose UI 테스트의 유휴 대기가 무한 전환 때문에 끝나지 않는 것을 막는다.
+ */
+val LocalPetMotion = staticCompositionLocalOf<Pair<Float, Float>?> { null }
+
 @Composable
 fun AnimatedPet(
     stage: Stage,
@@ -42,6 +49,11 @@ fun AnimatedPet(
     outfitId: String?,
     modifier: Modifier = Modifier,
 ) {
+    val pinned = LocalPetMotion.current
+    if (pinned != null) {
+        PetCanvas(stage, pose, outfitId, modifier, bounce = pinned.first, walk = pinned.second)
+        return
+    }
     val transition = rememberInfiniteTransition(label = "pet")
     val bounce by transition.animateFloat(
         initialValue = 0f,
@@ -58,6 +70,18 @@ fun AnimatedPet(
         animationSpec = infiniteRepeatable(animation = tween(2400, easing = LinearEasing)),
         label = "walk",
     )
+    PetCanvas(stage, pose, outfitId, modifier, bounce, walk)
+}
+
+@Composable
+private fun PetCanvas(
+    stage: Stage,
+    pose: Pose,
+    outfitId: String?,
+    modifier: Modifier,
+    bounce: Float,
+    walk: Float,
+) {
     Canvas(modifier) {
         val walking = pose == Pose.WALK || pose == Pose.OUT
         val phase = walk * (2f * PI.toFloat())
