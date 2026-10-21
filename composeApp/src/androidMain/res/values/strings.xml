@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">몽글</string>
+    <string name="widget_small_name">몽이</string>
+    <string name="widget_small_desc">펫, 기분, 다음 일정. 먹이와 완료를 위젯에서 할 수 있어요.</string>
+    <string name="widget_large_name">몽이의 방</string>
+    <string name="widget_large_desc">꾸민 방과 펫. 먹이, 완료, 선물 판매, 오늘의 상점, 방 바꾸기.</string>
+    <string name="wallpaper_name">몽글 배경</string>
+</resources>

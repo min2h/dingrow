@@ -1,0 +1,207 @@
+CREATE TABLE pet (
+  id TEXT NOT NULL PRIMARY KEY,
+  name TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  xp INTEGER NOT NULL,
+  hunger INTEGER NOT NULL,
+  happiness INTEGER NOT NULL,
+  energy INTEGER NOT NULL,
+  outfit_id TEXT,
+  snapshot_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  stage_since INTEGER NOT NULL,
+  completions_total INTEGER NOT NULL,
+  is_out INTEGER NOT NULL,
+  outing_started_at INTEGER,
+  outing_return_at INTEGER,
+  outing_seed INTEGER,
+  outing_gift_def_id TEXT,
+  pending_gift_def_id TEXT,
+  pending_gift_at INTEGER
+);
+
+CREATE TABLE schedule (
+  id TEXT NOT NULL PRIMARY KEY,
+  title TEXT NOT NULL,
+  time_millis INTEGER NOT NULL,
+  repeat_rule TEXT NOT NULL,
+  done INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  completed_at INTEGER,
+  tz TEXT NOT NULL
+);
+
+CREATE TABLE completion_log (
+  id TEXT NOT NULL PRIMARY KEY,
+  schedule_id TEXT NOT NULL,
+  completed_at INTEGER NOT NULL,
+  xp INTEGER NOT NULL,
+  coins INTEGER NOT NULL
+);
+
+CREATE TABLE food_stack (
+  def_id TEXT NOT NULL PRIMARY KEY,
+  quantity INTEGER NOT NULL
+);
+
+CREATE TABLE gift_item (
+  instance_id TEXT NOT NULL PRIMARY KEY,
+  def_id TEXT NOT NULL,
+  acquired_at INTEGER NOT NULL
+);
+
+CREATE TABLE owned_decor (
+  def_id TEXT NOT NULL PRIMARY KEY,
+  acquired_at INTEGER NOT NULL
+);
+
+CREATE TABLE wallet (
+  id INTEGER NOT NULL PRIMARY KEY,
+  coins INTEGER NOT NULL
+);
+
+CREATE TABLE ledger (
+  id TEXT NOT NULL PRIMARY KEY,
+  delta INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  ref_id TEXT,
+  created_at INTEGER NOT NULL,
+  idempotency_key TEXT
+);
+
+CREATE UNIQUE INDEX ledger_idem ON ledger(idempotency_key);
+
+CREATE TABLE room_preset (
+  preset_index INTEGER NOT NULL PRIMARY KEY,
+  name TEXT NOT NULL,
+  wallpaper_id TEXT NOT NULL,
+  floor_id TEXT NOT NULL,
+  bed_id TEXT,
+  rug_id TEXT,
+  lamp_id TEXT
+);
+
+CREATE TABLE meta (
+  key TEXT NOT NULL PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+CREATE TABLE action_log (
+  idempotency_key TEXT NOT NULL PRIMARY KEY,
+  result_ok INTEGER NOT NULL,
+  message TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+selectPet:
+SELECT * FROM pet LIMIT 1;
+
+deletePets:
+DELETE FROM pet;
+
+insertPet:
+INSERT INTO pet(
+  id, name, stage, xp, hunger, happiness, energy, outfit_id, snapshot_at, created_at, stage_since,
+  completions_total, is_out, outing_started_at, outing_return_at, outing_seed, outing_gift_def_id,
+  pending_gift_def_id, pending_gift_at
+) VALUES (
+  :id, :name, :stage, :xp, :hunger, :happiness, :energy, :outfitId, :snapshotAt, :createdAt, :stageSince,
+  :completionsTotal, :isOut, :outingStartedAt, :outingReturnAt, :outingSeed, :outingGiftDefId,
+  :pendingGiftDefId, :pendingGiftAt
+);
+
+selectSchedules:
+SELECT * FROM schedule ORDER BY time_millis ASC;
+
+deleteSchedules:
+DELETE FROM schedule;
+
+insertSchedule:
+INSERT INTO schedule(id, title, time_millis, repeat_rule, done, created_at, completed_at, tz)
+VALUES (:id, :title, :timeMillis, :repeatRule, :done, :createdAt, :completedAt, :tz);
+
+selectCompletions:
+SELECT * FROM completion_log ORDER BY completed_at ASC;
+
+deleteCompletions:
+DELETE FROM completion_log;
+
+insertCompletion:
+INSERT INTO completion_log(id, schedule_id, completed_at, xp, coins)
+VALUES (:id, :scheduleId, :completedAt, :xp, :coins);
+
+selectFood:
+SELECT * FROM food_stack;
+
+deleteFood:
+DELETE FROM food_stack;
+
+insertFood:
+INSERT INTO food_stack(def_id, quantity) VALUES (:defId, :quantity);
+
+selectGifts:
+SELECT * FROM gift_item ORDER BY acquired_at ASC;
+
+deleteGifts:
+DELETE FROM gift_item;
+
+insertGift:
+INSERT INTO gift_item(instance_id, def_id, acquired_at)
+VALUES (:instanceId, :defId, :acquiredAt);
+
+selectDecor:
+SELECT * FROM owned_decor;
+
+deleteDecor:
+DELETE FROM owned_decor;
+
+insertDecor:
+INSERT INTO owned_decor(def_id, acquired_at) VALUES (:defId, :acquiredAt);
+
+selectWallet:
+SELECT coins FROM wallet WHERE id = 1;
+
+deleteWallet:
+DELETE FROM wallet;
+
+insertWallet:
+INSERT INTO wallet(id, coins) VALUES (1, :coins);
+
+selectLedger:
+SELECT * FROM ledger ORDER BY created_at ASC, id ASC;
+
+deleteLedger:
+DELETE FROM ledger;
+
+insertLedger:
+INSERT INTO ledger(id, delta, reason, ref_id, created_at, idempotency_key)
+VALUES (:id, :delta, :reason, :refId, :createdAt, :idempotencyKey);
+
+selectPresets:
+SELECT * FROM room_preset ORDER BY preset_index ASC;
+
+deletePresets:
+DELETE FROM room_preset;
+
+insertPreset:
+INSERT INTO room_preset(preset_index, name, wallpaper_id, floor_id, bed_id, rug_id, lamp_id)
+VALUES (:presetIndex, :name, :wallpaperId, :floorId, :bedId, :rugId, :lampId);
+
+selectMeta:
+SELECT key, value FROM meta;
+
+deleteMeta:
+DELETE FROM meta;
+
+insertMeta:
+INSERT INTO meta(key, value) VALUES (:key, :value);
+
+selectActions:
+SELECT * FROM action_log ORDER BY created_at ASC;
+
+deleteActions:
+DELETE FROM action_log;
+
+insertAction:
+INSERT INTO action_log(idempotency_key, result_ok, message, created_at)
+VALUES (:idempotencyKey, :resultOk, :message, :createdAt);

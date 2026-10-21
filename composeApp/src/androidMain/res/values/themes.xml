@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.Mongle" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#FFF8F3</item>
+        <item name="android:navigationBarColor">#FFF8F3</item>
+        <item name="android:windowBackground">#FFF8F3</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
