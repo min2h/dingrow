@@ -14,6 +14,7 @@
 - 스토어 문구: `store/listing-ko.md`
 - Play 데이터 보안과 정확한 알람 선언 초안: `store/play-data-safety.md`
 - 아이콘: Android 적응형·밀도별 mipmap, iOS `AppIcon` 1024, Play용 `store/icon-512.png`, 마스터 `store/icon-1024.png`
+- 스토어 그래픽: `store/graphics/`. Play 그래픽 이미지 1024×500, Play 휴대전화 6장 1080×1920, App Store 6.7인치 6장 1290×2796.
 
 ## Google Play
 
