@@ -3,3 +3,5 @@ BUNDLE_ID=app.mongle
 WIDGET_BUNDLE_ID=app.mongle.widget
 APP_NAME=Mongle
 APP_GROUP=group.app.mongle
+MARKETING_VERSION=0.1.0
+CURRENT_PROJECT_VERSION=1

@@ -96,16 +96,17 @@ struct PetWidgetView: View {
 
     private func large(_ snap: WidgetSnapshot, ink: Color, muted: Color) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            ZStack {
-                MongleArtImage(name: MongleArt.room(wallHex: snap.wallHex, timeOfDay: snap.timeOfDay, dark: snap.darkRoom), fill: true)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 150)
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            ZStack(alignment: .bottom) {
+                MongleArtImage(name: MongleArt.room(wallHex: snap.wallHex, timeOfDay: snap.timeOfDay, dark: snap.darkRoom), fill: false)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 MongleArtImage(name: MongleArt.pet(speciesId: snap.speciesId, pose: snap.pose, stageLabel: snap.stageLabel))
-                    .frame(width: 96, height: 96)
-                    .offset(y: 18)
+                    .frame(width: 64, height: 64)
+                    .padding(.bottom, 6)
             }
+            .frame(maxWidth: .infinity)
             .frame(height: 150)
+            .background(Color(hex: "#FFF6EE"))
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             HStack {
                 Text("\(snap.petName)의 아늑한 방")
                     .font(.headline)

@@ -55,19 +55,42 @@ kotlin {
     }
 }
 
+fun mongleProp(name: String): String? =
+    System.getenv(name)?.takeIf { it.isNotBlank() }
+        ?: (findProperty(name) as String?)?.takeIf { it.isNotBlank() }
+
 android {
     namespace = "app.mongle"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "app.mongle"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        targetSdk = 36
+        versionCode = mongleProp("MONGLE_VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = mongleProp("MONGLE_VERSION_NAME") ?: "0.1.0"
+    }
+    val releaseStore = mongleProp("MONGLE_STORE_FILE")
+    signingConfigs {
+        if (!releaseStore.isNullOrBlank()) {
+            create("release") {
+                storeFile = file(releaseStore)
+                storePassword = mongleProp("MONGLE_STORE_PASSWORD")
+                keyAlias = mongleProp("MONGLE_KEY_ALIAS")
+                keyPassword = mongleProp("MONGLE_KEY_PASSWORD")
+            }
+        }
     }
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            if (!releaseStore.isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {

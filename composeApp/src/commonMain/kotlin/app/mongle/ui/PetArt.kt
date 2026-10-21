@@ -14,9 +14,12 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,6 +28,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
@@ -103,33 +107,40 @@ fun AnimatedPet(
 }
 
 @Composable
-fun RoomScene(state: GameState, modifier: Modifier = Modifier) {
+fun RoomScene(state: GameState, modifier: Modifier = Modifier, petScale: Float = 0.28f) {
     val pinned = LocalPetMotion.current
     val night = state.timeOfDay == TimeOfDay.NIGHT
     val theme = roomTheme(state.activeRoom.wallpaperId)
     val act = petAct(state.stage, state.pose, state.energy, state.statusMessage)
-    Box(modifier) {
-        Image(
-            painter = painterResource(Art.room(theme, night, square = false)),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-            alignment = Alignment.BottomCenter,
-        )
-        PetFigure(
-            speciesId = state.speciesId,
-            stage = state.stage,
-            act = act,
-            outfitId = state.outfitId,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth(0.46f)
-                .aspectRatio(1f)
-                .offset(y = 6.dp),
-            animate = pinned == null,
-            breath = pinned?.first ?: 0.35f,
-            walk = pinned?.second ?: 0.2f,
-        )
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Box(
+            Modifier
+                .aspectRatio(3f / 4f, matchHeightConstraintsFirst = true)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(28.dp)),
+        ) {
+            Image(
+                painter = painterResource(Art.room(theme, night, square = false)),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+                alignment = Alignment.Center,
+            )
+            PetFigure(
+                speciesId = state.speciesId,
+                stage = state.stage,
+                act = act,
+                outfitId = state.outfitId,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 10.dp)
+                    .fillMaxWidth(petScale)
+                    .aspectRatio(1f),
+                animate = pinned == null,
+                breath = pinned?.first ?: 0.35f,
+                walk = pinned?.second ?: 0.2f,
+            )
+        }
     }
 }
 

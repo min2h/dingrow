@@ -136,16 +136,21 @@ internal fun LargeBody(state: GameState? = currentState()) {
         val night = state.timeOfDay == TimeOfDay.NIGHT
         val room = ArtBitmaps.decode(context, roomAssetFor(state.activeRoom.wallpaperId, night, square = true), 400)
         Box(
-            modifier = GlanceModifier.fillMaxWidth().defaultWeight().cornerRadius(22.dp),
+            modifier = GlanceModifier.fillMaxWidth().defaultWeight().cornerRadius(22.dp).background(cream),
             contentAlignment = Alignment.Center,
         ) {
             Image(
                 ImageProvider(room),
                 "방",
                 GlanceModifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
+                contentScale = ContentScale.Fit,
             )
-            PetImage(state, 96)
+            Box(
+                modifier = GlanceModifier.fillMaxSize(),
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+                PetImage(state, 64)
+            }
         }
         Spacer(GlanceModifier.height(6.dp))
         if (state.confirmText.isNotBlank()) {

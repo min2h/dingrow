@@ -72,19 +72,19 @@ internal object WallpaperPainter {
         val pose = state?.pose ?: Pose.IDLE
         val species = state?.speciesId ?: "base"
         val act = if (state == null) PetAct.IDLE else petAct(stage, pose, state.energy, state.statusMessage)
+        canvas.drawColor(if (night) Color.parseColor("#2C3A5A") else Color.parseColor("#FFF6EE"))
         val room = ArtBitmaps.decode(context, roomAssetFor(wallpaper, night, square = false), 720)
-        drawCover(canvas, room)
+        val placed = drawContain(canvas, room)
         val walking = act == PetAct.WALK
         val phase = (nowMillis % 3200) / 3200f
         val wave = sin(phase * 2 * PI).toFloat()
-        val w = canvas.width.toFloat()
-        val h = canvas.height.toFloat()
-        val petEdge = (w.coerceAtMost(h) * 0.42f).toInt().coerceIn(120, 420)
+        val imgW = placed.width().coerceAtLeast(1).toFloat()
+        val petEdge = (imgW * 0.28f).toInt().coerceIn(48, 420)
         val pet = ArtBitmaps.decode(context, petAssetId(species, stage, act), petEdge)
-        val bob = wave * if (act == PetAct.SLEEP) 6f else 14f
-        val drift = if (walking) sin(phase * 2 * PI).toFloat() * w * 0.08f else wave * 8f
-        val cx = w / 2f + drift
-        val cy = h * 0.62f - bob
+        val bob = wave * if (act == PetAct.SLEEP) 4f else 10f
+        val drift = if (walking) sin(phase * 2 * PI).toFloat() * imgW * 0.06f else wave * 6f
+        val cx = placed.exactCenterX() + drift
+        val cy = placed.bottom - petEdge * 0.28f - bob
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         paint.color = Color.parseColor("#33000000")
         val shadowW = petEdge * 0.46f
@@ -102,15 +102,18 @@ internal object WallpaperPainter {
         canvas.drawBitmap(pet, null, dest, paint)
     }
 
-    private fun drawCover(canvas: Canvas, bitmap: Bitmap) {
-        val viewW = canvas.width.toFloat()
-        val viewH = canvas.height.toFloat()
-        val scale = maxOf(viewW / bitmap.width, viewH / bitmap.height)
-        val dw = bitmap.width * scale
-        val dh = bitmap.height * scale
+    private fun drawContain(canvas: Canvas, bitmap: Bitmap): Rect {
+        val viewW = canvas.width.toFloat().coerceAtLeast(1f)
+        val viewH = canvas.height.toFloat().coerceAtLeast(1f)
+        val bw = bitmap.width.coerceAtLeast(1).toFloat()
+        val bh = bitmap.height.coerceAtLeast(1).toFloat()
+        val scale = minOf(viewW / bw, viewH / bh)
+        val dw = bw * scale
+        val dh = bh * scale
         val left = (viewW - dw) / 2f
-        val top = viewH - dh
+        val top = (viewH - dh) / 2f
         val dest = Rect(left.toInt(), top.toInt(), (left + dw).toInt(), (top + dh).toInt())
         canvas.drawBitmap(bitmap, null, dest, null)
+        return dest
     }
 }

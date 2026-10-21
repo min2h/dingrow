@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -124,6 +125,7 @@ fun MongleAppScreen(
         return
     }
 
+    Box(Modifier.fillMaxSize()) {
     Scaffold(
         containerColor = Cream,
         topBar = {
@@ -180,17 +182,40 @@ fun MongleAppScreen(
             }
         }
     }
+    if (state.statusMessage.isNotBlank()) {
+        Text(
+            state.statusMessage,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 64.dp)
+                .clip(Pill)
+                .background(Ink)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            color = Color.White,
+            fontSize = 13.sp,
+        )
+    }
+    }
 }
 
 @Composable
 private fun TopBar(title: String, coins: Int) {
     Row(
-        Modifier.fillMaxWidth().background(Cream).padding(horizontal = 20.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth().background(Cream).padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        MarkIcon(Mark.Paw, Modifier.size(22.dp), PeachDeep)
+        Spacer(Modifier.width(8.dp))
         Text(title, style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.weight(1f))
         CoinPill(coins)
+        Spacer(Modifier.width(8.dp))
+        Box(
+            Modifier.size(36.dp).clip(CircleShape).background(CardWhite),
+            contentAlignment = Alignment.Center,
+        ) {
+            MarkIcon(Mark.Bell, Modifier.size(18.dp), Ink)
+        }
     }
 }
 
@@ -204,15 +229,15 @@ private fun NavMark(tab: Tab, selected: Boolean) {
             .background(if (selected) PeachSoft else Color.Transparent),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
+        MarkIcon(
             when (tab) {
-                Tab.Home -> "●"
-                Tab.Schedule -> "▢"
-                Tab.Room -> "⌂"
-                Tab.My -> "♥"
+                Tab.Home -> Mark.House
+                Tab.Schedule -> Mark.Calendar
+                Tab.Room -> Mark.Bed
+                Tab.My -> Mark.Person
             },
-            color = color,
-            fontSize = 14.sp,
+            Modifier.size(16.dp),
+            color,
         )
     }
 }
@@ -251,19 +276,22 @@ private fun HomeScreen(
     Column(
         Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .testTag("home-scroll"),
     ) {
-        RoomScene(
-            state,
-            Modifier.fillMaxWidth().height(188.dp).clip(RoundedCornerShape(28.dp)),
-        )
-        Spacer(Modifier.height(12.dp))
+        Box(
+            Modifier.weight(1f).fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            RoomScene(state, Modifier.fillMaxSize())
+        }
+        Spacer(Modifier.height(10.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(state.petName, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.width(8.dp))
             Text("Lv.${state.level}", color = PeachDeep, style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.width(4.dp))
+            MarkIcon(Mark.Paw, Modifier.size(16.dp), PeachDeep)
         }
         Text("성장 XP   ${state.xp} / ${state.xpForNext.coerceAtLeast(state.xp)}", color = InkSoft, fontSize = 12.sp)
         Spacer(Modifier.height(6.dp))
@@ -275,25 +303,27 @@ private fun HomeScreen(
         )
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatChip("포만감 ${state.hunger}%", MintSoft, Modifier.weight(1f))
-            StatChip("행복 ${state.happiness}%", PeachSoft, Modifier.weight(1f))
+            StatChip("포만감 ${state.hunger}%", Mark.Leaf, MintSoft, Modifier.weight(1f))
+            StatChip("행복 ${state.happiness}%", Mark.Heart, PeachSoft, Modifier.weight(1f))
         }
         Spacer(Modifier.height(10.dp))
         SoftCard {
-            Text("다음 일정", color = InkSoft, fontSize = 12.sp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                MarkIcon(Mark.Calendar, Modifier.size(14.dp), PeachDeep)
+                Spacer(Modifier.width(6.dp))
+                Text("다음 일정", color = InkSoft, fontSize = 12.sp)
+            }
             val next = state.nextSchedule
             Row(verticalAlignment = Alignment.CenterVertically) {
+                MarkIcon(Mark.Paw, Modifier.size(16.dp), PeachDeep)
+                Spacer(Modifier.width(6.dp))
                 Text(next?.timeLabel ?: "비어 있어요", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 Text(next?.title ?: "일정을 추가해 보세요", color = InkSoft, fontSize = 13.sp)
             }
             state.outing?.let { Text(it.label, color = Mint) }
         }
-        if (state.statusMessage.isNotBlank()) {
-            Spacer(Modifier.height(8.dp))
-            Text(state.statusMessage, color = InkSoft, fontSize = 13.sp)
-        }
         state.pendingGift?.let { gift ->
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
             SoftCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     ArtImage(gift.defId, Modifier.size(48.dp), gift.name)
@@ -312,23 +342,22 @@ private fun HomeScreen(
                 }
             }
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PillButton("밥주기", PeachSoft, Modifier.weight(1f).testTag("feed")) {
+            PillButton("밥주기", Mark.Bowl, PeachSoft, Modifier.weight(1f).testTag("feed")) {
                 scope.launch { service.feed() }
             }
-            PillButton("산책", MintSoft, Modifier.weight(1f).testTag("outing")) {
+            PillButton("산책", Mark.Paw, MintSoft, Modifier.weight(1f).testTag("outing")) {
                 scope.launch { service.startOuting() }
             }
-            PillButton("선물", ButterSoft, Modifier.weight(1f)) { }
+            PillButton("선물", Mark.Gift, ButterSoft, Modifier.weight(1f)) { }
         }
         state.outingBlockReason?.let {
             if (state.outing == null) {
-                Spacer(Modifier.height(6.dp))
-                Text(it, color = InkSoft, fontSize = 12.sp)
+                Spacer(Modifier.height(4.dp))
+                Text(it, color = InkSoft, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        Spacer(Modifier.height(16.dp))
     }
 }
 
@@ -362,7 +391,11 @@ private fun ScheduleScreen(
             }
             val open = state.schedules.filter { !it.done }
             val done = state.schedules.filter { it.done }
-            Text("오늘의 할 일 · ${open.size}", style = MaterialTheme.typography.titleMedium)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                MarkIcon(Mark.Calendar, Modifier.size(18.dp), PeachDeep)
+                Spacer(Modifier.width(6.dp))
+                Text("오늘의 할 일 · ${open.size}", style = MaterialTheme.typography.titleMedium)
+            }
             Spacer(Modifier.height(8.dp))
             if (open.isEmpty() && done.isEmpty()) {
                 ArtImage("empty_schedule", Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(24.dp)), "빈 일정")
@@ -423,12 +456,15 @@ private fun WeekStrip() {
                 Box(
                     Modifier
                         .padding(top = 4.dp)
-                        .size(32.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
                         .background(if (selected) PeachDeep else Color.Transparent),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("${date.dayOfMonth}", color = if (selected) Color.White else Ink, fontSize = 12.sp)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("${date.dayOfMonth}", color = if (selected) Color.White else Ink, fontSize = 12.sp, lineHeight = 12.sp)
+                        if (selected) MarkIcon(Mark.Paw, Modifier.size(10.dp), Color.White)
+                    }
                 }
             }
         }
@@ -453,7 +489,10 @@ private fun ScheduleCard(
                     .background(if (done) Mint else Color.Transparent)
                     .border(2.dp, if (done) Mint else PeachSoft, CircleShape)
                     .then(if (done) Modifier else Modifier.clickable(onClick = onComplete).testTag("complete-${item.id}")),
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                if (done) MarkIcon(Mark.Paw, Modifier.size(12.dp), CardWhite)
+            }
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(item.timeLabel, color = InkSoft, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -556,7 +595,9 @@ private fun RoomScreen(
             .padding(16.dp)
             .testTag("room-scroll"),
     ) {
-        RoomScene(state, Modifier.fillMaxWidth().height(168.dp).clip(RoundedCornerShape(24.dp)))
+        Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+            RoomScene(state, Modifier.fillMaxHeight())
+        }
         Spacer(Modifier.height(8.dp))
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             state.presets.forEach { preset ->
@@ -574,7 +615,11 @@ private fun RoomScreen(
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onOpenWallpaper, modifier = Modifier.testTag("wallpaper")) { Text("배경화면") }
+            TextButton(onClick = onOpenWallpaper, modifier = Modifier.testTag("wallpaper")) {
+                MarkIcon(Mark.House, Modifier.size(16.dp), Ink)
+                Spacer(Modifier.width(4.dp))
+                Text("배경 변경")
+            }
             Spacer(Modifier.weight(1f))
             Text(state.todayOffer.item.name, color = InkSoft, fontSize = 12.sp)
             TextButton(
@@ -600,9 +645,9 @@ private fun RoomScreen(
             }
         }
         Row(Modifier.padding(vertical = 6.dp)) {
-            PaneTab("가구", pane == RoomPane.Furniture) { pane = RoomPane.Furniture }
+            PaneTab("가구", Mark.Bed, pane == RoomPane.Furniture) { pane = RoomPane.Furniture }
             Spacer(Modifier.width(8.dp))
-            PaneTab("의상", pane == RoomPane.Outfit) { pane = RoomPane.Outfit }
+            PaneTab("의상", Mark.Hanger, pane == RoomPane.Outfit) { pane = RoomPane.Outfit }
         }
         val items = if (pane == RoomPane.Furniture) {
             Catalog.furniture
@@ -640,7 +685,11 @@ private fun DexScreen(
     service: GameService,
 ) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        Text("친구 ${SpeciesCatalog.all.count { it.id in state.owned }} / ${SpeciesCatalog.all.size}", style = MaterialTheme.typography.titleMedium)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            MarkIcon(Mark.Paw, Modifier.size(18.dp), PeachDeep)
+            Spacer(Modifier.width(6.dp))
+            Text("친구 ${SpeciesCatalog.all.count { it.id in state.owned }} / ${SpeciesCatalog.all.size}", style = MaterialTheme.typography.titleMedium)
+        }
         Spacer(Modifier.height(8.dp))
         SpeciesCatalog.all.chunked(4).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -677,7 +726,11 @@ private fun DexScreen(
             ArtImage("empty_gifts", Modifier.fillMaxWidth().height(140.dp).clip(RoundedCornerShape(20.dp)), "선물 없음")
             Spacer(Modifier.height(8.dp))
         }
-        Text("수집", style = MaterialTheme.typography.titleMedium)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            MarkIcon(Mark.Gift, Modifier.size(18.dp), PeachDeep)
+            Spacer(Modifier.width(6.dp))
+            Text("수집", style = MaterialTheme.typography.titleMedium)
+        }
         Catalog.goods.filter { it.kind != ItemKind.FOOD }.take(24).forEach { item ->
             val owned = item.id in state.owned || item.kind == ItemKind.GIFT && state.gifts.any { it.defId == item.id }
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -708,21 +761,30 @@ private fun ItemCard(item: ItemDef, owned: Boolean, modifier: Modifier, onClick:
             }
         }
         Text(item.name, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-        Text(if (owned) "보유" else "${item.price}", color = if (owned) Mint else InkSoft, fontSize = 11.sp)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (!owned) {
+                MarkIcon(Mark.Coin, Modifier.size(12.dp))
+                Spacer(Modifier.width(2.dp))
+            }
+            Text(if (owned) "보유" else "${item.price}", color = if (owned) Mint else InkSoft, fontSize = 11.sp)
+        }
     }
 }
 
 @Composable
-private fun PaneTab(label: String, selected: Boolean, onClick: () -> Unit) {
-    Text(
-        label,
-        modifier = Modifier
+private fun PaneTab(label: String, mark: Mark, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier
             .clip(Pill)
             .background(if (selected) Ink else CardWhite)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        color = if (selected) Color.White else Ink,
-    )
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MarkIcon(mark, Modifier.size(16.dp), if (selected) Color.White else Ink)
+        Spacer(Modifier.width(6.dp))
+        Text(label, color = if (selected) Color.White else Ink)
+    }
 }
 
 @Composable
@@ -738,35 +800,44 @@ private fun SoftCard(modifier: Modifier = Modifier, content: @Composable () -> U
 }
 
 @Composable
-private fun PillButton(label: String, color: Color, modifier: Modifier, onClick: () -> Unit) {
+private fun PillButton(label: String, mark: Mark, color: Color, modifier: Modifier, onClick: () -> Unit) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(52.dp),
+        modifier = modifier.height(58.dp),
         shape = Pill,
         colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Ink),
-        contentPadding = PaddingValues(horizontal = 8.dp),
-    ) { Text(label, maxLines = 1) }
+        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            MarkIcon(mark, Modifier.size(18.dp), Ink)
+            Text(label, maxLines = 1, fontSize = 12.sp)
+        }
+    }
 }
 
 @Composable
-private fun StatChip(label: String, color: Color, modifier: Modifier = Modifier) {
-    Text(
-        label,
-        modifier = modifier.clip(Pill).background(color).padding(horizontal = 12.dp, vertical = 8.dp),
-        color = Ink,
-        fontSize = 13.sp,
-        textAlign = TextAlign.Center,
-    )
+private fun StatChip(label: String, mark: Mark, color: Color, modifier: Modifier = Modifier) {
+    Row(
+        modifier.clip(Pill).background(color).padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        MarkIcon(mark, Modifier.size(14.dp), Ink)
+        Spacer(Modifier.width(4.dp))
+        Text(label, color = Ink, fontSize = 13.sp, maxLines = 1)
+    }
 }
 
 @Composable
 private fun CoinPill(coins: Int) {
-    Text(
-        "● ${coinsLabel(coins)}",
-        modifier = Modifier.clip(Pill).background(ButterSoft).padding(horizontal = 12.dp, vertical = 6.dp),
-        color = Ink,
-        fontSize = 13.sp,
-    )
+    Row(
+        Modifier.clip(Pill).background(ButterSoft).padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MarkIcon(Mark.Coin, Modifier.size(16.dp))
+        Spacer(Modifier.width(4.dp))
+        Text(coinsLabel(coins), color = Ink, fontSize = 13.sp)
+    }
 }
 
 private fun coinsLabel(value: Int): String =

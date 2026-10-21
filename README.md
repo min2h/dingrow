@@ -2,7 +2,7 @@
 
 홈 화면에 사는 작은 펫이 일정을 알려 주고, 할 일을 마치면 함께 자라는 앱입니다. 화면 문구는 한국어입니다. 펫은 배고파도 죽지 않고, 포만감과 행복, 경험치로 알 → 아기 → 어린이 → 어른이 됩니다. 가끔 외출했다가 선물을 가져오고, 선물을 팔아 코인을 모은 뒤 옷과 가구로 방을 바꿉니다.
 
-패키지 이름은 `app.mongle`, 버전은 0.1.0입니다.
+패키지 이름은 `app.mongle`, 버전은 0.1.0 (versionCode 1)입니다. 스토어 제출 전에 남은 사람 일은 `RELEASE.md`에 있습니다. 개인정보 처리방침과 스토어 문구는 `store/`에 있습니다.
 
 ## 검증 범위
 
@@ -17,7 +17,7 @@
 | Android 위젯을 실제 런처에 올려 본 것 | 미검증. 화면은 Glance `RemoteViews` 테스트 호스트로 그렸음 |
 | Android 12+ 정확한 알람 권한 UX | 미검증. 테스트는 권한이 있는 상태로 알람 시각만 확인 |
 | 에뮬레이터 | 이 커널에서 부팅되지 않음. `/dev/kvm`은 열리지만 vCPU 생성이 `kvm_arch_vcpu_create`에서 커널 버그로 멈춤 |
-| iOS 앱, WidgetKit, App Intents, 알림 | 미검증. Mac과 Xcode, Apple Developer 팀이 필요 |
+| iOS 앱, WidgetKit, App Intents, 알림 | 미검증. `.github/workflows/ios.yml`이 macOS에서 앱과 위젯을 서명 없이 빌드합니다. 이 Linux에서는 실행하지 않았습니다. |
 
 ## 지금 되는 것
 
@@ -38,7 +38,7 @@
 
 - 계정, 결제, 클라우드 저장, 실제 커뮤니티 월드와 채팅, 유저 간 거래.
 - iOS 빌드 확인, 위젯 갤러리에서 추가한 뒤의 동작, 알림 액션이 앱이 꺼진 상태에서 깨워지는지.
-- 스토어용 서명 APK. 런처 아이콘은 일러스트 `app_icon`이고, Android는 적응형 아이콘입니다. iOS 앱 아이콘 슬롯에는 1024 이미지를 넣어 두었습니다.
+- 스토어 계정과 업로드 키. 릴리스 빌드 설정과 체크리스트는 `RELEASE.md`에 있습니다. 런처 아이콘은 일러스트 `app_icon`이고, Android는 적응형 아이콘과 밀도별 mipmap입니다. iOS 앱 아이콘은 1024입니다. Play용 512는 `store/icon-512.png`입니다. 글꼴 Pretendard Medium은 SIL Open Font License입니다.
 - 위젯의 연속 애니메이션. 홈 화면 위젯은 정지 화면이고, 움직임은 앱과 Android 배경화면에서만 있습니다.
 
 커뮤니티 단계에서는 `CommunityRepository`에 원격 펫, 거래 초안, 채팅을 연결하고, 보상과 구매는 `EconomyAuthority`가 서버에서 확정하게 두면 됩니다. 위젯과 일정 알림은 지금처럼 기기 안에 남겨도 됩니다.
@@ -64,7 +64,13 @@ iOS 타깃(`iosX64`, `iosArm64`, `iosSimulatorArm64`)은 `os.name`에 `mac`이 �
 
 ## Android에서 빌드하고 설치
 
-JDK 17 이상, Android SDK(compileSdk 35)가 필요합니다. SDK 경로는 `local.properties`의 `sdk.dir`에 둡니다. 이 파일은 저장소에 넣지 않습니다.
+JDK 17 이상, Android SDK(compileSdk 36, 플랫폼 android-36)가 필요합니다. SDK 경로는 `local.properties`의 `sdk.dir`에 둡니다. 이 파일은 저장소에 넣지 않습니다. 2026-08-31부터 Play는 대상 API 36을 요구합니다.
+
+릴리스 AAB는 R8이 켜져 있습니다. 서명은 환경 변수 `MONGLE_STORE_FILE`, `MONGLE_STORE_PASSWORD`, `MONGLE_KEY_ALIAS`, `MONGLE_KEY_PASSWORD`가 있을 때만 붙고, 키 파일은 커밋하지 않습니다.
+
+```bash
+./gradlew :composeApp:bundleRelease
+```
 
 ```bash
 ./gradlew :shared:jvmTest :composeApp:assembleDebug :composeApp:testDebugUnitTest
