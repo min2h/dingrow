@@ -66,60 +66,53 @@ struct PetWidgetView: View {
     private func small(_ snap: WidgetSnapshot, ink: Color, muted: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 8) {
-                PetBlob(pose: snap.pose, outfitId: snap.outfitId)
-                    .frame(width: 52, height: 52)
+                PetBlob(pose: snap.pose, outfitId: snap.outfitId, speciesId: snap.speciesId)
+                    .frame(width: 56, height: 56)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(snap.petName).font(.headline).foregroundStyle(ink)
-                    Text(snap.moodLabel).font(.caption).foregroundStyle(muted)
+                    Text("오늘의 기분").font(.caption2).foregroundStyle(muted)
+                    Text(snap.moodLabel).font(.headline).foregroundStyle(ink)
                 }
             }
-            Text(snap.nextTitle.isEmpty ? "예정된 일정 없음" : snap.nextTitle)
-                .font(.caption)
-                .foregroundStyle(ink)
-                .lineLimit(1)
-            Text(snap.nextTime)
+            Text(snap.nextTime.isEmpty ? "다음 일정" : snap.nextTime)
                 .font(.caption2)
                 .foregroundStyle(muted)
                 .lineLimit(1)
-            HStack(spacing: 6) {
-                Button(intent: FeedPetIntent()) {
-                    Text("먹이")
-                }
-                .tint(Color(hex: "#F3B6A0"))
-                Button(intent: CompleteNextIntent()) {
-                    Text("완료")
-                }
-                .tint(Color(hex: "#9ED9C7"))
+            Text(snap.nextTitle.isEmpty ? "일정 없음" : snap.nextTitle)
+                .font(.caption)
+                .foregroundStyle(ink)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+            Button(intent: CompleteNextIntent()) {
+                Text("완료").frame(maxWidth: .infinity)
             }
-            .font(.caption2)
-            .buttonStyle(.bordered)
+            .buttonStyle(.borderedProminent)
+            .tint(Color(hex: "#F6C1B0"))
+            .foregroundStyle(Color(hex: "#5C4636"))
+            .font(.caption)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private func large(_ snap: WidgetSnapshot, ink: Color, muted: Color) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            ZStack(alignment: .bottom) {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(hex: snap.floorHex))
-                    .frame(height: 92)
-                HStack {
-                    PetBlob(pose: snap.pose, outfitId: snap.outfitId)
-                        .frame(width: 72, height: 72)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("\(snap.petName) · \(snap.stageLabel)")
-                            .font(.headline)
-                            .foregroundStyle(ink)
-                        Text(snap.outingText.isEmpty ? snap.moodLabel : snap.outingText)
-                            .font(.caption)
-                            .foregroundStyle(muted)
-                        Text("코인 \(snap.coins)")
-                            .font(.caption2)
-                            .foregroundStyle(muted)
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, 8)
+            ZStack {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Color(hex: snap.wallHex))
+                    .frame(height: 150)
+                PetBlob(pose: snap.pose, outfitId: snap.outfitId, speciesId: snap.speciesId)
+                    .frame(width: 96, height: 96)
+            }
+            HStack {
+                Text("\(snap.petName)의 아늑한 방")
+                    .font(.headline)
+                    .foregroundStyle(ink)
+                Spacer()
+                Text("\(snap.coins)")
+                    .font(.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color(hex: "#FFF3C9"), in: Capsule())
+                    .foregroundStyle(ink)
             }
             if !snap.confirmText.isEmpty {
                 Text(snap.confirmText)
@@ -143,28 +136,26 @@ struct PetWidgetView: View {
                         .foregroundStyle(muted)
                 }
                 HStack(spacing: 6) {
-                    Button(intent: FeedPetIntent()) { Text("먹이") }
-                    Button(intent: CompleteNextIntent()) { Text("완료") }
-                    Button(intent: SellGiftIntent()) { Text("팔기") }
+                    Button(intent: FeedPetIntent()) { Text("밥주기").frame(maxWidth: .infinity) }
+                        .tint(Color(hex: "#FFE3D6"))
+                    Button(intent: SellGiftIntent()) { Text("선물 팔기").frame(maxWidth: .infinity) }
+                        .tint(Color(hex: "#DDF3EA"))
                 }
                 .font(.caption2)
                 .buttonStyle(.bordered)
                 HStack(spacing: 6) {
-                    Button(intent: BeginBuyIntent()) {
-                        Text(snap.todayName.isEmpty ? "구매" : "\(snap.todayName) \(snap.todayPrice)")
-                    }
-                    Button(intent: CyclePresetIntent()) { Text(snap.presetName) }
-                    Link(destination: URL(string: "mongle://schedule/add")!) {
-                        Text("일정+")
-                            .font(.caption2)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 6)
-                            .background(Color(hex: "#F6E3A1"), in: Capsule())
-                            .foregroundStyle(Color(hex: "#4A3728"))
-                    }
+                    Button(intent: BeginBuyIntent()) { Text("오늘의 상품").frame(maxWidth: .infinity) }
+                        .tint(Color(hex: "#FFF3C9"))
+                    Button(intent: CyclePresetIntent()) { Text("꾸미기").frame(maxWidth: .infinity) }
+                        .tint(Color(hex: "#FFE3D6"))
                 }
                 .font(.caption2)
                 .buttonStyle(.bordered)
+                Link(destination: URL(string: "mongle://schedule/add")!) {
+                    Text("일정 추가")
+                        .font(.caption2)
+                        .foregroundStyle(Color(hex: "#8A6A55"))
+                }
             }
             if !snap.statusMessage.isEmpty {
                 Text(snap.statusMessage)
@@ -180,6 +171,7 @@ struct PetWidgetView: View {
 struct PetBlob: View {
     let pose: String
     let outfitId: String
+    var speciesId: String = "sp_peach"
 
     var body: some View {
         ZStack {
@@ -215,10 +207,17 @@ struct PetBlob: View {
     }
 
     private var bodyColor: String {
-        switch pose {
-        case "sad": return "#E7B7A8"
-        case "happy": return "#FFD0BE"
-        default: return "#F8CDB8"
+        switch speciesId {
+        case "sp_bunny": return "#D9F3EA"
+        case "sp_bear": return "#FFE7A8"
+        case "sp_frog": return "#D7F3E4"
+        case "sp_cat": return "#FFD7C2"
+        case "sp_penguin": return "#F7F4EF"
+        case "sp_panda": return "#FFF7EF"
+        case "sp_dragon": return "#D5F4EE"
+        case "sp_ghost": return "#E6D9F6"
+        case "sp_cloud": return "#E4DDF8"
+        default: return "#FFE3D2"
         }
     }
 

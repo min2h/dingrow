@@ -53,7 +53,7 @@ object Seed {
             pendingGiftDefId = null,
             pendingGiftAt = null,
         )
-        val owned = listOf("wall_peach", "wall_mint", "wall_night", "floor_wood", "floor_tile", "rug_leaf")
+        val owned = listOf("sp_peach", "wall_peach", "wall_mint", "wall_night", "floor_wood", "floor_tile", "rug_leaf")
         return PersistedState(
             pet = pet,
             schedules = emptyList(),

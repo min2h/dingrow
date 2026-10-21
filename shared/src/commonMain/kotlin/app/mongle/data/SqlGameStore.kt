@@ -37,6 +37,7 @@ class SqlGameStore(private val db: MongleDatabase) : GameStore {
                 outingGiftDefId = pet.outing_gift_def_id,
                 pendingGiftDefId = pet.pending_gift_def_id,
                 pendingGiftAt = pet.pending_gift_at,
+                speciesId = meta["species_id"]?.takeIf { it.isNotBlank() } ?: "sp_peach",
             ),
             schedules = q.selectSchedules().executeAsList().map { row ->
                 ScheduleRecord(
@@ -207,6 +208,7 @@ class SqlGameStore(private val db: MongleDatabase) : GameStore {
             meta("notified_gift_key", trimmed.notifiedGiftKey)
             meta("status_message", trimmed.statusMessage)
             meta("status_until", trimmed.statusUntil.toString())
+            meta("species_id", pet.speciesId)
             q.deleteActions()
             trimmed.actionLog.forEach { row ->
                 q.insertAction(

@@ -33,6 +33,7 @@ kotlin {
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(compose.ui)
+            implementation(compose.components.resources)
         }
         androidMain.dependencies {
             implementation(libs.activity.compose)
@@ -87,4 +88,9 @@ android {
             it.systemProperty("roborazzi.test.record", "true")
         }
     }
+}
+
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "app.mongle.generated.resources"
 }

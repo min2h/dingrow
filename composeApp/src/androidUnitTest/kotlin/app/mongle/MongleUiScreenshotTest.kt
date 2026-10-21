@@ -77,16 +77,12 @@ class MongleFlowScreenshotTest {
     fun onboardingNamingAndHome() {
         val harness = Harness()
         harness.show()
-        harness.capture("01-onboarding.png")
+        harness.capture("onboarding.png")
         composeRule.onNode(hasSetTextAction()).performTextReplacement("보리")
         composeRule.onNodeWithText("같이 시작하기").performClick()
         harness.settle()
         assertEquals("보리", harness.service.state.value.petName)
         assertTrue(harness.service.state.value.onboarded)
-        harness.capture("02-home-egg.png")
-        harness.motion = 1f to 0.82f
-        harness.settle()
-        harness.capture("03-home-pet-moved.png")
     }
 
     @Test
@@ -101,17 +97,15 @@ class MongleFlowScreenshotTest {
         harness.clickText("추가")
         harness.settle()
         composeRule.onNode(hasSetTextAction()).performTextReplacement("물 마시기")
-        harness.capture("04-schedule-composer.png")
         composeRule.onNodeWithText("알림 맡기기").performClick()
         harness.settle()
         val added = harness.service.state.value.schedules.single()
         assertEquals("물 마시기", added.title)
         assertTrue(added.timeMillis > System.currentTimeMillis() - 5_000)
-        harness.capture("05-schedule-list.png")
+        harness.capture("schedule.png")
         harness.clickTag("complete-${added.id}")
         harness.settle()
         assertTrue(harness.service.state.value.schedules.single().done)
-        harness.capture("06-schedule-completed.png")
     }
 
     @Test
@@ -128,32 +122,29 @@ class MongleFlowScreenshotTest {
             "hunger ${beforeHunger} -> ${fed.hunger} (${fed.statusMessage})",
             fed.hunger > beforeHunger,
         )
-        harness.capture("07-home-fed.png")
         runBlocking { harness.growTo(Stage.BABY) }
         harness.settle()
         assertEquals(Stage.BABY, harness.service.state.value.stage)
         composeRule.onNodeWithTag("tab-Home").performClick()
         harness.settle()
-        harness.capture("08-home-baby.png")
         runBlocking { harness.growTo(Stage.CHILD) }
         harness.settle()
         assertEquals(Stage.CHILD, harness.service.state.value.stage)
-        harness.capture("09-home-child.png")
+        composeRule.onNodeWithTag("tab-Home").performClick()
+        harness.settle()
+        harness.capture("home.png")
         harness.clickTag("outing")
         harness.settle()
         assertNotNull(harness.service.state.value.outing)
-        harness.capture("10-home-outing.png")
         harness.clock.now += 21 * 60_000
         runBlocking { harness.service.refresh() }
         harness.settle()
         assertNotNull(harness.service.state.value.pendingGift)
-        harness.capture("11-home-gift.png")
         val coins = harness.service.state.value.coins
         harness.clickTag("sell-gift")
         harness.settle()
         assertTrue(harness.service.state.value.coins > coins)
         assertEquals(null, harness.service.state.value.pendingGift)
-        harness.capture("12-home-gift-sold.png")
     }
 
     @Test
@@ -163,8 +154,10 @@ class MongleFlowScreenshotTest {
         runBlocking {
             harness.service.completeOnboarding("보리")
             harness.growTo(Stage.CHILD)
+            val hatPrice = app.mongle.model.Catalog.byId("hat_sprout")!!.price
             var guard = 0
-            while (harness.service.state.value.coins < harness.service.state.value.todayOffer.price + 40 && guard < 24) {
+            while (harness.service.state.value.coins < harness.service.state.value.todayOffer.price + hatPrice && guard < 80) {
+                if (guard > 0 && guard % 6 == 0) harness.clock.now += 26L * 60 * 60 * 1000
                 val stamp = harness.clock.now
                 harness.service.addSchedule("용돈 $guard", stamp, RepeatRule.NONE)
                 harness.clock.now = stamp + 3 * 60_000
@@ -174,8 +167,9 @@ class MongleFlowScreenshotTest {
             }
         }
         harness.settle()
-        composeRule.onNodeWithTag("tab-Shop").performClick()
+        composeRule.onNodeWithTag("tab-Room").performClick()
         harness.settle()
+        harness.capture("shop.png")
         val before = harness.service.state.value.coins
         harness.clickTag("buy-today")
         harness.settle()
@@ -183,28 +177,27 @@ class MongleFlowScreenshotTest {
             "coins $before -> ${harness.service.state.value.coins} (${harness.service.state.value.statusMessage})",
             harness.service.state.value.coins < before,
         )
-        harness.capture("13-shop-bought.png")
         harness.clickTag("buy-hat_sprout")
         harness.settle()
         assertTrue(
             "owned=${harness.service.state.value.owned} coins=${harness.service.state.value.coins} ${harness.service.state.value.statusMessage}",
             "hat_sprout" in harness.service.state.value.owned,
         )
-        composeRule.onNodeWithTag("tab-Room").performClick()
-        harness.settle()
         harness.clickText("밤하늘 방")
         harness.settle()
         assertEquals(2, harness.service.state.value.activePreset)
-        harness.capture("14-room-night.png")
+        harness.capture("room.png")
         harness.clickText("새싹 모자")
         harness.settle()
         assertEquals("hat_sprout", harness.service.state.value.outfitId)
-        harness.capture("15-room-outfit.png")
         var opened = false
         harness.onWallpaper = { opened = true }
         harness.clickTag("wallpaper")
         harness.settle()
         assertTrue(opened)
+        composeRule.onNodeWithTag("tab-My").performClick()
+        harness.settle()
+        harness.capture("dex.png")
     }
 
     private inner class Harness {
@@ -299,8 +292,8 @@ class MongleWidgetAlarmWallpaperTest {
         service.addSchedule("물 마시기", clock.now + 60_000, RepeatRule.NONE)
         AppGraph.installForTests(service)
         val context = RuntimeEnvironment.getApplication()
-        saveGlance(context, "16-widget-small.png", 180, 180) { SmallBody(service.state.value) }
-        saveGlance(context, "17-widget-large.png", 320, 360) { LargeBody(service.state.value) }
+        saveGlance(context, "widget-small.png", 180, 180) { SmallBody(service.state.value) }
+        saveGlance(context, "widget-large.png", 320, 360) { LargeBody(service.state.value) }
 
         FeedAction().onAction(context, glanceId, actionParametersOf())
         assertTrue(service.state.value.hunger > 80 || service.state.value.statusMessage.contains("먹"))
@@ -326,11 +319,11 @@ class MongleWidgetAlarmWallpaperTest {
         val coins = service.state.value.coins
         BeginBuyAction().onAction(context, glanceId, actionParametersOf())
         assertTrue(service.state.value.confirmText.isNotBlank())
-        saveGlance(context, "18-widget-confirm-buy.png", 320, 360) { LargeBody(service.state.value) }
+        saveGlance(context, "widget-confirm-buy.png", 320, 360, publish = false) { LargeBody(service.state.value) }
         ConfirmBuyAction().onAction(context, glanceId, actionParametersOf())
         assertTrue(service.state.value.coins < coins)
         assertTrue(service.state.value.confirmText.isBlank())
-        saveGlance(context, "19-widget-after-buy.png", 320, 360) { LargeBody(service.state.value) }
+        saveGlance(context, "widget-after-buy.png", 320, 360, publish = false) { LargeBody(service.state.value) }
         CancelBuyAction().onAction(context, glanceId, actionParametersOf())
     }
 
@@ -366,7 +359,7 @@ class MongleWidgetAlarmWallpaperTest {
         assertEquals(2, notification.actions.size)
         assertEquals("완료", notification.actions[0].title.toString())
         assertEquals("10분 뒤", notification.actions[1].title.toString())
-        saveNotification(context, notification, "20-notification.png")
+        saveNotification(context, notification, "notification.png")
 
         ReminderReceiver().onReceive(
             context,
@@ -400,8 +393,8 @@ class MongleWidgetAlarmWallpaperTest {
         val state = service.state.value
         val first = drawWallpaper(state, 0)
         val second = drawWallpaper(state, 600)
-        saveBitmap(first, "21-wallpaper-a.png")
-        saveBitmap(second, "22-wallpaper-b.png")
+        saveBitmap(first, "wallpaper-a.png", publish = false)
+        saveBitmap(second, "wallpaper-b.png", publish = false)
         assertFalse(first.sameAs(second))
     }
 }
@@ -410,14 +403,14 @@ private class MutableClock(var now: Long) : TimeProvider {
     override fun now(): Long = now
 }
 
-private fun artifact(name: String): File {
-    val dir = File("/opt/cursor/artifacts")
+private fun artifact(name: String, publish: Boolean = true): File {
+    val dir = File(if (publish) "/opt/cursor/artifacts" else "/tmp/mongle-frames")
     dir.mkdirs()
     return File(dir, name)
 }
 
-private fun saveBitmap(bitmap: Bitmap, name: String) {
-    FileOutputStream(artifact(name)).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+private fun saveBitmap(bitmap: Bitmap, name: String, publish: Boolean = true) {
+    FileOutputStream(artifact(name, publish)).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
 }
 
 private fun drawWallpaper(state: app.mongle.model.GameState, shift: Long): Bitmap {
@@ -432,6 +425,7 @@ private suspend fun saveGlance(
     name: String,
     widthDp: Int,
     heightDp: Int,
+    publish: Boolean = true,
     content: @androidx.compose.runtime.Composable () -> Unit,
 ) {
     val result = GlanceRemoteViews().compose(
@@ -442,7 +436,7 @@ private suspend fun saveGlance(
     val density = context.resources.displayMetrics.density
     val width = (widthDp * density).toInt()
     val height = (heightDp * density).toInt()
-    saveBitmap(renderRemoteViews(context, result.remoteViews, width, height), name)
+    saveBitmap(renderRemoteViews(context, result.remoteViews, width, height), name, publish)
 }
 
 private fun renderRemoteViews(context: Context, remote: RemoteViews, width: Int, height: Int): Bitmap {
@@ -487,7 +481,7 @@ private fun saveNotification(context: Context, notification: android.app.Notific
     view.layout(0, 0, width, view.measuredHeight.coerceAtLeast(120))
     val bitmap = Bitmap.createBitmap(width, view.height.coerceAtLeast(120), Bitmap.Config.ARGB_8888)
     view.draw(Canvas(bitmap))
-    saveBitmap(bitmap, name)
+    saveBitmap(bitmap, name, publish = false)
 }
 
 /** API 34+ leaves contentView null until SystemUI inflates it. The builder method is @hide but present in android-all. */

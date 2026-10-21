@@ -13,6 +13,7 @@ import app.mongle.model.Catalog
 import app.mongle.model.GameBalance
 import app.mongle.model.Rarity
 import app.mongle.model.RepeatRule
+import app.mongle.model.SpeciesCatalog
 import app.mongle.model.Stage
 import app.mongle.platform.JvmNotices
 import app.mongle.platform.createMemoryDriver
@@ -102,6 +103,24 @@ class MongleRulesTest {
         ) as GrantDecision.Allow
         assertTrue(capped.xp < full.xp)
         assertTrue(capped.coins < full.coins)
+    }
+
+    @Test
+    fun catalogMatchesSheetAndSpeciesCount() {
+        assertTrue(SpeciesCatalog.all.size >= 50)
+        assertEquals(SpeciesCatalog.all.size, SpeciesCatalog.all.map { it.id }.toSet().size)
+        assertTrue(Catalog.goods.size >= 50)
+        assertEquals(800, Catalog.byId("bed_cloud")!!.price)
+        assertEquals("쿠션 침대", Catalog.byId("bed_cloud")!!.name)
+        assertEquals(350, Catalog.byId("hat_sprout")!!.price)
+        assertEquals("새싹 모자", Catalog.byId("hat_sprout")!!.name)
+        assertEquals(50, Catalog.byId("gift_pebble")!!.sellPrice)
+        assertEquals("돌멩이", Catalog.byId("gift_pebble")!!.name)
+        assertEquals(900, Catalog.byId("piano")!!.price)
+        assertTrue(Catalog.byId("hood_yellow")!!.fresh)
+        assertTrue(Catalog.rotating().any { it.stackable })
+        assertTrue(Catalog.rotating().filter { !it.stackable }.all { it.price in 1..80 })
+        assertEquals("sp_peach", SpeciesCatalog.byId("missing").id)
     }
 
     @Test

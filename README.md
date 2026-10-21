@@ -10,7 +10,7 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| `:shared:jvmTest` 14개 (성장, 보상, 외출, 상점, SQLite 왕복) | Linux에서 통과 |
+| `:shared:jvmTest` (성장, 보상, 외출, 상점, 도감 카탈로그, SQLite 왕복) | Linux에서 통과 |
 | `:composeApp:assembleDebug` | Linux에서 통과 |
 | `:composeApp:testDebugUnitTest` 7개 (Compose UI, Glance, 알람, 배경화면) | Linux에서 통과. Robolectric 4.14 + Roborazzi |
 | 디버그 APK | `composeApp/build/outputs/apk/debug/composeApp-debug.apk` |
@@ -26,8 +26,10 @@
 - 알은 일정 3번을 마치면 부화합니다. 아기에서 어린이는 경험치 50, 어린이에서 어른은 경험치 160입니다. 날짜 게이트 기본값은 0이라 데모에서 바로 자랍니다.
 - 포만감은 시간당 4, 행복은 시간당 2씩 줄고, 포만감이 30 미만이면 행복이 시간당 5 줄습니다. 집에 있으면 기력은 시간당 10 회복합니다. 72시간을 넘긴 공백은 72시간만 계산하고, 알은 수치가 줄지 않습니다. 앱을 열 때와 15분마다 게으르게 반영합니다.
 - 어린이 이상, 포만감 35 이상, 기력 30 이상, 마지막 외출 후 90분이 지나면 외출할 수 있습니다. 20분 뒤 돌아오고 기력 35를 씁니다. 선물은 떠날 때 정해지고, 돌아올 때 공개됩니다.
+- 친구 50종과 물건 50종은 `SpeciesCatalog`, `Catalog`에 있습니다. 캐릭터 시트의 20종(고양이, 토끼, 곰, 개구리, 병아리, 만두, 딸기, 녹차, 복숭아, 구름, 별, 유령, 새싹, 펭귄, 햄스터, 여우, 물개, 판다, 아기용, 알)과 아이템 시트의 이름·코인 가격이 기준이고, 같은 모양 규칙으로 나머지를 늘렸습니다. 종은 몸 색과 귀·후드·무늬를 겹쳐 그립니다. 가격이 0인 복숭아와 알은 처음부터 있고, 나머지는 도감에서 사거나 산책에서 만납니다. 오늘의 상점은 80코인 이하만 돌리고, 시트 가격의 가구와 옷은 방 그리드에서 삽니다.
+- 화면은 홈, 일정, 방 꾸미기, 마이(도감)입니다. 글꼴은 Pretendard Medium이고 SIL Open Font License입니다.
 - 상점의 오늘 상품은 날짜마다 바뀌고, 이미 가진 단일 아이템은 건너뜁니다. 위젯에서 사면 45초 안에 한 번 더 눌러 확정합니다. 앱 안에서는 한 번에 삽니다.
-- Android 작은 위젯(펫, 기분, 다음 일정, 먹이, 완료)과 큰 위젯(방, 먹이, 완료, 선물 판매, 오늘의 상품, 방 프리셋, 일정 추가). 일정 추가는 `mongle://schedule/add`로 앱의 작성 화면을 엽니다.
+- Android 작은 위젯(오늘의 기분, 다음 일정, 완료)과 큰 위젯(아늑한 방, 밥주기, 선물 팔기, 오늘의 상품, 꾸미기). 일정 추가는 `mongle://schedule/add`로 앱의 작성 화면을 엽니다.
 - 일정 시각 알림. Android 12 이상에서 정확한 알람을 허용하면 `setExactAndAllowWhileIdle`, 아니면 15분 창입니다. 알림 액션은 완료와 10분 뒤입니다. 재부팅과 앱 업데이트 뒤 다시 등록합니다.
 - 앱 안에서 펫이 통통 튀고, 선택하면 Android 라이브 배경화면으로도 그립니다.
 - 온라인 세계, 채팅, 유저 간 거래는 인터페이스만 있습니다. `EconomyAuthority`와 `CommunityRepository`를 나중에 서버 구현으로 바꾸면 됩니다. 지금은 `LocalEconomyAuthority`와 `UnavailableCommunityRepository`입니다.
@@ -50,7 +52,7 @@ shared/          도메인, SQLDelight, GameService, 스냅샷 JSON
   iosMain        App Group DB, UNUserNotificationCenter, MongleBridge
   jvmMain        테스트용 인메모리 SQLite
 composeApp/      Compose Multiplatform UI
-  commonMain     홈, 일정, 상점, 방
+  commonMain     홈, 일정, 방 꾸미기, 도감. Pretendard(OFL)
   androidMain    Glance 위젯, AlarmManager, WorkManager, 배경화면
   iosMain        MainViewController. Mac에서만 컴파일
 iosApp/          SwiftUI 셸, WidgetKit, App Intents, Xcode 프로젝트
@@ -85,7 +87,7 @@ Mac, Xcode 16 전후, iOS 17 이상 시뮬레이터 또는 기기가 필요합�
 2. Xcode에서 `iosApp/iosApp.xcodeproj`를 엽니다. 스킴은 `iosApp`입니다.
 3. 앱 타깃의 빌드 스크립트가 `./gradlew :composeApp:embedAndSignAppleFrameworkForXcode`를 실행하고 `ComposeApp.framework`(shared를 export한 정적 프레임워크)를 링크합니다. 위젯 타깃은 `./gradlew :shared:embedAndSignAppleFrameworkForXcode`로 `Shared.framework`만 링크합니다. 위젯 소스는 `WIDGET` 컴파일 조건으로 `Shared`를 import합니다.
 4. 서명 팀이 비어 있으면 빌드가 실패합니다. 사용자 스크립트 샌드박스는 프로젝트에서 꺼 두었습니다. Gradle이 저장소 루트에 프레임워크를 써야 하기 때문입니다.
-5. 홈 화면에 위젯 **몽이**를 추가합니다. 작은 위젯은 먹이와 완료, 큰 위젯은 먹이, 완료, 팔기, 오늘의 상품(한 번 누르면 확인, 다시 누르면 구매), 방 프리셋, `mongle://schedule/add` 일정 추가입니다. 버튼은 iOS 17 App Intents입니다.
+5. 홈 화면에 위젯 **몽이**를 추가합니다. 작은 위젯은 오늘의 기분과 완료, 큰 위젯은 밥주기, 선물 팔기, 오늘의 상품(한 번 누르면 확인, 다시 누르면 구매), 꾸미기, `mongle://schedule/add` 일정 추가입니다. 버튼은 iOS 17 App Intents입니다.
 6. 일정 알림은 `UNUserNotificationCenter`이고 카테고리 `MONGLE_SCHEDULE`에 완료, 10분 뒤 액션이 있습니다. Swift `NotificationRouter`가 카테고리를 다시 등록하므로, Kotlin 쪽 UserNotifications 시그니처가 한 단계 어긋나도 액션 문구는 남길 수 있습니다. 그 경우 `shared/src/iosMain`의 컴파일 오류를 그 버전의 cinterop에 맞게 고치면 됩니다.
 
 iOS에서 처음 깨질 수 있는 곳:
@@ -101,5 +103,5 @@ iOS에서 처음 깨질 수 있는 곳:
 
 - 알이 아닌 펫의 일정 완료 기본 보상은 경험치 14, 코인 8, 행복 10입니다. 알은 4, 2, 6입니다.
 - 생성 후 2분 미만은 ×0.25, 예정 시각보다 10분 넘게 이르면 ×0.5, 그날 8회를 넘기면 ×0.4입니다.
-- 외출 선물은 조개 350, 클로버 350, 조약돌 140, 편지 80, 도토리 60, 별조각 20 (가중치 /1000)입니다. 판매가는 카탈로그에 있습니다.
+- 외출 선물은 조개 350, 클로버 350, 돌멩이 140, 편지 80, 도토리 60, 별 조각 20 (가중치 /1000)입니다. 판매가는 아이템 시트를 따릅니다. 산책에서 돌아오면 아직 없는 친구를 낮은 확률로 만납니다.
 - 시작 코인은 40, 풀잎 쿠키 3개, 방 프리셋 세 개(포근한 방, 민트 방, 밤하늘 방)입니다.

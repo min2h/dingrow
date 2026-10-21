@@ -1,6 +1,7 @@
 package app.mongle.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,14 +18,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,16 +42,22 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.mongle.logic.Korean
 import app.mongle.model.Catalog
 import app.mongle.model.DecorSlot
 import app.mongle.model.GameState
 import app.mongle.model.ItemDef
 import app.mongle.model.ItemKind
+import app.mongle.model.Rarity
 import app.mongle.model.RepeatRule
+import app.mongle.model.SpeciesCatalog
 import app.mongle.platform.NavigationBus
 import app.mongle.service.GameService
 import kotlinx.coroutines.delay
@@ -59,16 +66,22 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 
-private enum class Tab(val label: String, val mark: String) {
-    Home("홈", "집"),
-    Schedule("일정", "일"),
-    Shop("상점", "샵"),
-    Room("방", "방"),
+private enum class Tab(val label: String) {
+    Home("홈"),
+    Schedule("일정"),
+    Room("방 꾸미기"),
+    My("마이"),
 }
+
+private enum class RoomPane { Furniture, Outfit }
+
+private val CardShape = RoundedCornerShape(24.dp)
+private val Pill = RoundedCornerShape(20.dp)
 
 @Composable
 fun MongleAppScreen(
@@ -113,9 +126,24 @@ fun MongleAppScreen(
 
     Scaffold(
         containerColor = Cream,
+        topBar = {
+            TopBar(
+                title = when (tab) {
+                    Tab.Home -> "몽글"
+                    Tab.Schedule -> "일정"
+                    Tab.Room -> "방 꾸미기"
+                    Tab.My -> "도감"
+                },
+                coins = state.coins,
+            )
+        },
         bottomBar = {
             Row(
-                Modifier.fillMaxWidth().background(CardWhite).padding(vertical = 4.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .shadow(8.dp)
+                    .background(CardWhite)
+                    .padding(top = 6.dp, bottom = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Tab.entries.forEach { item ->
@@ -124,18 +152,20 @@ fun MongleAppScreen(
                         Modifier
                             .weight(1f)
                             .testTag("tab-${item.name}")
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(if (selected) PeachSoft else CardWhite)
                             .clickable {
                                 tabState.value = item
-                                // Compose UI 테스트는 클릭을 스냅샷 안에서 실행한다. 알리지 않으면 탭이 바뀌지 않는다.
                                 Snapshot.sendApplyNotifications()
                             }
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = 4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text(item.mark, fontWeight = FontWeight.Bold, color = if (selected) Peach else Ink)
-                        Text(item.label, color = if (selected) Peach else Ink.copy(alpha = 0.65f))
+                        NavMark(item, selected)
+                        Text(
+                            item.label,
+                            color = if (selected) PeachDeep else InkSoft,
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                        )
                     }
                 }
             }
@@ -143,12 +173,47 @@ fun MongleAppScreen(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (tab) {
-                Tab.Home -> HomeScreen(state, permissions, scope, service, onRequestNotifications, onOpenExactAlarm)
-                Tab.Schedule -> ScheduleScreen(state, showComposer, { showComposer = it }, scope, service)
-                Tab.Shop -> ShopScreen(state, scope, service)
-                Tab.Room -> RoomScreen(state, permissions, scope, service, onOpenWallpaper, onOpenExactAlarm)
+                Tab.Home -> HomeScreen(state, scope, service)
+                Tab.Schedule -> ScheduleScreen(state, scope, service, showComposer, { showComposer = it }, permissions, onOpenExactAlarm)
+                Tab.Room -> RoomScreen(state, scope, service, onOpenWallpaper)
+                Tab.My -> DexScreen(state, scope, service)
             }
         }
+    }
+}
+
+@Composable
+private fun TopBar(title: String, coins: Int) {
+    Row(
+        Modifier.fillMaxWidth().background(Cream).padding(horizontal = 20.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.weight(1f))
+        CoinPill(coins)
+    }
+}
+
+@Composable
+private fun NavMark(tab: Tab, selected: Boolean) {
+    val color = if (selected) PeachDeep else InkSoft
+    Box(
+        Modifier
+            .size(28.dp)
+            .clip(CircleShape)
+            .background(if (selected) PeachSoft else Color.Transparent),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            when (tab) {
+                Tab.Home -> "●"
+                Tab.Schedule -> "▢"
+                Tab.Room -> "⌂"
+                Tab.My -> "♥"
+            },
+            color = color,
+            fontSize = 14.sp,
+        )
     }
 }
 
@@ -159,164 +224,243 @@ private fun Onboarding(name: String, onName: (String) -> Unit, onStart: () -> Un
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("몽글", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Ink)
+        AnimatedPet(app.mongle.model.Stage.EGG, app.mongle.model.Pose.EGG, null, Modifier.size(180.dp))
+        Text("몽글", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(8.dp))
-        Text("할 일을 끝내면, 홈 화면의 펫이 자라요.", color = Ink)
-        Spacer(Modifier.height(20.dp))
-        AnimatedPet(app.mongle.model.Stage.EGG, app.mongle.model.Pose.EGG, null, Modifier.size(220.dp))
-        Spacer(Modifier.height(12.dp))
-        Text("알을 따뜻하게 부르려면 이름이 필요해요.", color = Ink)
-        Spacer(Modifier.height(12.dp))
-        TextField(value = name, onValueChange = onName, singleLine = true, label = { Text("이름") })
+        Text("같이 지낼 이름을 정해 주세요", color = InkSoft)
         Spacer(Modifier.height(16.dp))
-        Button(onClick = onStart, shape = RoundedCornerShape(18.dp)) { Text("같이 시작하기") }
+        TextField(value = name, onValueChange = onName, singleLine = true, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(16.dp))
+        Button(
+            onClick = onStart,
+            enabled = name.isNotBlank(),
+            shape = Pill,
+            colors = ButtonDefaults.buttonColors(containerColor = PeachDeep),
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+        ) { Text("같이 시작하기") }
     }
 }
 
 @Composable
 private fun HomeScreen(
     state: GameState,
-    permissions: PermissionSnapshot,
     scope: kotlinx.coroutines.CoroutineScope,
     service: GameService,
-    onRequestNotifications: () -> Unit,
-    onOpenExactAlarm: () -> Unit,
 ) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp).testTag("home-scroll")) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column {
-                Text(state.petName, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                Text("${state.stageLabel} · ${state.moodLabel}", color = Ink.copy(alpha = 0.75f))
-            }
-            CoinChip(state.coins)
-        }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .testTag("home-scroll"),
+    ) {
+        RoomScene(
+            state,
+            Modifier.fillMaxWidth().height(156.dp).clip(RoundedCornerShape(24.dp)).shadow(6.dp, RoundedCornerShape(24.dp)),
+        )
         Spacer(Modifier.height(12.dp))
-        if (state.statusMessage.isNotBlank()) {
-            Banner(state.statusMessage)
-            Spacer(Modifier.height(10.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(state.petName, style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.width(8.dp))
+            Text("Lv.${state.level}", color = PeachDeep, style = MaterialTheme.typography.titleMedium)
         }
-        Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = CardWhite)) {
-            Box(Modifier.fillMaxWidth().height(220.dp)) {
-                RoomScene(state, Modifier.fillMaxSize())
-                AnimatedPet(
-                    state.stage,
-                    state.pose,
-                    state.outfitId,
-                    Modifier.align(Alignment.Center).size(168.dp),
-                )
+        Text("성장 XP   ${state.xp} / ${state.xpForNext.coerceAtLeast(state.xp)}", color = InkSoft, fontSize = 12.sp)
+        Spacer(Modifier.height(6.dp))
+        LinearProgressIndicator(
+            progress = { state.progressFraction.coerceIn(0f, 1f) },
+            modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(8.dp)),
+            color = Butter,
+            trackColor = ButterSoft,
+        )
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatChip("포만감 ${state.hunger}%", MintSoft, Modifier.weight(1f))
+            StatChip("행복 ${state.happiness}%", PeachSoft, Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(10.dp))
+        SoftCard {
+            Text("다음 일정", color = InkSoft, fontSize = 12.sp)
+            val next = state.nextSchedule
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(next?.timeLabel ?: "비어 있어요", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text(next?.title ?: "일정을 추가해 보세요", color = InkSoft, fontSize = 13.sp)
             }
+            state.outing?.let { Text(it.label, color = Mint) }
+        }
+        if (state.statusMessage.isNotBlank()) {
+            Spacer(Modifier.height(8.dp))
+            Text(state.statusMessage, color = InkSoft, fontSize = 13.sp)
         }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
-                onClick = { scope.launch { service.feed() } },
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.weight(1f).testTag("feed"),
-            ) { Text("먹이 주기") }
-            OutlinedButton(
-                onClick = { scope.launch { service.startOuting() } },
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.weight(1f).testTag("outing"),
-            ) { Text(if (state.outing != null) "외출 중" else "외출") }
+            PillButton("밥주기", PeachSoft, Modifier.weight(1f).testTag("feed")) {
+                scope.launch { service.feed() }
+            }
+            PillButton("산책", MintSoft, Modifier.weight(1f).testTag("outing")) {
+                scope.launch { service.startOuting() }
+            }
+            PillButton("선물", ButterSoft, Modifier.weight(1f)) { }
         }
         state.pendingGift?.let { gift ->
             Spacer(Modifier.height(10.dp))
-            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Butter.copy(alpha = 0.55f))) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("${gift.name}${Korean.eulReul(gift.name)} 가져왔어요", fontWeight = FontWeight.Bold)
-                    Text("${Korean.rarityLabel(gift.rarity)} · 판매 ${gift.sellPrice}코인")
-                    Row {
-                        TextButton(onClick = { scope.launch { service.keepGift() } }) { Text("보관") }
-                        TextButton(
-                            onClick = { scope.launch { service.sellPendingOrLatest() } },
-                            modifier = Modifier.testTag("sell-gift"),
-                        ) { Text("팔기") }
-                    }
+            SoftCard {
+                Text("${gift.name}이 도착했어요", style = MaterialTheme.typography.titleMedium)
+                Text("${gift.sellPrice}코인", color = InkSoft)
+                Row {
+                    TextButton(onClick = { scope.launch { service.keepGift() } }) { Text("보관") }
+                    TextButton(
+                        onClick = { scope.launch { service.sellPendingOrLatest() } },
+                        modifier = Modifier.testTag("sell-gift"),
+                    ) { Text("팔기") }
                 }
             }
         }
-        Spacer(Modifier.height(8.dp))
-        Text(Korean.greeting(state.timeOfDay, state.petName), color = Ink.copy(alpha = 0.8f))
-        Spacer(Modifier.height(14.dp))
-        StatBar("포만감", state.hunger, Mint)
-        StatBar("행복", state.happiness, Peach)
-        StatBar("기력", state.energy, Butter)
-        Text(state.progressLabel, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 6.dp))
-        LinearProgressIndicator(
-            progress = { state.progressFraction.coerceIn(0f, 1f) },
-            modifier = Modifier.fillMaxWidth().padding(top = 6.dp).height(8.dp).clip(RoundedCornerShape(8.dp)),
-            color = Peach,
-            trackColor = PeachSoft,
-        )
-        Spacer(Modifier.height(16.dp))
-        NextScheduleCard(state)
-        state.outing?.let {
-            Text(it.label, modifier = Modifier.padding(top = 8.dp))
-        }
         state.outingBlockReason?.let {
-            if (state.outing == null) Text(it, color = Ink.copy(alpha = 0.7f), modifier = Modifier.padding(top = 6.dp))
+            if (state.outing == null) {
+                Spacer(Modifier.height(6.dp))
+                Text(it, color = InkSoft, fontSize = 12.sp)
+            }
         }
-        if (!permissions.notificationsOn) {
-            Spacer(Modifier.height(12.dp))
-            Banner("일정 시간에 몽이가 부르려면 알림을 허용해 주세요.")
-            TextButton(onClick = onRequestNotifications) { Text("알림 허용") }
-        }
-        if (permissions.supportsExactAlarm && !permissions.exactAlarmsOn) {
-            Banner("정확한 시각이 필요하면 알람 권한을 켜 주세요. 없으면 15분 정도 늦을 수 있어요.")
-            TextButton(onClick = onOpenExactAlarm) { Text("알람 권한 열기") }
-        }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
     }
 }
 
 @Composable
 private fun ScheduleScreen(
     state: GameState,
-    showComposer: Boolean,
-    setComposer: (Boolean) -> Unit,
     scope: kotlinx.coroutines.CoroutineScope,
     service: GameService,
+    showComposer: Boolean,
+    onComposer: (Boolean) -> Unit,
+    permissions: PermissionSnapshot,
+    onOpenExactAlarm: () -> Unit,
 ) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("일정", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Button(onClick = { setComposer(!showComposer) }, shape = RoundedCornerShape(14.dp)) {
-                Text(if (showComposer) "닫기" else "추가")
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        ) {
+            WeekStrip()
+            Spacer(Modifier.height(8.dp))
+            if (!permissions.exactAlarmsOn && permissions.supportsExactAlarm) {
+                TextButton(onClick = onOpenExactAlarm) { Text("정확한 알람 허용") }
             }
-        }
-        if (showComposer) {
-            Spacer(Modifier.height(12.dp))
-            ScheduleComposer { title, time, repeat ->
-                scope.launch {
-                    service.addSchedule(title, time, repeat)
-                    setComposer(false)
-                }
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        if (state.schedules.isEmpty()) {
-            Text("아직 일정이 없어요. 첫 일정을 적으면 몽이가 그 시간에 불러요.")
-        }
-        state.schedules.forEach { item ->
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = if (item.done) PeachSoft.copy(alpha = 0.4f) else CardWhite),
-            ) {
-                Column(Modifier.padding(14.dp)) {
-                    Text(item.title, fontWeight = FontWeight.Bold)
-                    Text("${item.timeLabel} · ${item.repeatLabel}" + if (item.overdue) " · 지남" else "")
-                    Row {
-                        if (!item.done) {
-                            TextButton(
-                                onClick = { scope.launch { service.completeSchedule(item.id) } },
-                                modifier = Modifier.testTag("complete-${item.id}"),
-                            ) { Text("완료") }
-                            TextButton(onClick = { scope.launch { service.snooze(item.id) } }) { Text("10분 뒤") }
-                        }
-                        TextButton(onClick = { scope.launch { service.deleteSchedule(item.id) } }) { Text("삭제") }
+            if (showComposer) {
+                ScheduleComposer { title, time, repeat ->
+                    scope.launch {
+                        service.addSchedule(title, time, repeat)
+                        onComposer(false)
                     }
                 }
+                Spacer(Modifier.height(8.dp))
+            }
+            val open = state.schedules.filter { !it.done }
+            val done = state.schedules.filter { it.done }
+            Text("오늘의 할 일 · ${open.size}", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            if (open.isEmpty()) {
+                Text("아직 일정이 없어요", color = InkSoft)
+                Spacer(Modifier.height(8.dp))
+            }
+            open.forEach { item ->
+                ScheduleCard(
+                    item,
+                    done = false,
+                    speciesId = state.speciesId,
+                    onComplete = { scope.launch { service.completeSchedule(item.id) } },
+                    onSnooze = { scope.launch { service.snooze(item.id) } },
+                    onDelete = { scope.launch { service.deleteSchedule(item.id) } },
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            Text("완료한 할 일 · ${done.size}", color = InkSoft)
+            done.forEach { item ->
+                ScheduleCard(
+                    item,
+                    done = true,
+                    speciesId = state.speciesId,
+                    onComplete = {},
+                    onSnooze = {},
+                    onDelete = { scope.launch { service.deleteSchedule(item.id) } },
+                )
+            }
+            Spacer(Modifier.height(72.dp))
+        }
+        Button(
+            onClick = { onComposer(true) },
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(containerColor = PeachDeep),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
+            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
+        ) { Text("추가") }
+    }
+}
+
+@Composable
+private fun WeekStrip() {
+    val zone = TimeZone.currentSystemDefault()
+    val today = Clock.System.now().toLocalDateTime(zone).date
+    val back = (today.dayOfWeek.ordinal + 1) % 7
+    val sunday = today.minus(back, DateTimeUnit.DAY)
+    val labels = listOf("일", "월", "화", "수", "목", "금", "토")
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        labels.forEachIndexed { index, label ->
+            val date = sunday.plus(index, DateTimeUnit.DAY)
+            val selected = date == today
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(label, color = InkSoft, fontSize = 11.sp)
+                Box(
+                    Modifier
+                        .padding(top = 4.dp)
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (selected) PeachDeep else Color.Transparent),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("${date.dayOfMonth}", color = if (selected) Color.White else Ink, fontSize = 12.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScheduleCard(
+    item: app.mongle.model.ScheduleView,
+    done: Boolean,
+    speciesId: String,
+    onComplete: () -> Unit,
+    onSnooze: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    SoftCard(Modifier.padding(bottom = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(if (done) Mint else Color.Transparent)
+                    .border(2.dp, if (done) Mint else PeachSoft, CircleShape)
+                    .then(if (done) Modifier else Modifier.clickable(onClick = onComplete).testTag("complete-${item.id}")),
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(item.timeLabel, color = InkSoft, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(item.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(item.repeatLabel, color = PeachDeep, fontSize = 11.sp)
+            }
+            AnimatedPet(
+                app.mongle.model.Stage.BABY,
+                if (done) app.mongle.model.Pose.HAPPY else app.mongle.model.Pose.IDLE,
+                null,
+                Modifier.size(46.dp),
+                speciesId,
+                still = true,
+            )
+        }
+        if (!done) {
+            Row {
+                TextButton(onClick = onSnooze) { Text("10분 뒤") }
+                TextButton(onClick = onDelete) { Text("삭제") }
             }
         }
     }
@@ -330,34 +474,34 @@ private fun ScheduleComposer(onSave: (String, Long, RepeatRule) -> Unit) {
     var hour by remember { mutableIntStateOf(initial.hour) }
     var minute by remember { mutableIntStateOf(initial.minute) }
     var repeat by remember { mutableStateOf(RepeatRule.NONE) }
-    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = CardWhite)) {
-        Column(Modifier.padding(14.dp)) {
-            TextField(value = title, onValueChange = title.let { { value -> title = value } }, label = { Text("할 일") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
-            ChipRow(listOf(0 to "오늘", 1 to "내일", 2 to "모레"), dayOffset) { dayOffset = it }
-            Text("시", modifier = Modifier.padding(top = 8.dp))
-            Row(Modifier.horizontalScroll(rememberScrollState())) {
-                (6..22).forEach { h ->
-                    TextButton(onClick = { hour = h }) { Text(if (hour == h) "[$h]" else "$h") }
-                }
+    SoftCard {
+        TextField(
+            value = title,
+            onValueChange = { title = it },
+            label = { Text("할 일") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(8.dp))
+        ChipRow(listOf(0 to "오늘", 1 to "내일", 2 to "모레"), dayOffset) { dayOffset = it }
+        Row(Modifier.horizontalScroll(rememberScrollState())) {
+            (6..22).forEach { value ->
+                TextButton(onClick = { hour = value }) { Text(if (hour == value) "[$value]" else "$value") }
             }
-            ChipRow(listOf(0 to "00", 10 to "10", 20 to "20", 30 to "30", 40 to "40", 50 to "50"), minute) { minute = it }
-            ChipRow(
-                listOf(RepeatRule.NONE to "한 번", RepeatRule.DAILY to "매일", RepeatRule.WEEKLY to "매주"),
-                repeat,
-            ) { repeat = it }
-            Button(
-                onClick = { onSave(title, composeTime(dayOffset, hour, minute), repeat) },
-                enabled = title.isNotBlank(),
-                shape = RoundedCornerShape(14.dp),
-            ) { Text("알림 맡기기") }
         }
+        ChipRow(listOf(0 to "00", 10 to "10", 20 to "20", 30 to "30", 40 to "40", 50 to "50"), minute) { minute = it }
+        ChipRow(listOf(RepeatRule.NONE to "한 번", RepeatRule.DAILY to "매일", RepeatRule.WEEKLY to "매주"), repeat) { repeat = it }
+        Button(
+            onClick = { onSave(title, composeTime(dayOffset, hour, minute), repeat) },
+            enabled = title.isNotBlank(),
+            shape = Pill,
+            colors = ButtonDefaults.buttonColors(containerColor = PeachDeep),
+        ) { Text("알림 맡기기") }
     }
 }
 
 private data class Slot(val dayOffset: Int, val hour: Int, val minute: Int)
 
-/** 기본 시각은 지금 이후의 10분 단위다. 밤 10시가 지났으면 내일 아침. */
 private fun nextSlot(now: kotlinx.datetime.Instant = Clock.System.now()): Slot {
     val zone = TimeZone.currentSystemDefault()
     val ldt = now.toLocalDateTime(zone)
@@ -388,244 +532,239 @@ private fun composeTime(dayOffset: Int, hour: Int, minute: Int): Long {
 }
 
 @Composable
-private fun ShopScreen(
-    state: GameState,
-    scope: kotlinx.coroutines.CoroutineScope,
-    service: GameService,
-) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("상점", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            CoinChip(state.coins)
-        }
-        Spacer(Modifier.height(8.dp))
-        if (state.statusMessage.isNotBlank()) Banner(state.statusMessage)
-        Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Butter.copy(alpha = 0.45f))) {
-            Column(Modifier.padding(16.dp)) {
-                Text("오늘의 상점", fontWeight = FontWeight.Bold)
-                Text("${state.todayOffer.item.name} · ${state.todayOffer.price}코인")
-                Text(state.todayOffer.item.blurb)
-                Button(
-                    onClick = { scope.launch { service.buy(state.todayOffer.item.id) } },
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.testTag("buy-today"),
-                ) {
-                    Text("사기")
-                }
-            }
-        }
-        SectionTitle("먹이")
-        Catalog.foods().forEach { item ->
-            val qty = state.foods.find { it.defId == item.id }?.quantity ?: 0
-            ShopRow(item, "${item.price}코인 · 가진 개수 $qty", "사기", "buy-${item.id}") {
-                scope.launch { service.buy(item.id) }
-            }
-        }
-        SectionTitle("옷과 가구")
-        (Catalog.outfits + Catalog.furniture).forEach { item ->
-            val owned = item.id in state.owned
-            ShopRow(item, if (owned) "가지고 있어요" else "${item.price}코인", if (owned) "보유" else "사기", "buy-${item.id}") {
-                if (!owned) scope.launch { service.buy(item.id) }
-            }
-        }
-        SectionTitle("선물")
-        if (state.pendingGift == null && state.gifts.isEmpty()) {
-            Text("외출에서 돌아오면 선물이 생겨요. 어린이가 되어야 나갈 수 있어요.")
-        }
-        state.pendingGift?.let { gift ->
-            ShopRowSimple("${gift.name} (방금 도착)", "판매 ${gift.sellPrice}코인") {
-                scope.launch { service.sellPendingOrLatest() }
-            }
-        }
-        state.gifts.forEach { gift ->
-            ShopRowSimple("${gift.name} · ${Korean.rarityLabel(gift.rarity)}", "${gift.sellPrice}코인에 팔기") {
-                scope.launch { service.sellGift(gift.instanceId) }
-            }
-        }
-        Spacer(Modifier.height(20.dp))
-    }
-}
-
-@Composable
 private fun RoomScreen(
     state: GameState,
-    permissions: PermissionSnapshot,
     scope: kotlinx.coroutines.CoroutineScope,
     service: GameService,
     onOpenWallpaper: () -> Unit,
-    onOpenExactAlarm: () -> Unit,
 ) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp).testTag("room-scroll")) {
-        Text("방 꾸미기", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text(state.activeRoom.name, color = Ink.copy(alpha = 0.7f))
-        if (permissions.supportsWallpaper) {
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(
-                onClick = onOpenWallpaper,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.testTag("wallpaper"),
-            ) { Text("움직이는 배경화면") }
+    var pane by remember { mutableStateOf(RoomPane.Furniture) }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+            .testTag("room-scroll"),
+    ) {
+        SoftCard {
+            RoomScene(state, Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(18.dp)))
         }
-        Spacer(Modifier.height(10.dp))
-        Card(shape = RoundedCornerShape(28.dp)) {
-            Box(Modifier.fillMaxWidth().height(220.dp)) {
-                RoomScene(state, Modifier.fillMaxSize())
-                AnimatedPet(state.stage, state.pose, state.outfitId, Modifier.align(Alignment.Center).size(150.dp))
-            }
-        }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(8.dp))
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             state.presets.forEach { preset ->
                 val selected = preset.index == state.activePreset
-                if (selected) {
-                    Button(
-                        onClick = { scope.launch { service.selectPreset(preset.index) } },
-                        shape = RoundedCornerShape(14.dp),
-                    ) { Text(preset.name) }
-                } else {
-                    OutlinedButton(
-                        onClick = { scope.launch { service.selectPreset(preset.index) } },
-                        shape = RoundedCornerShape(14.dp),
-                    ) { Text(preset.name) }
-                }
+                Text(
+                    preset.name,
+                    modifier = Modifier
+                        .clip(Pill)
+                        .background(if (selected) PeachDeep else CardWhite)
+                        .clickable { scope.launch { service.selectPreset(preset.index) } }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    color = if (selected) Color.White else Ink,
+                    fontSize = 13.sp,
+                )
             }
         }
-        SectionTitle("옷")
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { scope.launch { service.equipOutfit(null) } }) { Text("맨몸") }
-            Catalog.outfits.filter { it.id in state.owned }.forEach { item ->
-                Button(onClick = { scope.launch { service.equipOutfit(item.id) } }, shape = RoundedCornerShape(14.dp)) {
-                    Text(item.name)
-                }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onOpenWallpaper, modifier = Modifier.testTag("wallpaper")) { Text("배경화면") }
+            Spacer(Modifier.weight(1f))
+            Text(state.todayOffer.item.name, color = InkSoft, fontSize = 12.sp)
+            TextButton(
+                onClick = { scope.launch { service.buy(state.todayOffer.item.id) } },
+                modifier = Modifier.testTag("buy-today"),
+            ) { Text("${state.todayOffer.price}") }
+        }
+        val hat = Catalog.byId("hat_sprout")
+        if (hat != null && hat.id in state.owned) {
+            Button(
+                onClick = { scope.launch { service.equipOutfit(hat.id) } },
+                shape = Pill,
+                colors = ButtonDefaults.buttonColors(containerColor = MintSoft, contentColor = Ink),
+            ) { Text(hat.name) }
+        } else if (hat != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(hat.name)
+                TextButton(
+                    onClick = { scope.launch { service.buy(hat.id) } },
+                    modifier = Modifier.testTag("buy-hat_sprout"),
+                ) { Text("${hat.price}") }
             }
         }
-        if (Catalog.outfits.none { it.id in state.owned }) Text("상점에서 모자를 사면 여기서 입혀요.")
-        SlotPicker("벽", DecorSlot.WALL, ItemKind.WALL, state, scope, service)
-        SlotPicker("바닥", DecorSlot.FLOOR, ItemKind.FLOOR, state, scope, service)
-        SlotPicker("침대", DecorSlot.BED, ItemKind.BED, state, scope, service)
-        SlotPicker("러그", DecorSlot.RUG, ItemKind.RUG, state, scope, service)
-        SlotPicker("조명", DecorSlot.LAMP, ItemKind.LAMP, state, scope, service)
-        Spacer(Modifier.height(16.dp))
-        Text("홈 화면", fontWeight = FontWeight.Bold)
-        Text("작은 위젯은 기분과 다음 일정, 큰 위젯은 이 방을 보여 줘요. 버튼으로 먹이, 완료, 판매, 구매, 방 바꾸기를 할 수 있어요.")
-        if (permissions.supportsExactAlarm) {
-            TextButton(onClick = onOpenExactAlarm) { Text("정확한 알람 설정") }
+        Row(Modifier.padding(vertical = 6.dp)) {
+            PaneTab("가구", pane == RoomPane.Furniture) { pane = RoomPane.Furniture }
+            Spacer(Modifier.width(8.dp))
+            PaneTab("의상", pane == RoomPane.Outfit) { pane = RoomPane.Outfit }
+        }
+        val items = if (pane == RoomPane.Furniture) {
+            Catalog.furniture.filter { it.id != "hat_sprout" }
+        } else {
+            Catalog.outfits.filter { it.id != "hat_sprout" }
+        }
+        items.chunked(3).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { item ->
+                    ItemCard(item, item.id in state.owned, Modifier.weight(1f)) {
+                        scope.launch {
+                            if (item.id !in state.owned) {
+                                service.buy(item.id)
+                            } else if (item.kind == ItemKind.OUTFIT) {
+                                service.equipOutfit(item.id)
+                            } else {
+                                val slot = Catalog.slotOf(item.kind)
+                                if (slot != null) service.setSlot(slot, item.id)
+                            }
+                        }
+                    }
+                }
+                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+        Spacer(Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun DexScreen(
+    state: GameState,
+    scope: kotlinx.coroutines.CoroutineScope,
+    service: GameService,
+) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+        Text("친구 ${SpeciesCatalog.all.count { it.id in state.owned }} / ${SpeciesCatalog.all.size}", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(8.dp))
+        SpeciesCatalog.all.chunked(4).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { species ->
+                    val owned = species.id in state.owned || species.price == 0
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (state.speciesId == species.id) PeachSoft else CardWhite)
+                            .clickable {
+                                scope.launch {
+                                    if (owned) service.equipSpecies(species.id) else service.buy(species.id)
+                                }
+                            }
+                            .padding(6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        AnimatedPet(app.mongle.model.Stage.CHILD, app.mongle.model.Pose.IDLE, null, Modifier.size(52.dp), species.id, still = true)
+                        Text(species.name, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            if (owned) Korean.rarityLabel(species.rarity) else "${species.price}",
+                            color = InkSoft,
+                            fontSize = 10.sp,
+                        )
+                    }
+                }
+                repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+            Spacer(Modifier.height(8.dp))
         }
         Spacer(Modifier.height(8.dp))
-        Text("커뮤니티 월드와 친구 거래는 다음 단계에서 열어요. 지금은 이 방과 홈 화면이 몽이의 전부예요.", color = Ink.copy(alpha = 0.7f))
+        Text("수집", style = MaterialTheme.typography.titleMedium)
+        Catalog.goods.filter { it.kind != ItemKind.FOOD }.take(24).forEach { item ->
+            val owned = item.id in state.owned || item.kind == ItemKind.GIFT && state.gifts.any { it.defId == item.id }
+            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                ItemGlyph(item.motif, Modifier.size(36.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(item.name, modifier = Modifier.weight(1f))
+                Text(if (owned) "보유" else if (item.price > 0) "${item.price}" else "${item.sellPrice}", color = InkSoft, fontSize = 12.sp)
+            }
+        }
         Spacer(Modifier.height(20.dp))
     }
 }
 
 @Composable
-private fun SlotPicker(
-    title: String,
-    slot: DecorSlot,
-    kind: ItemKind,
-    state: GameState,
-    scope: kotlinx.coroutines.CoroutineScope,
-    service: GameService,
-) {
-    val items = Catalog.furniture.filter { it.kind == kind && it.id in state.owned }
-    SectionTitle(title)
-    if (items.isEmpty()) {
-        Text("아직 없어요.")
-        return
-    }
-    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        items.forEach { item ->
-            OutlinedButton(onClick = { scope.launch { service.setSlot(slot, item.id) } }, contentPadding = PaddingValues(horizontal = 12.dp)) {
-                Text(item.name)
+private fun ItemCard(item: ItemDef, owned: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(CardWhite)
+            .clickable(onClick = onClick)
+            .padding(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopEnd) {
+            ItemGlyph(item.motif, Modifier.fillMaxWidth().aspectRatio(1.15f))
+            if (item.fresh && !owned) {
+                Text("NEW", color = PeachDeep, fontSize = 9.sp, modifier = Modifier.padding(2.dp))
             }
         }
-        if (slot != DecorSlot.WALL && slot != DecorSlot.FLOOR) {
-            TextButton(onClick = { scope.launch { service.setSlot(slot, null) } }) { Text("치우기") }
-        }
+        Text(item.name, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        Text(if (owned) "보유" else "${item.price}", color = if (owned) Mint else InkSoft, fontSize = 11.sp)
     }
 }
 
 @Composable
-private fun NextScheduleCard(state: GameState) {
-    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = CardWhite)) {
-        Column(Modifier.padding(16.dp)) {
-            Text("다음 일정", fontWeight = FontWeight.Bold)
-            val next = state.nextSchedule
-            if (next == null) {
-                Text("비어 있어요. 일정 탭에서 하나 맡겨 보세요.")
-            } else {
-                Text(next.title, style = MaterialTheme.typography.titleMedium)
-                Text(next.timeLabel + if (next.overdue) " · 지금 불러요" else "")
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatBar(label: String, value: Int, color: androidx.compose.ui.graphics.Color) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 3.dp)) {
-        Text(label, modifier = Modifier.width(52.dp))
-        LinearProgressIndicator(
-            progress = { value / 100f },
-            modifier = Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(8.dp)),
-            color = color,
-            trackColor = color.copy(alpha = 0.25f),
-        )
-        Text(" $value", modifier = Modifier.width(40.dp))
-    }
-}
-
-@Composable
-private fun CoinChip(coins: Int) {
+private fun PaneTab(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(
-        "$coins 코인",
-        modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(Butter).padding(horizontal = 12.dp, vertical = 6.dp),
-        fontWeight = FontWeight.Bold,
+        label,
+        modifier = Modifier
+            .clip(Pill)
+            .background(if (selected) Ink else CardWhite)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        color = if (selected) Color.White else Ink,
     )
 }
 
 @Composable
-private fun Banner(text: String) {
+private fun SoftCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .shadow(6.dp, CardShape, clip = false)
+            .clip(CardShape)
+            .background(CardWhite)
+            .padding(14.dp),
+    ) { content() }
+}
+
+@Composable
+private fun PillButton(label: String, color: Color, modifier: Modifier, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(52.dp),
+        shape = Pill,
+        colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Ink),
+        contentPadding = PaddingValues(horizontal = 8.dp),
+    ) { Text(label, maxLines = 1) }
+}
+
+@Composable
+private fun StatChip(label: String, color: Color, modifier: Modifier = Modifier) {
     Text(
-        text,
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(PeachSoft).padding(12.dp),
+        label,
+        modifier = modifier.clip(Pill).background(color).padding(horizontal = 12.dp, vertical = 8.dp),
+        color = Ink,
+        fontSize = 13.sp,
+        textAlign = TextAlign.Center,
     )
 }
 
 @Composable
-private fun SectionTitle(text: String) {
-    Text(text, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 6.dp))
+private fun CoinPill(coins: Int) {
+    Text(
+        "● ${coinsLabel(coins)}",
+        modifier = Modifier.clip(Pill).background(ButterSoft).padding(horizontal = 12.dp, vertical = 6.dp),
+        color = Ink,
+        fontSize = 13.sp,
+    )
 }
 
-@Composable
-private fun ShopRow(item: ItemDef, detail: String, action: String, tag: String, onClick: () -> Unit) {
-    Card(Modifier.fillMaxWidth().padding(vertical = 4.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = CardWhite)) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(item.name, fontWeight = FontWeight.Bold)
-                Text(detail)
-                if (item.blurb.isNotBlank()) Text(item.blurb, color = Ink.copy(alpha = 0.7f))
-            }
-            TextButton(onClick = onClick, modifier = Modifier.testTag(tag)) { Text(action) }
-        }
-    }
-}
-
-@Composable
-private fun ShopRowSimple(title: String, action: String, onClick: () -> Unit) {
-    Card(Modifier.fillMaxWidth().padding(vertical = 4.dp), shape = RoundedCornerShape(16.dp)) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(title, modifier = Modifier.weight(1f))
-            TextButton(onClick = onClick) { Text(action) }
-        }
-    }
-}
+private fun coinsLabel(value: Int): String =
+    value.toString().reversed().chunked(3).joinToString(",").reversed()
 
 @Composable
 private fun <T> ChipRow(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
     Row(Modifier.horizontalScroll(rememberScrollState())) {
         options.forEach { (value, label) ->
             TextButton(onClick = { onSelect(value) }) {
-                Text(if (value == selected) "● $label" else label)
+                Text(if (value == selected) "[$label]" else label)
             }
         }
     }

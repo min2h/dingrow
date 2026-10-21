@@ -21,6 +21,7 @@ import app.mongle.model.PersistedState
 import app.mongle.model.RepeatRule
 import app.mongle.model.RoomPreset
 import app.mongle.model.ScheduleRecord
+import app.mongle.model.SpeciesCatalog
 import app.mongle.model.Stage
 import app.mongle.platform.PlatformNotifier
 import app.mongle.platform.ScheduledNotice
@@ -233,6 +234,21 @@ class GameService(
         }
         val label = if (defId == null) "옷을 벗었어요" else "${Catalog.byId(defId)?.name}을 입었어요"
         done(state.copy(pet = state.pet.copy(outfitId = defId)), ActionResult(true, label))
+    }
+
+    suspend fun equipSpecies(defId: String): ActionResult = mutate { state, now ->
+        val species = SpeciesCatalog.all.find { it.id == defId }
+            ?: return@mutate done(state, ActionResult(false, "모르는 친구예요"))
+        val free = species.price == 0
+        if (defId !in state.owned && !free) {
+            return@mutate done(state, ActionResult(false, "아직 만나지 못한 친구예요"))
+        }
+        val owned = if (defId in state.owned) state.owned else state.owned + defId
+        val ownedAt = if (defId in state.ownedAt) state.ownedAt else state.ownedAt + (defId to now)
+        done(
+            state.copy(pet = state.pet.copy(speciesId = species.id), owned = owned, ownedAt = ownedAt),
+            ActionResult(true, "${species.name}${Korean.eulReul(species.name)} 데려왔어요"),
+        )
     }
 
     suspend fun setSlot(slot: DecorSlot, defId: String?): ActionResult = mutate { state, _ ->

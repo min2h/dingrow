@@ -9,6 +9,8 @@ import android.service.wallpaper.WallpaperService
 import android.view.SurfaceHolder
 import app.mongle.AppGraph
 import app.mongle.model.Pose
+import app.mongle.model.Stage
+import app.mongle.ui.MochiBitmap
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -60,37 +62,30 @@ class PetWallpaperService : WallpaperService() {
 
 internal object WallpaperPainter {
     fun draw(canvas: Canvas, state: app.mongle.model.GameState?, nowMillis: Long) {
-            val night = state?.darkRoom == true || state?.timeOfDay?.name == "NIGHT"
-            canvas.drawColor(if (night) Color.parseColor("#243044") else Color.parseColor("#FFF3EA"))
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-            val w = canvas.width.toFloat()
-            val h = canvas.height.toFloat()
-            paint.color = Color.parseColor("#E7C8A4")
-            canvas.drawRect(0f, h * 0.72f, w, h, paint)
-            val phase = (nowMillis % 2400) / 2400f
-            val walking = state?.pose == Pose.WALK || state?.pose == Pose.OUT
-            val bob = if (walking) kotlin.math.abs(sin(phase * 4 * PI)).toFloat() * 18f else sin(phase * 2 * PI).toFloat() * 14f
-            val dx = if (walking) sin(phase * 2 * PI).toFloat() * w * 0.12f else 0f
-            val cx = w / 2f + dx
-            val cy = h * 0.58f - bob
-            val radius = w.coerceAtMost(h) * 0.16f
-            paint.color = Color.parseColor("#22000000")
-            canvas.drawOval(cx - radius, h * 0.78f, cx + radius, h * 0.84f, paint)
-            paint.color = Color.parseColor("#F6C7A1")
-            canvas.drawCircle(cx - radius * 0.55f, cy - radius * 0.85f, radius * 0.38f, paint)
-            canvas.drawCircle(cx + radius * 0.55f, cy - radius * 0.85f, radius * 0.38f, paint)
-            paint.color = if (state?.pose == Pose.SAD) Color.parseColor("#F3D2B4") else Color.parseColor("#FFE3C4")
-            canvas.drawCircle(cx, cy, radius, paint)
-            paint.color = Color.parseColor("#4A3728")
-            if (state?.pose == Pose.SLEEP) {
-                canvas.drawLine(cx - radius * 0.35f, cy - 4f, cx - radius * 0.1f, cy + 4f, paint)
-                canvas.drawLine(cx + radius * 0.1f, cy - 4f, cx + radius * 0.35f, cy + 4f, paint)
-            } else {
-                canvas.drawCircle(cx - radius * 0.28f, cy - radius * 0.1f, radius * 0.08f, paint)
-                canvas.drawCircle(cx + radius * 0.28f, cy - radius * 0.1f, radius * 0.08f, paint)
-            }
-            paint.color = Color.parseColor("#F4A6A4")
-            canvas.drawCircle(cx - radius * 0.48f, cy + radius * 0.22f, radius * 0.12f, paint)
-            canvas.drawCircle(cx + radius * 0.48f, cy + radius * 0.22f, radius * 0.12f, paint)
+        val night = state?.darkRoom == true || state?.timeOfDay?.name == "NIGHT"
+        canvas.drawColor(if (night) Color.parseColor("#2C3A5A") else Color.parseColor("#FFF6EE"))
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val w = canvas.width.toFloat()
+        val h = canvas.height.toFloat()
+        paint.color = Color.parseColor(if (night) "#3C4E78" else "#D5EEF8")
+        canvas.drawRoundRect(w * 0.62f, h * 0.16f, w * 0.88f, h * 0.42f, 24f, 24f, paint)
+        paint.color = Color.parseColor(state?.floorHex ?: "#E7C8A4")
+        canvas.drawRect(0f, h * 0.62f, w, h, paint)
+        paint.color = Color.parseColor("#B7DCCB")
+        canvas.drawOval(w * 0.28f, h * 0.70f, w * 0.72f, h * 0.84f, paint)
+        val walking = state?.pose == Pose.WALK || state?.pose == Pose.OUT
+        val phase = (nowMillis % 2400) / 2400f
+        val dx = sin(phase * 2 * PI).toFloat() * if (walking) w * 0.12f else 8f
+        val bob = MochiBitmap.bob(nowMillis, walking)
+        MochiBitmap.draw(
+            canvas = canvas,
+            cx = w / 2f + dx,
+            cy = h * 0.56f - bob,
+            radius = w.coerceAtMost(h) * 0.16f,
+            speciesId = state?.speciesId ?: "sp_peach",
+            stage = state?.stage ?: Stage.BABY,
+            pose = state?.pose ?: Pose.IDLE,
+            outfitId = state?.outfitId,
+        )
     }
 }

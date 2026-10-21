@@ -108,6 +108,13 @@ fun project(raw: PersistedState, now: Long, zone: TimeZone, balance: GameBalance
         wallHex = wallHex(room.wallpaperId),
         floorHex = floorHex(room.floorId),
         darkRoom = isDarkWall(room.wallpaperId),
+        speciesId = pet.speciesId,
+        level = when (pet.stage) {
+            Stage.EGG -> 1
+            Stage.BABY -> 2
+            Stage.CHILD -> 3
+            Stage.ADULT -> 4
+        },
     )
 }
 
@@ -186,6 +193,8 @@ data class WidgetSnapshot(
     val outingText: String = "",
     val darkRoom: Boolean = false,
     val progressLabel: String = "",
+    val speciesId: String = "sp_peach",
+    val level: Int = 1,
 )
 
 fun GameState.toSnapshot(): WidgetSnapshot {
@@ -221,6 +230,8 @@ fun GameState.toSnapshot(): WidgetSnapshot {
         outingText = outing?.label.orEmpty(),
         darkRoom = darkRoom,
         progressLabel = progressLabel,
+        speciesId = speciesId,
+        level = level,
     )
 }
 

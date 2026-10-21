@@ -2,6 +2,7 @@ package app.mongle.logic
 
 import app.mongle.model.Catalog
 import app.mongle.model.GameBalance
+import app.mongle.model.SpeciesCatalog
 import app.mongle.model.GiftRecord
 import app.mongle.model.ItemDef
 import app.mongle.model.Mood
@@ -301,6 +302,9 @@ fun resolveState(state: PersistedState, now: Long, zone: TimeZone, balance: Game
     val backAt = collapsed.outingReturnAt ?: return state.copy(pet = collapsed)
     if (now < backAt) return state.copy(pet = collapsed)
     val giftId = collapsed.outingGiftDefId
+    val found = collapsed.outingSeed?.let { SpeciesCatalog.unlockFor(it, state.owned) }
+    val owned = if (found == null) state.owned else state.owned + found
+    val ownedAt = if (found == null) state.ownedAt else state.ownedAt + (found to now)
     return state.copy(
         pet = collapsed.copy(
             isOut = false,
@@ -311,6 +315,8 @@ fun resolveState(state: PersistedState, now: Long, zone: TimeZone, balance: Game
             outingStartedAt = null,
             outingSeed = null,
         ),
+        owned = owned,
+        ownedAt = ownedAt,
         lastOutingEndedAt = now,
     )
 }

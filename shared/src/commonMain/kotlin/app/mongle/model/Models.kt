@@ -4,7 +4,15 @@ enum class Stage { EGG, BABY, CHILD, ADULT }
 
 enum class RepeatRule { NONE, DAILY, WEEKLY }
 
-enum class ItemKind { FOOD, GIFT, OUTFIT, WALL, FLOOR, BED, RUG, LAMP }
+enum class ItemKind { FOOD, GIFT, OUTFIT, WALL, FLOOR, BED, RUG, LAMP, DECOR, COMPANION }
+
+enum class ItemMotif {
+    GENERIC, COOKIE, CANDY, PEACH, DUMPLING,
+    PILLOW, BED, SHELF, TABLE, LAMP, CHAIR, RUG, PLANT, WINDOW, LIGHTS, TANK, PIANO,
+    RIBBON, BERET, SCARF, COAT, CROWN, GLASSES, SPROUT, HOOD,
+    SHELL, CLOVER, ACORN, PEBBLE, FEATHER, STAR, MUSHROOM, NOTE, TV, DESK, CLOSET, TUB, TOWER, BOWL, CLOCK, BLANKET,
+    WALL, FLOOR,
+}
 
 enum class Rarity { COMMON, UNCOMMON, RARE, EPIC }
 
@@ -28,6 +36,8 @@ data class ItemDef(
     val xp: Int = 0,
     val stackable: Boolean = false,
     val blurb: String = "",
+    val motif: ItemMotif = ItemMotif.GENERIC,
+    val fresh: Boolean = false,
 )
 
 data class GameBalance(
@@ -78,6 +88,7 @@ data class PetRecord(
     val outingGiftDefId: String?,
     val pendingGiftDefId: String?,
     val pendingGiftAt: Long?,
+    val speciesId: String = "sp_peach",
 )
 
 data class ScheduleRecord(
@@ -231,6 +242,8 @@ data class GameState(
     val wallHex: String,
     val floorHex: String,
     val darkRoom: Boolean,
+    val speciesId: String = "sp_peach",
+    val level: Int = 1,
 ) {
     val activeRoom: RoomPreset get() = presets[activePreset.coerceIn(0, presets.lastIndex.coerceAtLeast(0))]
 }
