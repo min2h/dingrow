@@ -209,11 +209,13 @@ class MongleFlowScreenshotTest {
             "sprout_hat" in harness.service.state.value.owned,
         )
         val activeBefore = harness.service.state.value.activePreset
-        harness.clickText("밤하늘 방")
+        harness.clickText("밤하늘 방", substring = true)
         harness.settle()
         assertEquals(activeBefore, harness.service.state.value.activePreset) // locked: 1000 coins
+        harness.clickTag("room-buy-cancel")
+        harness.settle()
         runBlocking { harness.service.debugAddCoins(1000); assertTrue(harness.service.buyRoom("starry").ok) }
-        harness.clickText("밤하늘 방")
+        harness.clickText("밤하늘 방", substring = true)
         harness.settle()
         assertEquals(2, harness.service.state.value.activePreset)
         harness.capture("room.png")
@@ -424,9 +426,9 @@ class MongleFlowScreenshotTest {
             composeRule.onRoot().captureRoboImage(artifact(name))
         }
 
-        fun clickText(text: String) {
+        fun clickText(text: String, substring: Boolean = false) {
             try {
-                composeRule.onNodeWithText(text).performClick()
+                composeRule.onNodeWithText(text, substring = substring).performClick()
             } catch (error: AssertionError) {
                 File("/tmp/mongle-semantics.txt").writeText(composeRule.onRoot().printToString())
                 throw AssertionError("click '$text' failed: ${error.message}", error)

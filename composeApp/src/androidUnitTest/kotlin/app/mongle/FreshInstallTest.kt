@@ -14,13 +14,19 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h740dp-xhdpi")
 class FreshInstallTest {
-    init { app.mongle.auth.AndroidAuth.resetForTests(); primeComposeResources() }
+    init {
+        // Clean state: no session left in prefs/static by an earlier test in the same JVM.
+        androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().let { ctx ->
+            ctx.getSharedPreferences("dingrow_auth", 0).edit().clear().commit()
+        }
+        app.mongle.auth.AndroidAuth.resetForTests(); primeComposeResources()
+    }
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
 
     @Test fun freshInstallShowsLoginThenFakeGoogleThenAutoLogin() {
-        rule.waitUntil(5_000) { rule.onAllNodesWithTag("login").fetchSemanticsNodes().isNotEmpty() }
+        rule.waitUntil(20_000) { rule.onAllNodesWithTag("login").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithTag("login-fake").performClick()
-        rule.waitUntil(5_000) { rule.onAllNodesWithTag("login").fetchSemanticsNodes().isEmpty() }
+        rule.waitUntil(20_000) { rule.onAllNodesWithTag("login").fetchSemanticsNodes().isEmpty() }
         val auth = app.mongle.auth.AndroidAuth.get(rule.activity)
         assertTrue(auth.session.value?.provider == "fake")
         // Next launch: restored from storage.

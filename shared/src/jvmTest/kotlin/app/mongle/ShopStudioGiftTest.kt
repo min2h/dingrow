@@ -46,19 +46,21 @@ class ShopStudioGiftTest {
         val (s, _) = service(2000)
         val real = s.state.value.placements
         val preview = LayoutEditor(Layout(real, null, "wood"))
-        preview.place("canopy_bed", 31, 62); preview.place("mug", 70, 80); preview.wear("beanie"); preview.room("mint")
+        preview.place("canopy_bed", 31, 62); preview.place("mug", 70, 80); preview.wear("beanie")
+        // Unowned rooms can't be applied in the preview (UI shows '방은 구매한 후에 적용할 수 있어요' + buy).
+        assertFalse(Shop.canApplyRoom("mint", s.state.value.owned))
         assertEquals(real, s.state.value.placements)
         assertFalse("canopy_bed" in s.state.value.owned)
         val cart = Shop.cart(preview.current, s.state.value.owned)
-        assertEquals(setOf("canopy_bed", "mug", "beanie", "room_mint"), cart.toSet())
-        assertEquals(600 + 50 + 300 + 700, Shop.total(cart))
+        assertEquals(setOf("canopy_bed", "mug", "beanie"), cart.toSet())
+        assertEquals(600 + 50 + 300, Shop.total(cart))
         assertEquals(30, preview.current.placements.first { it.defId == "canopy_bed" }.x) // snapped to 5
         preview.revert()
         assertEquals(Layout(real, null, "wood"), preview.current)
         assertTrue(s.buyAll(cart).ok)
-        assertEquals(2000 - 1650, s.state.value.coins)
+        assertEquals(2000 - 950, s.state.value.coins)
         assertFalse(s.buyAll(cart).ok) // idempotent
-        assertEquals(350, s.state.value.coins)
+        assertEquals(1050, s.state.value.coins)
     }
 
     @Test fun insufficientCoinsBuysNothing() = runBlocking {

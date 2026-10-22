@@ -56,9 +56,10 @@ object Shop {
     fun cart(layout: Layout, owned: Set<String>): List<String> {
         val ids = layout.placements.map { it.defId } + listOfNotNull(layout.outfitId)
         val items = ids.distinct().filter { it !in owned && (Catalog.byId(it)?.price ?: 0) > 0 }
-        val room = if (roomOwned(layout.roomId, owned)) emptyList() else listOf(roomItemId(layout.roomId))
-        return items + room
+        return items // rooms are never previewed before purchase, so never in the cart
     }
+    /** Unowned rooms can't be applied (not even in the shop preview) until bought. */
+    fun canApplyRoom(roomId: String, owned: Set<String>) = roomOwned(roomId, owned)
     fun priceOf(id: String): Int = if (id.startsWith("room_")) roomPrice(id.removePrefix("room_")) else Catalog.byId(id)?.price ?: 0
     fun total(ids: List<String>): Int = ids.sumOf { priceOf(it) }
 
@@ -67,3 +68,20 @@ object Shop {
         .filter { it.id in owned || it.id in FreeDecor.ids }
     fun wearable(owned: Set<String>) = decoratable(owned).filter { it.kind == ItemKind.OUTFIT }
 }
+
+/** Flip is stored inside [Placement.rotation] (+1000) so the existing persistence keeps it. */
+private const val FLIP = 1000
+fun Placement.isFlipped(): Boolean = rotation >= FLIP
+fun Placement.baseRotation(): Int = rotation % FLIP
+
+/** The real room as an editable [Layout]. */
+fun layoutOf(placements: List<Placement>, outfitId: String?, roomId: String): Layout = Layout(
+    placements = placements.map { it.copy(rotation = it.baseRotation()) },
+    outfitId = outfitId,
+    roomId = roomId,
+    flipped = placements.filter { it.isFlipped() }.map { it.defId }.toSet(),
+)
+
+/** Placements with flips encoded, ready to persist. */
+fun Layout.encodedPlacements(): List<Placement> =
+    placements.map { if (it.defId in flipped) it.copy(rotation = it.baseRotation() + FLIP) else it }

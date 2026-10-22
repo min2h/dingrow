@@ -1,5 +1,6 @@
 package app.mongle.service
 
+import app.mongle.logic.encodedPlacements
 import app.mongle.data.GameStore
 import app.mongle.data.Seed
 import app.mongle.data.newId
@@ -699,7 +700,7 @@ class GameService(
     /** Saves a 방꾸미기 session (owned things only; unowned ids are dropped, never granted). */
     suspend fun applyLayout(layout: app.mongle.logic.Layout): ActionResult = mutate { state, _ ->
         val okIds = state.owned + app.mongle.logic.FreeDecor.ids
-        val placements = layout.placements.filter { it.defId in okIds }
+        val placements = layout.encodedPlacements().filter { it.defId in okIds }
         val outfit = layout.outfitId?.takeIf { it in state.owned }
         val preset = state.presets.firstOrNull { it.wallpaperId == layout.roomId && app.mongle.logic.Shop.roomOwned(it.wallpaperId, state.owned) }?.index ?: state.activePreset
         done(state.copy(placements = placements, pet = state.pet.copy(outfitId = outfit), activePreset = preset), ActionResult(true, L10n.t("msg_layout_saved")))

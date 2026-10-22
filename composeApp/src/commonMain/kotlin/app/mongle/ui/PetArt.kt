@@ -145,6 +145,7 @@ fun RoomScene(
                 contentScale = ContentScale.Fit,
                 alignment = Alignment.Center,
             )
+            PlacedItems(app.mongle.logic.layoutOf(state.placements, state.outfitId, state.activeRoom.wallpaperId))
             PetFigure(
                 speciesId = state.speciesId,
                 stage = state.stage,

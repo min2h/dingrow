@@ -221,6 +221,10 @@ fun MongleAppScreen(
             onRestore = { scope.launch { service.restorePurchases() } },
             onClose = { overlayState.value = "none" },
         )
+    } else if (overlay == "itemshop") {
+        ShopStudioScreen(state, service, scope, onClose = { overlayState.value = "none" }, onEarn = { overlayState.value = "none"; tabState.value = Tab.Schedule })
+    } else if (overlay == "decorate") {
+        DecorateScreen(state, service, scope, onClose = { overlayState.value = "none" }, onShop = { overlayState.value = "itemshop" })
     } else if (overlay == "alarm") {
         val next = state.nextSchedule
         AlarmScreen(
@@ -305,6 +309,9 @@ fun MongleAppScreen(
                     onOffer = { offerOpen = true },
                     onResell = { resellId = it },
                     onShop = { shopPhase = "list"; overlayState.value = "shop" },
+                    onItemShop = { overlayState.value = "itemshop" },
+                    onDecorateScreen = { overlayState.value = "decorate" },
+                    onEarn = { tabState.value = Tab.Schedule },
                 )
                 Tab.My -> DexScreen(state, scope, service)
             }
@@ -649,8 +656,20 @@ private fun RoomScreen(
     onOffer: () -> Unit,
     onResell: (String) -> Unit,
     onShop: () -> Unit,
+    onItemShop: () -> Unit = {},
+    onDecorateScreen: () -> Unit = {},
+    onEarn: () -> Unit = {},
 ) {
-    var pane by remember { mutableStateOf(RoomPane.Furniture) }
+    var roomAsk by remember { mutableStateOf<String?>(null) }
+    var roomBusy by remember { mutableStateOf(false) }
+    roomAsk?.let { id -> RoomBuyDialog(id, state.coins, roomBusy, onEarn, onDismiss = { roomAsk = null }) {
+        roomBusy = true
+        scope.launch {
+            val r = service.buyRoom(id)
+            if (r.ok) state.presets.firstOrNull { it.wallpaperId == id }?.let { service.selectPreset(it.index) }
+            roomBusy = false; roomAsk = null
+        }
+    } }
     Column(
         Modifier
             .fillMaxSize()
@@ -669,12 +688,13 @@ private fun RoomScreen(
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             state.presets.forEach { preset ->
                 val selected = preset.index == state.activePreset
+                val locked = !app.mongle.logic.Shop.roomOwned(preset.wallpaperId, state.owned)
                 Text(
-                    L10n.preset(preset.wallpaperId),
+                    L10n.preset(preset.wallpaperId) + if (locked) " 🔒 ${app.mongle.logic.Shop.roomPrice(preset.wallpaperId)}" else "",
                     modifier = Modifier
                         .clip(Pill)
                         .background(if (selected) PeachDeep else CardWhite)
-                        .clickable { scope.launch { service.selectPreset(preset.index) } }
+                        .clickable { if (locked) roomAsk = preset.wallpaperId else scope.launch { service.selectPreset(preset.index) } }
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     color = if (selected) Color.White else Ink,
                     fontSize = 13.sp,
@@ -719,54 +739,15 @@ private fun RoomScreen(
                 ) { Text("${hat.price}") }
             }
         }
-        if (decorate) {
-            Text(t("free_place_hint"), color = InkSoft, fontSize = 12.sp)
-            TextButton(onClick = onShop) { Text(t("coin_shop")) }
-            state.gifts.firstOrNull()?.let { gift ->
-                TextButton(onClick = { onResell(gift.defId) }) { Text(tf("sell_named", gift.name)) }
-            }
-            state.placements.forEach { placement ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(L10n.item(placement.defId), modifier = Modifier.weight(1f))
-                    TextButton(onClick = { scope.launch { service.rotatePlacement(placement.defId) } }) { Text(t("rotate")) }
-                    TextButton(onClick = { scope.launch { service.removePlacement(placement.defId) } }) { Text(t("delete")) }
-                }
-            }
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            PillButton(t("deco_open"), Mark.House, MintSoft, Modifier.weight(1f).testTag("open-decorate"), onDecorateScreen)
+            PillButton(t("shop_open"), Mark.Coin, PeachSoft, Modifier.weight(1f).testTag("open-shop"), onItemShop)
         }
-        Row(Modifier.padding(vertical = 6.dp)) {
-            PaneTab(t("pane_furniture"), Mark.Bed, pane == RoomPane.Furniture) { pane = RoomPane.Furniture }
-            Spacer(Modifier.width(8.dp))
-            PaneTab(t("pane_outfit"), Mark.Hanger, pane == RoomPane.Outfit) { pane = RoomPane.Outfit }
+        state.gifts.firstOrNull()?.let { gift ->
+            TextButton(onClick = { onResell(gift.defId) }) { Text(tf("sell_named", gift.name)) }
         }
-        val items = if (pane == RoomPane.Furniture) {
-            Catalog.furniture
-        } else {
-            Catalog.outfits.filter { it.id != "sprout_hat" }
-        }
-        items.chunked(3).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { item ->
-                    ItemCard(item, item.id in state.owned || (decorate && FreeDecor.allowed(item.id, state.owned)), Modifier.weight(1f)) {
-                        scope.launch {
-                            if (decorate && FreeDecor.allowed(item.id, state.owned)) {
-                                service.placeDecor(item.id)
-                            } else if (item.id !in state.owned) {
-                                service.buy(item.id)
-                            } else if (item.kind == ItemKind.OUTFIT) {
-                                service.equipOutfit(item.id)
-                            } else if (decorate) {
-                                service.placeDecor(item.id)
-                            } else {
-                                val slot = Catalog.slotOf(item.kind)
-                                if (slot != null) service.setSlot(slot, item.id)
-                            }
-                        }
-                    }
-                }
-                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
-            }
-            Spacer(Modifier.height(8.dp))
-        }
+        TextButton(onClick = onShop) { Text(t("coin_shop")) }
         Spacer(Modifier.height(12.dp))
     }
 }
