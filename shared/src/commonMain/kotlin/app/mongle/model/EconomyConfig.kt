@@ -25,6 +25,8 @@ object EconomyConfig {
     const val legendaryLevelStep = 3
     const val legendaryCap = 15
     const val medicinePrice = 50
+    /** 방 테마 가격. 기본(wood)은 무료. */
+    val roomPrices: Map<String, Int> = mapOf("mint" to 700, "starry" to 1000)
 
     /** 레벨별 가중치: (coins, common, rare, legendary), 합계는 항상 weightTotal. */
     fun weightsFor(level: Int): IntArray {
@@ -57,7 +59,7 @@ object EconomyConfig {
     )
     const val pityDryGifts = 40
     /** 일정 완료 때 선물이 붙을 확률. 1000 기준. */
-    const val completionGiftPerMille = 200
+    const val completionGiftPerMille = 100
 
     const val legendaryReactionId = "legend_sparkle"
     const val legendaryReactionLine = "반짝, 전설이 손 안에 내려왔어요"

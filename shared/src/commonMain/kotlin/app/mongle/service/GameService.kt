@@ -90,6 +90,9 @@ class GameService(
     private val notifier: PlatformNotifier = PlatformNotifier(),
     private val billing: BillingGateway = FakeBilling(),
 ) {
+    /** Completion gift roll (~10%, [EconomyConfig.completionGiftPerMille]); injectable for tests. */
+    var giftChance: (Long) -> Boolean = { GiftDrops.completionHit(it) }
+
     /** Current time from the injected clock (UI timers use this so tests stay deterministic). */
     fun nowMillis(): Long = time.now()
     private val mutex = Mutex()
@@ -347,6 +350,9 @@ class GameService(
 
     /** Test/debug hook: force a condition state (used by screenshot tests and the debug menu). */
     /** Test/debug only: jump the pet to a stage. */
+    /** Debug/test only: adds coins with a ledger entry. */
+    suspend fun debugAddCoins(n: Int): ActionResult = mutate { state, now -> done(state.copy(coins = state.coins + n, ledger = state.ledger + LedgerEntry(newId(now), n, "DEBUG", null, now, null)), ActionResult(true, "")) }
+
     suspend fun debugSetStage(stage: app.mongle.model.Stage): ActionResult = mutate { state, _ -> done(state.copy(pet = state.pet.copy(stage = stage, hunger = 90, energy = 90)), ActionResult(true, "")) }
 
     suspend fun debugSetCondition(c: app.mongle.logic.ConditionState): ActionResult = mutate { state, _ ->
@@ -660,11 +666,47 @@ class GameService(
     suspend fun selectPreset(index: Int): ActionResult = mutate { state, _ ->
         if (state.presets.none { it.index == index }) return@mutate done(state, ActionResult(false, L10n.t("msg_no_room")))
         val picked = state.presets.first { it.index == index }
+        if (!app.mongle.logic.Shop.roomOwned(picked.wallpaperId, state.owned)) {
+            return@mutate done(state, ActionResult(false, L10n.fmt("msg_room_locked", app.mongle.logic.Shop.roomPrice(picked.wallpaperId))))
+        }
         done(state.copy(activePreset = index), ActionResult(true, L10n.fmt("msg_room_changed", roomTo(L10n.preset(picked.wallpaperId)))))
     }
 
+    /**
+     * Buys several shop items/rooms at once (from the shop preview). All-or-nothing: if the total is more than the
+     * coins nothing is bought. Already-owned ids are skipped, so a double tap can't charge twice.
+     */
+    suspend fun buyAll(ids: List<String>): ActionResult = mutate { state, now ->
+        val todo = ids.distinct().filter { id ->
+            if (id.startsWith("room_")) id !in state.owned && app.mongle.logic.Shop.roomPrice(id.removePrefix("room_")) > 0
+            else Catalog.byId(id)?.let { it.price > 0 && (it.stackable || it.id !in state.owned) } == true
+        }
+        if (todo.isEmpty()) return@mutate done(state, ActionResult(false, L10n.t("msg_already_owned")))
+        val total = app.mongle.logic.Shop.total(todo)
+        if (total > state.coins) return@mutate done(state, ActionResult(false, L10n.fmt("msg_need_more_coins", total - state.coins)))
+        val owned = state.owned + todo.filter { Catalog.byId(it)?.kind != ItemKind.FOOD }
+        val ownedAt = state.ownedAt + todo.filter { it !in state.ownedAt }.associateWith { now }
+        val foods = state.foods.toMutableMap()
+        todo.filter { Catalog.byId(it)?.kind == ItemKind.FOOD }.forEach { foods[it] = (foods[it] ?: 0) + 1 }
+        val ledger = todo.map { LedgerEntry(newId(now) + it, -app.mongle.logic.Shop.priceOf(it), "BUY", it, now, null) }
+        done(state.copy(coins = state.coins - total, owned = owned, ownedAt = ownedAt, foods = foods, ledger = state.ledger + ledger),
+            ActionResult(true, L10n.fmt("msg_bought_n", todo.size, total)))
+    }
+
+    /** Buy a room theme (민트 700 / 밤하늘 1000). */
+    suspend fun buyRoom(roomId: String): ActionResult = buyAll(listOf(app.mongle.logic.Shop.roomItemId(roomId)))
+
+    /** Saves a 방꾸미기 session (owned things only; unowned ids are dropped, never granted). */
+    suspend fun applyLayout(layout: app.mongle.logic.Layout): ActionResult = mutate { state, _ ->
+        val okIds = state.owned + app.mongle.logic.FreeDecor.ids
+        val placements = layout.placements.filter { it.defId in okIds }
+        val outfit = layout.outfitId?.takeIf { it in state.owned }
+        val preset = state.presets.firstOrNull { it.wallpaperId == layout.roomId && app.mongle.logic.Shop.roomOwned(it.wallpaperId, state.owned) }?.index ?: state.activePreset
+        done(state.copy(placements = placements, pet = state.pet.copy(outfitId = outfit), activePreset = preset), ActionResult(true, L10n.t("msg_layout_saved")))
+    }
+
     suspend fun cyclePreset(): ActionResult = mutate { state, _ ->
-        val order = state.presets.sortedBy { it.index }
+        val order = state.presets.sortedBy { it.index }.filter { app.mongle.logic.Shop.roomOwned(it.wallpaperId, state.owned) }
         val pos = order.indexOfFirst { it.index == state.activePreset }.coerceAtLeast(0)
         val next = order[(pos + 1) % order.size]
         done(state.copy(activePreset = next.index), ActionResult(true, L10n.fmt("msg_room_changed", roomTo(L10n.preset(next.wallpaperId)))))
@@ -723,11 +765,16 @@ class GameService(
             completions = state.completions + CompletionRecord(newId(now), id, now, gainedXp, allow.coins),
             ledger = state.ledger + LedgerEntry(newId(now), allow.coins, "COMPLETE", id, now, null),
         )
-        if (next.pet.pendingGiftDefId == null && next.pendingDropKind.isBlank()) {
+        // One roll per occurrence: un-complete / re-complete can't roll again.
+        val rollKey = "$id@$consumed"
+        val rolled = next.extras["gift.rolled"].orEmpty().split(',').filter { it.isNotBlank() }
+        if (next.pet.pendingGiftDefId == null && next.pendingDropKind.isBlank() && rollKey !in rolled) {
+            next = next.copy(extras = next.extras + ("gift.rolled" to (rolled.takeLast(199) + rollKey).joinToString(",")))
             val chanceSeed = now xor id.hashCode().toLong() xor next.pet.completions.toLong()
-            if (GiftDrops.completionHit(chanceSeed)) {
+            if (giftChance(chanceSeed)) {
                 val drop = GiftDrops.roll(chanceSeed xor 0xC0FFEE, levelOf(next.pet.stage), next.giftDryStreak)
-                next = next.grantImmediate(drop, now)
+                next = next.withDrop(drop, now) // 몽이 carries a box; it waits until tapped open
+                if (next.settings.giftAlerts) pendingImmediate = L10n.t("gift_notif_title") to L10n.t("gift_notif_body")
             }
         }
         return done(next, ActionResult(true, message))

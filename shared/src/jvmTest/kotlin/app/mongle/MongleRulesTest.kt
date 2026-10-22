@@ -300,8 +300,9 @@ class MongleRulesTest {
         assertTrue(service.state.value.coins > coins)
         assertEquals(null, service.state.value.pendingGift)
         val preset = service.state.value.activePreset
-        service.cyclePreset()
-        assertNotEquals(preset, service.state.value.activePreset)
+        service.cyclePreset() // paid rooms (민트 700 / 밤하늘 1000) are skipped until bought
+        val free = service.state.value.presets.filter { app.mongle.logic.Shop.roomOwned(it.wallpaperId, service.state.value.owned) }
+        if (free.size > 1) assertNotEquals(preset, service.state.value.activePreset) else assertEquals(preset, service.state.value.activePreset)
         service.cyclePreset()
         service.cyclePreset()
         assertEquals(preset, service.state.value.activePreset)
@@ -442,7 +443,7 @@ class MongleRulesTest {
         })
         assertTrue((0 until 400).any { GiftDrops.roll(it.toLong(), 1, EconomyConfig.pityDryGifts - 1).kind == DropKind.COINS })
         val hits = (0 until 4000).count { GiftDrops.completionHit(it.toLong()) }
-        assertTrue(hits in 680..960)
+        assertTrue(hits in 320..480) // ~10% per completion
         assertTrue(rolls.filter { it.kind == DropKind.LEGENDARY }.all { it.sparkle && it.reactionLine.isNotBlank() })
         assertTrue(rolls.filter { it.kind == DropKind.COMMON }.all { Catalog.byId(it.defId)!!.kind != app.mongle.model.ItemKind.FOOD })
         assertTrue(rolls.filter { it.kind == DropKind.RARE }.all { it.defId in Catalog.uniqueIds })

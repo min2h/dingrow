@@ -208,6 +208,11 @@ class MongleFlowScreenshotTest {
             "owned=${harness.service.state.value.owned} coins=${harness.service.state.value.coins} ${harness.service.state.value.statusMessage}",
             "sprout_hat" in harness.service.state.value.owned,
         )
+        val activeBefore = harness.service.state.value.activePreset
+        harness.clickText("밤하늘 방")
+        harness.settle()
+        assertEquals(activeBefore, harness.service.state.value.activePreset) // locked: 1000 coins
+        runBlocking { harness.service.debugAddCoins(1000); assertTrue(harness.service.buyRoom("starry").ok) }
         harness.clickText("밤하늘 방")
         harness.settle()
         assertEquals(2, harness.service.state.value.activePreset)
@@ -369,7 +374,7 @@ class MongleFlowScreenshotTest {
 
     private inner class Harness {
         val clock = MutableClock(System.currentTimeMillis())
-        val service = GameService(MemoryGameStore(), clock, TimeZone.of("Asia/Seoul"))
+        val service = GameService(MemoryGameStore(), clock, TimeZone.of("Asia/Seoul")).also { it.giftChance = { false } }
         var onWallpaper: () -> Unit = {}
         var motion by mutableStateOf(0.15f to 0.05f)
 
@@ -460,7 +465,7 @@ class MongleWidgetAlarmWallpaperTest {
     @Test
     fun widgetsRenderAndButtonsIncludingTwoTapBuy() = runBlocking {
         val clock = MutableClock(System.currentTimeMillis())
-        val service = GameService(MemoryGameStore(), clock, TimeZone.of("Asia/Seoul"))
+        val service = GameService(MemoryGameStore(), clock, TimeZone.of("Asia/Seoul")).also { it.giftChance = { false } }
         service.completeOnboarding("보리")
         service.addSchedule("물 마시기", clock.now + 60_000, RepeatRule.NONE)
         AppGraph.installForTests(service)
@@ -483,6 +488,7 @@ class MongleWidgetAlarmWallpaperTest {
         CompleteAction().onAction(context, glanceId, actionParametersOf())
         assertTrue(service.state.value.schedules.first().done || service.state.value.schedules.isEmpty())
 
+        runBlocking { service.debugAddCoins(700); assertTrue(service.buyRoom("mint").ok) }
         val preset = service.state.value.activePreset
         PresetAction().onAction(context, glanceId, actionParametersOf())
         assertNotEquals(preset, service.state.value.activePreset)
@@ -589,7 +595,7 @@ class MongleWidgetAlarmWallpaperTest {
     @Test
     fun wallpaperFramesMove() {
         val clock = MutableClock(System.currentTimeMillis())
-        val service = GameService(MemoryGameStore(), clock, TimeZone.of("Asia/Seoul"))
+        val service = GameService(MemoryGameStore(), clock, TimeZone.of("Asia/Seoul")).also { it.giftChance = { false } }
         runBlocking {
             service.completeOnboarding("보리")
             grow(service, clock, Stage.BABY)
