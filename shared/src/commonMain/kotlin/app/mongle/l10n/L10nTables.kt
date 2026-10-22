@@ -1057,6 +1057,10 @@ internal val En: Map<String, String> = buildMap {
     put("account_signout_confirm", "Sign out? Your Mongi stays on this device.")
     put("account_name", "Name")
     put("account_email", "Email")
+    put("iap_coins_100", "100 coins")
+    put("iap_coins_100_blurb", "100 coins")
+    put("iap_coins_1000", "1,000 coins")
+    put("iap_coins_1000_blurb", "1,000 coins · best value")
 }
 
 internal val Ko: Map<String, String> = buildMap {
@@ -2115,4 +2119,8 @@ internal val Ko: Map<String, String> = buildMap {
     put("account_signout_confirm", "로그아웃할까요? 기기에 저장된 몽이는 그대로 있어요.")
     put("account_name", "이름")
     put("account_email", "이메일")
+    put("iap_coins_100", "코인 100")
+    put("iap_coins_100_blurb", "코인 100개")
+    put("iap_coins_1000", "코인 1,000")
+    put("iap_coins_1000_blurb", "코인 1,000개 · 가장 알뜰해요")
 }

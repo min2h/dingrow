@@ -140,7 +140,10 @@ final class CoinStore {
 
     func start() {
         updates = Task { for await result in Transaction.updates { await self.handle(result) } }
-        Task { products = (try? await Product.products(for: MongleKit.productIds())) ?? [] }
+        Task {
+            products = (try? await Product.products(for: MongleKit.productIds())) ?? []
+            MongleKit.updatePrices(Dictionary(uniqueKeysWithValues: products.map { ($0.id, $0.displayPrice) }))
+        }
     }
 
     /// Localized price string from the App Store (e.g. "₩2,500" / "$1.99").

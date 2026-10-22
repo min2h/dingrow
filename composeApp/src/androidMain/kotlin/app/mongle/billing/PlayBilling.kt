@@ -33,10 +33,14 @@ class PlayBillingGateway(context: Context) : BillingGateway {
         if (StoreProducts.byId(productId) == null) return StoreReceipt(productId, "", false, L10n.t("msg_unknown_product"))
         val activity = BillingHost.activity ?: return StoreReceipt(productId, "", false, L10n.t("msg_billing_screen"))
         return suspendCancellableCoroutine { cont ->
+            var self: BillingClient? = null
             val client = client { result, purchases ->
                 val purchase = purchases?.firstOrNull { it.products.contains(productId) }
                 if (!cont.isActive) return@client
                 if (result.responseCode == BillingClient.BillingResponseCode.OK && purchase != null) {
+                    // Coin packs are consumables: consume so the same pack can be bought again.
+                    val consume = com.android.billingclient.api.ConsumeParams.newBuilder().setPurchaseToken(purchase.purchaseToken).build()
+                    self?.consumeAsync(consume) { _, _ -> self?.endConnection() }
                     cont.resume(StoreReceipt(productId, purchase.purchaseToken, true, L10n.t("msg_billing_ok")))
                 } else if (result.responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
                     cont.resume(StoreReceipt(productId, "", false, L10n.t("msg_billing_cancel")))
@@ -44,6 +48,7 @@ class PlayBillingGateway(context: Context) : BillingGateway {
                     cont.resume(StoreReceipt(productId, "", false, L10n.t("msg_billing_fail")))
                 }
             }
+            self = client
             client.startConnection(object : BillingClientStateListener {
                 override fun onBillingSetupFinished(result: BillingResult) {
                     if (result.responseCode != BillingClient.BillingResponseCode.OK) {
@@ -71,6 +76,25 @@ class PlayBillingGateway(context: Context) : BillingGateway {
             })
             cont.invokeOnCancellation { client.endConnection() }
         }
+    }
+
+    /** Localized prices for every coin pack (e.g. "₩2,900", "$1.99"), straight from Play. */
+    suspend fun prices(): Map<String, String> = suspendCancellableCoroutine { cont ->
+        val client = client { _, _ -> }
+        client.startConnection(object : BillingClientStateListener {
+            override fun onBillingSetupFinished(result: BillingResult) {
+                if (result.responseCode != BillingClient.BillingResponseCode.OK) { if (cont.isActive) cont.resume(emptyMap()); client.endConnection(); return }
+                val list = StoreProducts.all.map {
+                    QueryProductDetailsParams.Product.newBuilder().setProductId(it.id).setProductType(BillingClient.ProductType.INAPP).build()
+                }
+                client.queryProductDetailsAsync(QueryProductDetailsParams.newBuilder().setProductList(list).build()) { _, details ->
+                    val map = details.mapNotNull { d -> d.oneTimePurchaseOfferDetails?.formattedPrice?.let { d.productId to it } }.toMap()
+                    if (cont.isActive) cont.resume(map)
+                    client.endConnection()
+                }
+            }
+            override fun onBillingServiceDisconnected() { if (cont.isActive) cont.resume(emptyMap()) }
+        })
     }
 
     override suspend fun restore(): List<StoreReceipt> = suspendCancellableCoroutine { cont ->

@@ -9,6 +9,7 @@ import app.mongle.service.createGameService
 import app.mongle.billing.PlayBillingGateway
 import app.mongle.logic.BillingGateway
 import app.mongle.logic.FakeBilling
+import app.mongle.logic.StorePrices
 import android.os.Build
 import app.dingrow.BuildConfig
 import app.mongle.alarm.AlarmScheduler
@@ -69,7 +70,9 @@ object AppGraph {
                     }
                 }
             }
-            service = createGameService(createAndroidDriver(app), billing = gateway(app))
+            val billing = gateway(app)
+            service = createGameService(createAndroidDriver(app), billing = billing)
+            if (billing is PlayBillingGateway) scope.launch { runCatching { StorePrices.update(billing.prices()) } }
             ready = true
             scope.launch { service.refresh() }
         }

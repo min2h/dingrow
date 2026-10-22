@@ -553,7 +553,7 @@ fun CoinShopScreen(
         }
         if (phase == "confirm" && product != null) {
             Spacer(Modifier.weight(1f))
-            Text(tf("iap_confirm", t("iap_${product.id}")), color = Ink)
+            Text(tf("iap_confirm", t("iap_${product.id}")) + " · " + app.mongle.logic.StorePrices.label(product), color = Ink)
             Text(product.priceLabel, fontSize = 28.sp, color = Ink)
             Spacer(Modifier.height(16.dp))
             Button(onClick = onPay, shape = PillShape, colors = ButtonDefaults.buttonColors(containerColor = PeachDeep), modifier = Modifier.fillMaxWidth()) {
@@ -576,7 +576,7 @@ fun CoinShopScreen(
                     ) {
                         if (item.popular) Text(t("popular"), color = PeachDeep, fontSize = 11.sp)
                         Text(t("iap_${item.id}"), color = Ink, fontSize = 14.sp)
-                        Text("${t("iap_${item.id}_blurb")} · ${item.priceLabel}", color = InkSoft, fontSize = 12.sp)
+                        Text("${t("iap_${item.id}_blurb")} · ${app.mongle.logic.StorePrices.label(item)}", color = InkSoft, fontSize = 12.sp)
                     }
                 }
                 if (row.size == 1) Spacer(Modifier.weight(1f))

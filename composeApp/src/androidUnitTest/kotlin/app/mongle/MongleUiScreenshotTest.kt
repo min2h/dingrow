@@ -354,7 +354,7 @@ class MongleFlowScreenshotTest {
                     app.mongle.ui.CoinShopScreen(
                         coins = 2400,
                         phase = phase.value,
-                        product = if (phase.value == "confirm") app.mongle.logic.StoreProducts.coinsLarge else null,
+                        product = if (phase.value == "confirm") app.mongle.logic.StoreProducts.coins1000 else null,
                         message = "",
                         onPick = {},
                         onPay = {},

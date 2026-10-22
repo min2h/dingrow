@@ -67,21 +67,21 @@ data class StoreProduct(
 )
 
 object StoreProducts {
-    val coinsSmall = StoreProduct("dingrow_coins_small", "코인 한 줌", 500, false, "₩1,200", blurb = "500")
-    val coinsMedium = StoreProduct("dingrow_coins_medium", "코인 주머니", 1200, false, "₩2,500", blurb = "1,200")
-    val coinsLarge = StoreProduct("dingrow_coins_large", "코인 상자", 3000, false, "₩5,900", popular = true, blurb = "3,000")
-    val coinsVault = StoreProduct("dingrow_coins_vault", "코인 금고", 6500, false, "₩11,000", blurb = "6,500")
-    val premium = StoreProduct(
-        "dingrow_premium",
-        "프리미엄 팩",
-        10000,
-        true,
-        "₩19,000",
-        blurb = "코인 10,000 + 전설",
-        grantsLegendary = true,
-    )
-    val all = listOf(coinsSmall, coinsMedium, coinsLarge, coinsVault, premium)
+    /** The only coin packs (Android + iOS use the same ids). Base prices in USD; stores show localized prices. */
+    val coins100 = StoreProduct("coins_100", "코인 100", 100, false, "$1.99", blurb = "100")
+    val coins1000 = StoreProduct("coins_1000", "코인 1,000", 1000, false, "$16.99", popular = true, blurb = "1,000")
+    val all = listOf(coins100, coins1000)
     fun byId(id: String): StoreProduct? = all.find { it.id == id }
+}
+
+/** Localized store prices (filled from Play Billing / StoreKit); falls back to the USD base price. */
+object StorePrices {
+    private val localized = mutableMapOf<String, String>()
+    var version by kotlin.properties.Delegates.observable(0) { _, _, _ -> }
+        private set
+    fun update(prices: Map<String, String>) { localized.putAll(prices.filterValues { it.isNotBlank() }); version++ }
+    fun label(product: StoreProduct): String = localized[product.id] ?: product.priceLabel
+    fun clearForTests() { localized.clear(); version++ }
 }
 
 data class StoreReceipt(

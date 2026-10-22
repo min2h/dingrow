@@ -143,3 +143,25 @@ class GiftBubbleTest {
         assertTrue(s.state.value.speech.contains("🎁"), s.state.value.speech)
     }
 }
+
+class IapTest {
+    @Test fun onlyTwoCoinPacksWithLocalizedPrices() = runBlocking {
+        val ids = app.mongle.logic.StoreProducts.all.map { it.id }
+        assertEquals(listOf("coins_100", "coins_1000"), ids)
+        val p100 = app.mongle.logic.StoreProducts.byId("coins_100")!!
+        val p1000 = app.mongle.logic.StoreProducts.byId("coins_1000")!!
+        app.mongle.logic.StorePrices.clearForTests()
+        assertEquals("$1.99", app.mongle.logic.StorePrices.label(p100))
+        assertEquals("$16.99", app.mongle.logic.StorePrices.label(p1000))
+        app.mongle.logic.StorePrices.update(mapOf("coins_100" to "₩2,900"))
+        assertEquals("₩2,900", app.mongle.logic.StorePrices.label(p100))
+        app.mongle.logic.StorePrices.clearForTests()
+        val c = Clock2(1_792_000_000_000)
+        val s = GameService(MemoryGameStore(Seed.create(c.now).copy(coins = 0, onboarded = true)), c, TimeZone.of("Asia/Seoul"))
+        assertTrue(s.purchaseProduct("coins_100").ok)
+        assertEquals(100, s.state.value.coins)
+        assertTrue(s.purchaseProduct("coins_1000").ok)
+        assertEquals(1100, s.state.value.coins)
+        assertFalse(s.purchaseProduct("dingrow_coins_small").ok) // old products are gone
+    }
+}

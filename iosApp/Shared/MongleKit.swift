@@ -247,6 +247,11 @@ enum MongleKit {
         return MongleBridge.shared.productIds()
     }
 
+    static func updatePrices(_ prices: [String: String]) {
+        start()
+        MongleBridge.shared.updatePrices(prices: prices)
+    }
+
     @discardableResult
     static func acknowledge(id: String) -> String {
         start()

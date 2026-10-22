@@ -1054,4 +1054,8 @@
     <string name="account_signout_confirm">로그아웃할까요? 기기에 저장된 몽이는 그대로 있어요.</string>
     <string name="account_name">이름</string>
     <string name="account_email">이메일</string>
+    <string name="iap_coins_100">코인 100</string>
+    <string name="iap_coins_100_blurb">코인 100개</string>
+    <string name="iap_coins_1000">코인 1,000</string>
+    <string name="iap_coins_1000_blurb">코인 1,000개 · 가장 알뜰해요</string>
 </resources>

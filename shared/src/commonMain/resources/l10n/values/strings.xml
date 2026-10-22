@@ -1054,4 +1054,8 @@
     <string name="account_signout_confirm">Sign out? Your Mongi stays on this device.</string>
     <string name="account_name">Name</string>
     <string name="account_email">Email</string>
+    <string name="iap_coins_100">100 coins</string>
+    <string name="iap_coins_100_blurb">100 coins</string>
+    <string name="iap_coins_1000">1,000 coins</string>
+    <string name="iap_coins_1000_blurb">1,000 coins · best value</string>
 </resources>

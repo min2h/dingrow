@@ -192,6 +192,8 @@ object MongleBridge {
 
     /** Product ids to load with `Product.products(for:)`. */
     fun productIds(): List<String> = app.mongle.logic.StoreProducts.all.map { it.id }
+    /** StoreKit localized prices (Product.displayPrice) shown in the coin shop. */
+    fun updatePrices(prices: Map<String, String>) = app.mongle.logic.StorePrices.update(prices)
 
     /** Deep link `dingrow://schedule/<id>` from a widget row or notification. */
     fun openSchedule(id: String) { NavigationBus.request("schedule/$id") }
