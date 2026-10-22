@@ -9,7 +9,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-val iosEnabled = System.getProperty("os.name").orEmpty().lowercase().contains("mac")
+val iosEnabled = System.getProperty("os.name").orEmpty().lowercase().contains("mac") || providers.gradleProperty("dingrow.ios").orNull == "true"
 
 kotlin {
     androidTarget {

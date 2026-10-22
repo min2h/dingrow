@@ -26,6 +26,7 @@ fun MainViewController(): UIViewController {
     return ComposeUIViewController {
         val permissions by PermissionCenter.snapshot.collectAsState()
         MongleTheme {
+          app.mongle.ui.AuthGate(IosAuth.service) {
             MongleAppScreen(
                 service = MongleSession.service,
                 permissions = permissions,
@@ -33,6 +34,7 @@ fun MainViewController(): UIViewController {
                 onOpenExactAlarm = {},
                 onOpenWallpaper = {},
             )
+          }
         }
     }
 }

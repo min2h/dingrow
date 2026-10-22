@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 #if WIDGET
 import Shared
@@ -95,6 +96,16 @@ struct WidgetSnapshot: Codable {
     var level: Int = 1
     var speech: String = ""
     var language: String = ""
+    // v4 parity
+    var condition: String = "good"
+    var conditionLabel: String = ""
+    var sick: Bool = false
+    var showList: Bool = true
+    var showCondition: Bool = true
+    var showBubble: Bool = true
+    var weatherText: String = ""
+    var todayCountLabel: String = ""
+    var today: [WidgetRow] = []
 
     static var placeholder: WidgetSnapshot {
         let lang = DingrowStrings.resolved("")
@@ -115,6 +126,33 @@ struct WidgetSnapshot: Codable {
             progressLabel: DingrowStrings.text("widget_preview_progress", language: lang),
             language: lang
         )
+    }
+}
+
+struct WidgetRow: Codable, Hashable {
+    var id: String
+    var time: String
+    var title: String
+    var place: String
+    var done: Bool
+    var next: Bool
+    var deepLink: String
+}
+
+/// `**3시** **강남역**` → AttributedString with the schedule details bold + accent (#D9604F), like Android.
+enum Emphasis {
+    static let accent = Color(red: 0xD9 / 255, green: 0x60 / 255, blue: 0x4F / 255)
+    static func attributed(_ text: String) -> AttributedString {
+        var out = AttributedString()
+        for (i, part) in text.components(separatedBy: "**").enumerated() where !part.isEmpty {
+            var run = AttributedString(part)
+            if i % 2 == 1 {
+                run.font = .system(size: 11, weight: .heavy)
+                run.foregroundColor = accent
+            }
+            out += run
+        }
+        return out
     }
 }
 
@@ -184,6 +222,29 @@ enum MongleKit {
     static func snooze(id: String) -> String {
         start()
         return MongleBridge.shared.snooze(id: id)
+    }
+
+    @discardableResult
+    static func applyWeather(json: String, lat: Double, lon: Double) -> String {
+        start()
+        return MongleBridge.shared.applyWeatherJson(json: json, lat: lat, lon: lon)
+    }
+
+    @discardableResult
+    static func clearWeather() -> String {
+        start()
+        return MongleBridge.shared.clearWeather()
+    }
+
+    @discardableResult
+    static func grantPurchase(productId: String, transactionId: String) -> String {
+        start()
+        return MongleBridge.shared.grantPurchase(productId: productId, transactionId: transactionId)
+    }
+
+    static func productIds() -> [String] {
+        start()
+        return MongleBridge.shared.productIds()
     }
 
     @discardableResult

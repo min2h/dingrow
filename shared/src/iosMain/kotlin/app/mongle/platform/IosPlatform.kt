@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
+
 package app.mongle.platform
 
 import app.cash.sqldelight.db.SqlDriver
@@ -23,14 +25,23 @@ import platform.UserNotifications.UNNotificationCategory
 import platform.UserNotifications.UNNotificationRequest
 import platform.UserNotifications.UNTimeIntervalNotificationTrigger
 import platform.UserNotifications.UNUserNotificationCenter
-import platform.WidgetKit.WidgetCenter
 
 object IosAppConfig {
     var databaseDirectory: String = ""
 }
 
 object MongleSession {
-    lateinit var service: GameService
+    private var current: GameService? = null
+    val ready: Boolean get() = current != null
+    var service: GameService
+        get() = current ?: error("MongleBridge.start() not called")
+        set(value) { current = value }
+}
+
+/** Hooks the Swift host installs (WidgetKit / CoreLocation are Swift-only APIs). */
+object IosHooks {
+    /** Swift: `IosHooks.shared.reloadWidgets = { WidgetCenter.shared.reloadAllTimelines() }` */
+    var reloadWidgets: () -> Unit = {}
 }
 
 private var iosLastNoticeIds: List<String> = emptyList()
@@ -53,15 +64,15 @@ actual class PlatformNotifier actual constructor() {
         val center = UNUserNotificationCenter.currentNotificationCenter()
         ensurePermission(center)
         val content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
+        content.setTitle(title)
+        content.setBody(body)
         val trigger = UNTimeIntervalNotificationTrigger.triggerWithTimeInterval(1.0, false)
         val request = UNNotificationRequest.requestWithIdentifier("gift-" + title.hashCode(), content, trigger)
         center.addNotificationRequest(request) { _ -> }
     }
 
     actual fun reloadWidgets() {
-        WidgetCenter.sharedCenter().reloadAllTimelines()
+        IosHooks.reloadWidgets()
     }
 }
 
@@ -89,18 +100,18 @@ private fun ensureCategory(center: UNUserNotificationCenter) {
 
 private fun requestFor(notice: ScheduledNotice): UNNotificationRequest {
     val content = UNMutableNotificationContent()
-    content.title = notice.title
-    content.body = notice.body
-    content.categoryIdentifier = "DINGROW_SCHEDULE"
-    content.userInfo = mapOf("scheduleId" to notice.scheduleId)
+    content.setTitle(notice.title)
+    content.setBody(notice.body)
+    content.setCategoryIdentifier("DINGROW_SCHEDULE")
+    content.setUserInfo(mapOf("scheduleId" to notice.scheduleId))
     val ldt = Instant.fromEpochMilliseconds(notice.triggerAtMillis).toLocalDateTime(TimeZone.currentSystemDefault())
     val comps = NSDateComponents()
-    comps.year = ldt.year.toLong()
-    comps.month = ldt.monthNumber.toLong()
-    comps.day = ldt.dayOfMonth.toLong()
-    comps.hour = ldt.hour.toLong()
-    comps.minute = ldt.minute.toLong()
-    comps.second = ldt.second.toLong()
+    comps.setYear(ldt.year.toLong())
+    comps.setMonth(ldt.monthNumber.toLong())
+    comps.setDay(ldt.dayOfMonth.toLong())
+    comps.setHour(ldt.hour.toLong())
+    comps.setMinute(ldt.minute.toLong())
+    comps.setSecond(ldt.second.toLong())
     val trigger = UNCalendarNotificationTrigger.triggerWithDateMatchingComponents(comps, false)
     return UNNotificationRequest.requestWithIdentifier(notice.id, content, trigger)
 }
@@ -138,7 +149,7 @@ private fun copyLegacyDatabase(base: String) {
  */
 object MongleBridge {
     fun start() {
-        if (MongleSession::service.isInitialized) return
+        if (MongleSession.ready) return
         val directory = IosAppConfig.databaseDirectory.ifBlank { platform.Foundation.NSTemporaryDirectory() }
         MongleSession.service = createGameService(createIosDriver(directory), SystemTime)
     }
@@ -158,6 +169,32 @@ object MongleBridge {
     fun acknowledge(id: String): String = call { it.acknowledge(id) }
     fun completeSchedule(id: String): String = call { it.completeSchedule(id) }
     fun snooze(id: String): String = call { it.snooze(id) }
+
+    /** Swift (CoreLocation + URLSession) passes the open-meteo JSON; only call when the user granted location. */
+    fun applyWeatherJson(json: String, lat: Double, lon: Double): String {
+        start()
+        val snap = app.mongle.logic.Weather.parse(json, SystemTime.now(), (lat * 100).toLong() / 100.0, (lon * 100).toLong() / 100.0)
+        return runBlocking {
+            val s = MongleSession.service
+            s.updateSettings(s.state.value.settings.copy(useLocation = true))
+            s.setWeather(snap).message
+        }
+    }
+
+    /** Location denied/turned off: weather OFF, no city fallback. */
+    fun clearWeather(): String = call { s ->
+        s.updateSettings(s.state.value.settings.copy(useLocation = false))
+        s.setWeather(null)
+    }
+
+    /** StoreKit 2 verified transaction → coins (idempotent by transaction id). */
+    fun grantPurchase(productId: String, transactionId: String): String = call { it.grantStoreProduct(productId, "ios-$transactionId") }
+
+    /** Product ids to load with `Product.products(for:)`. */
+    fun productIds(): List<String> = app.mongle.logic.StoreProducts.all.map { it.id }
+
+    /** Deep link `dingrow://schedule/<id>` from a widget row or notification. */
+    fun openSchedule(id: String) { NavigationBus.request("schedule/$id") }
 
     private fun call(block: suspend (GameService) -> app.mongle.model.ActionResult): String {
         start()

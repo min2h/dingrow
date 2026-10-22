@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.sqldelight)
 }
 
-val iosEnabled = System.getProperty("os.name").orEmpty().lowercase().contains("mac")
+val iosEnabled = System.getProperty("os.name").orEmpty().lowercase().contains("mac") || providers.gradleProperty("dingrow.ios").orNull == "true"
 
 kotlin {
     androidTarget {
@@ -53,9 +53,9 @@ kotlin {
 }
 
 if (iosEnabled) {
-    kotlin.sourceSets.getByName("iosMain").dependencies {
+    kotlin.sourceSets.matching { it.name == "iosMain" }.all { dependencies {
         implementation(libs.sqldelight.native)
-    }
+    } }
 }
 
 android {

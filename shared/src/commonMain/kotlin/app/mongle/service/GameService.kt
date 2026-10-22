@@ -767,7 +767,7 @@ class GameService(
             foods[item.id] = (foods[item.id] ?: 0) + 1
         } else {
             owned += item.id
-            ownedAt.putIfAbsent(item.id, now)
+            if (item.id !in ownedAt) ownedAt[item.id] = now
         }
         return done(
             state.copy(

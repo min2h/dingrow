@@ -32,6 +32,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>몽이가 지금 날씨와 오후 예보를 알려 주려면 대략적인 위치가 필요해요. (Mongi uses your approximate location only to tell you the weather.)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchScreen</key>

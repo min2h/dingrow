@@ -44,6 +44,7 @@ struct PetHomeWidget: Widget {
 struct PetWidgetBundle: WidgetBundle {
     var body: some Widget {
         PetHomeWidget()
+        DingrowScheduleWidget()
     }
 }
 
@@ -274,5 +275,137 @@ extension Color {
         let green = Double((value >> 8) & 0xFF) / 255
         let blue = Double(value & 0xFF) / 255
         self.init(red: red, green: green, blue: blue)
+    }
+}
+
+
+// MARK: - v4 widget (sheet 4): room + 몽이 + anchored bubble, fullness/condition, today list with deep links.
+
+struct DingrowScheduleWidget: Widget {
+    let kind = "app.dingrow.schedule.v4"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: PetTimelineProvider()) { entry in
+            ScheduleWidgetView(snap: entry.snapshot)
+                .containerBackground(for: .widget) { Color(hex: "#FFFCF8") }
+        }
+        .configurationDisplayName(Text("widget_large_name"))
+        .description(Text("widget_large_desc"))
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+    }
+}
+
+private let v4Ink = Color(hex: "#5C4636")
+private let v4Soft = Color(hex: "#8A6A55")
+
+struct ScheduleWidgetView: View {
+    @Environment(\.widgetFamily) private var family
+    let snap: WidgetSnapshot
+
+    var body: some View {
+        switch family {
+        case .systemSmall:
+            VStack(spacing: 4) {
+                scene(petSize: 60, bubbleLines: 2)
+                if snap.showCondition { stats(count: false) }
+            }
+        case .systemMedium:
+            HStack(spacing: 10) {
+                scene(petSize: 64, bubbleLines: 2).frame(width: 140)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("widget_upcoming").font(.caption2.bold()).foregroundStyle(v4Soft)
+                    let rows = snap.today.filter { !$0.done }.prefix(2)
+                    if rows.isEmpty { Text("home_no_schedule").font(.caption.bold()).foregroundStyle(v4Ink) }
+                    ForEach(Array(rows), id: \.self) { row($0) }
+                    Spacer(minLength: 0)
+                    if snap.showCondition { stats(count: false) }
+                }
+            }
+        default:
+            VStack(alignment: .leading, spacing: 6) {
+                scene(petSize: 72, bubbleLines: 2, levelPill: true).frame(height: snap.showList ? 160 : .infinity)
+                if snap.showCondition { stats(count: true) }
+                if snap.showList {
+                    ForEach(snap.today.prefix(5), id: \.self) { row($0) }
+                }
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    /// Room with 몽이 at the bottom and the bubble stacked directly above its head (tail pointing down at the head).
+    private func scene(petSize: CGFloat, bubbleLines: Int, levelPill: Bool = false) -> some View {
+        ZStack(alignment: .topLeading) {
+            MongleArtImage(name: MongleArt.room(wallHex: snap.wallHex, timeOfDay: snap.timeOfDay, dark: snap.darkRoom), fill: true)
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                if snap.showBubble && !snap.speech.isEmpty {
+                    Text(Emphasis.attributed(snap.speech))
+                        .font(.system(size: 11))
+                        .foregroundStyle(v4Ink)
+                        .lineLimit(bubbleLines)
+                        .padding(.horizontal, 9).padding(.vertical, 5)
+                        .background(Color.white, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                        .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
+                    BubbleTail().fill(Color.white).frame(width: 12, height: 6)
+                }
+                MongleArtImage(name: MongleArt.pet(speciesId: snap.speciesId, pose: snap.pose, stageLabel: snap.stageLabel))
+                    .frame(width: petSize, height: petSize)
+                    .padding(.bottom, 6)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 6)
+            if levelPill {
+                Text("\(snap.petName) · Lv.\(snap.level)").font(.caption2.bold()).foregroundStyle(v4Ink)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Color.white.opacity(0.95), in: Capsule()).padding(8)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func stats(count: Bool) -> some View {
+        HStack(spacing: 6) {
+            ZStack {
+                Circle().stroke(Color(hex: "#E8E0DA"), lineWidth: 2.5)
+                Circle().trim(from: 0, to: CGFloat(snap.hunger) / 100).stroke(Color(hex: "#6EBE96"), style: StrokeStyle(lineWidth: 2.5, lineCap: .round)).rotationEffect(.degrees(-90))
+            }.frame(width: 13, height: 13)
+            Text("\(snap.hunger)%").font(.caption2.bold()).foregroundStyle(v4Ink)
+            Circle().fill(snap.sick ? Color(hex: "#E57373") : Color(hex: "#6EBE96")).frame(width: 6, height: 6)
+            Text(snap.conditionLabel).font(.caption2.bold()).foregroundStyle(v4Ink).lineLimit(1)
+            if count {
+                Text("♥ \(snap.moodLabel)").font(.caption2.bold()).foregroundStyle(v4Ink).lineLimit(1)
+                Spacer(minLength: 0)
+                Text(snap.todayCountLabel).font(.caption2).foregroundStyle(v4Soft)
+            }
+        }
+    }
+
+    private func row(_ r: WidgetRow) -> some View {
+        Link(destination: URL(string: r.deepLink) ?? URL(string: "dingrow://schedule/add")!) {
+            HStack(spacing: 8) {
+                Text(r.time).font(.caption.weight(.heavy)).foregroundStyle(r.done ? v4Soft : Emphasis.accent)
+                Text(r.place.isEmpty ? r.title : "\(r.title) · \(r.place)").font(.caption.bold()).foregroundStyle(r.done ? v4Soft : v4Ink).lineLimit(1)
+                Spacer(minLength: 0)
+                if r.done { Text("✓").font(.caption.bold()).foregroundStyle(Color(hex: "#4FA683")) }
+                else if r.next {
+                    Text("widget_next_badge").font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
+                        .padding(.horizontal, 6).padding(.vertical, 1).background(Color(hex: "#F08A7A"), in: Capsule())
+                }
+            }
+            .padding(.horizontal, 10).frame(height: 26)
+            .background(r.next ? Color(hex: "#FFE6DC") : Color(hex: "#FFF4EE"), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+        }
+    }
+}
+
+struct BubbleTail: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        p.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        p.closeSubpath()
+        return p
     }
 }

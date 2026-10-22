@@ -14,7 +14,7 @@ import kotlinx.datetime.toLocalDateTime
  * "ko" and "en" stick until the setting changes.
  */
 object AppLocale {
-    @Volatile
+    @kotlin.concurrent.Volatile
     var preference: String = "system"
 
     fun code(): String {

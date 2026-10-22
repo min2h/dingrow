@@ -59,3 +59,6 @@
 "intent_preset_desc" = "다음 방 프리셋으로 바꿉니다.";
 "widget_medium_name" = "몽이와 다가오는 일정";
 "widget_medium_desc" = "몽이와 다음 일정 2개, 배부름과 컨디션.";
+"widget_upcoming" = "다가오는 일정";
+"widget_next_badge" = "다음";
+"home_no_schedule" = "등록된 일정이 없어요";

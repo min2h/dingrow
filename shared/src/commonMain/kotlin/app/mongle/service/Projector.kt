@@ -1,5 +1,6 @@
 package app.mongle.service
 
+import kotlinx.datetime.toLocalDateTime
 import app.mongle.l10n.AppLocale
 import app.mongle.l10n.L10n
 import app.mongle.logic.Korean
@@ -260,7 +261,20 @@ data class WidgetSnapshot(
     val level: Int = 1,
     val speech: String = "",
     val language: String = "",
+    // v4 widget parity (iOS WidgetKit reads these from the App Group snapshot).
+    val condition: String = "good",
+    val conditionLabel: String = "",
+    val sick: Boolean = false,
+    val showList: Boolean = true,
+    val showCondition: Boolean = true,
+    val showBubble: Boolean = true,
+    val weatherText: String = "",
+    val todayCountLabel: String = "",
+    val today: List<WidgetRow> = emptyList(),
 )
+
+@Serializable
+data class WidgetRow(val id: String, val time: String, val title: String, val place: String, val done: Boolean, val next: Boolean, val deepLink: String)
 
 fun GameState.toSnapshot(): WidgetSnapshot {
     val room = activeRoom
@@ -299,7 +313,24 @@ fun GameState.toSnapshot(): WidgetSnapshot {
         level = level,
         speech = speech,
         language = AppLocale.code(),
+        condition = condition.name.lowercase(),
+        conditionLabel = L10n.t("cond_" + (if (sick) "sick" else condition.name.lowercase())),
+        sick = sick,
+        showList = settings.widgetList,
+        showCondition = settings.widgetCondition,
+        showBubble = settings.widgetBubble,
+        weatherText = weather?.let { "${it.tempC.toInt()}° " + L10n.t("wx_" + it.kind.name.lowercase()) }.orEmpty(),
+        todayCountLabel = L10n.fmt("widget_today_count", todayRows(this).size),
+        today = todayRows(this),
     )
+}
+
+/** Today's schedules for widgets (one row per schedule whose time is today, done ones ticked). */
+fun todayRows(state: GameState, now: Long = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(), zone: kotlinx.datetime.TimeZone = kotlinx.datetime.TimeZone.currentSystemDefault()): List<WidgetRow> {
+    val day = kotlinx.datetime.Instant.fromEpochMilliseconds(now).toLocalDateTime(zone).date
+    val list = state.schedules.filter { kotlinx.datetime.Instant.fromEpochMilliseconds(it.timeMillis).toLocalDateTime(zone).date == day }.sortedBy { it.timeMillis }
+    val nextId = list.firstOrNull { !it.done }?.id
+    return list.map { WidgetRow(it.id, L10n.clock(it.timeMillis, zone), it.title, it.place, it.done, it.id == nextId, "dingrow://schedule/" + it.id) }
 }
 
 fun GameState.toSnapshotJson(): String = widgetJson.encodeToString(toSnapshot())

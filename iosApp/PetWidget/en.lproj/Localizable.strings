@@ -59,3 +59,6 @@
 "intent_preset_desc" = "Switch to the next room preset.";
 "widget_medium_name" = "Mongi and upcoming";
 "widget_medium_desc" = "Mongi with your next two schedules, fullness and condition.";
+"widget_upcoming" = "Upcoming";
+"widget_next_badge" = "Next";
+"home_no_schedule" = "No schedules yet";
