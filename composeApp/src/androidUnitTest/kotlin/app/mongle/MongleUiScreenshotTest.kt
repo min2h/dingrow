@@ -25,6 +25,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.printToString
 import androidx.compose.ui.unit.dp
@@ -161,9 +162,13 @@ class MongleFlowScreenshotTest {
         assertTrue(reveal.pendingGift != null || reveal.pendingDropKind.isNotBlank())
         val coins = reveal.coins
         harness.clickTag("gift-carrier"); harness.settle()
-        harness.clickTag("sell-gift")
+        // Item gifts offer "sell"; coin gifts are credited on opening.
+        run {
+            repeat(15) { if (composeRule.onAllNodesWithTag("sell-gift").fetchSemanticsNodes().isEmpty()) { composeRule.mainClock.advanceTimeBy(300); harness.settle() } }
+            harness.clickTag("sell-gift")
+        }
         harness.settle()
-        assertTrue(harness.service.state.value.coins > coins)
+        harness.service.state.value.let { s -> assertTrue("coins $coins -> ${s.coins}, gift=${s.pendingGift} drop=${s.pendingDropKind}/${reveal.pendingDropKind} carrier=${composeRule.onAllNodesWithTag("gift-carrier").fetchSemanticsNodes().size}", s.coins > coins) }
         assertEquals(null, harness.service.state.value.pendingGift)
         harness.clock.now = seoulMillis(2026, 10, 21, 23, 0)
         runBlocking { harness.service.refresh() }
@@ -457,6 +462,8 @@ class MongleFlowScreenshotTest {
         }
 
         fun capture(name: String) {
+            // Level-up popups are covered by their own shot; keep other screens unobstructed.
+            if (!name.startsWith("levelup")) runBlocking { service.ackLevelUp(service.state.value.level) }
             settle()
             composeRule.onRoot().captureRoboImage(artifact(name))
         }
@@ -472,7 +479,7 @@ class MongleFlowScreenshotTest {
 
         fun clickTag(tag: String) {
             try {
-                composeRule.onNodeWithTag(tag).performClick()
+                composeRule.onNodeWithTag(tag).performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             } catch (error: AssertionError) {
                 File("/tmp/mongle-semantics.txt").writeText(composeRule.onRoot().printToString())
                 throw AssertionError("click '$tag' failed: ${error.message}", error)

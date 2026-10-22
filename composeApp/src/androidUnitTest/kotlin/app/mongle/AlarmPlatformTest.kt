@@ -22,9 +22,21 @@ import org.robolectric.shadows.ShadowAlarmManager
 class AlarmPlatformTest {
     private val ctx: Context = ApplicationProvider.getApplicationContext()
     private val am get() = shadowOf(ctx.getSystemService(AlarmManager::class.java))
-    private fun notice(at: Long) = ScheduledNotice("n1", "s1", "몽이", "15:00 회의", at)
+    // Unique ids: a stale background sync from an earlier test may cancel ids it remembers.
+    private fun uid() = java.util.UUID.randomUUID().toString()
+    private fun notice(at: Long) = ScheduledNotice(uid(), uid(), "몽이", "15:00 회의", at)
 
-    @After fun reset() { ShadowAlarmManager.setCanScheduleExactAlarms(true); AppGraph.resetForTests() }
+    @org.junit.Before fun isolate() {
+        AppGraph.resetForTests()
+        app.mongle.platform.AndroidHooks.sync = {}
+    }
+
+    @After fun reset() {
+        ShadowAlarmManager.setCanScheduleExactAlarms(true)
+        AppGraph.resetForTests()
+        app.mongle.platform.AndroidHooks.sync = {}
+        Thread.sleep(200)
+    }
 
     @Test fun exactWhenAllowed() {
         ShadowAlarmManager.setCanScheduleExactAlarms(true)
@@ -47,8 +59,8 @@ class AlarmPlatformTest {
     @Test fun resyncReplacesOldAlarms() {
         val now = System.currentTimeMillis()
         val s = AlarmScheduler(ctx)
-        s.sync(listOf(notice(now + 60_000), ScheduledNotice("n2", "s2", "몽이", "b", now + 120_000)))
-        s.sync(listOf(ScheduledNotice("n3", "s3", "몽이", "c", now + 180_000)))
+        s.sync(listOf(notice(now + 60_000), ScheduledNotice(uid(), uid(), "몽이", "b", now + 120_000)))
+        s.sync(listOf(ScheduledNotice(uid(), uid(), "몽이", "c", now + 180_000)))
         assertEquals(listOf(now + 180_000), am.scheduledAlarms.map { it.triggerAtMs })
     }
 
