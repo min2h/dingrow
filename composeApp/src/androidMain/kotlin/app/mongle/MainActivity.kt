@@ -36,6 +36,16 @@ class MainActivity : ComponentActivity() {
             app.mongle.weather.WeatherFetcher.refresh(applicationContext, AppGraph.service, force = true)
         }
     }
+    private var pendingExport: String? = null
+    private var pendingRestore: ((String) -> Unit)? = null
+    private val exportDoc = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        val text = pendingExport; pendingExport = null
+        if (uri != null && text != null) runCatching { contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray()) } }
+    }
+    private val restoreDoc = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val cb = pendingRestore; pendingRestore = null
+        if (uri != null && cb != null) runCatching { contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } }.getOrNull()?.let(cb)
+    }
     private val notificationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { updatePermissions() }
@@ -49,6 +59,8 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
         app.mongle.ui.LocationBridge.request = { locationPermission.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION) }
         app.mongle.auth.AndroidAuth.activity = java.lang.ref.WeakReference(this)
+        app.mongle.ui.BackupBridge.export = { json -> pendingExport = json; exportDoc.launch("dingrow-backup.json") }
+        app.mongle.ui.BackupBridge.pickRestore = { cb -> pendingRestore = cb; restoreDoc.launch(arrayOf("application/json", "text/plain", "*/*")) }
         app.mongle.ui.ThemeState.mode = AppGraph.service.state.value.settings.theme
         setContent {
             val permissions by PermissionCenter.snapshot.collectAsState()

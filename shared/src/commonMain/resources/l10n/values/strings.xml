@@ -1046,4 +1046,12 @@
     <string name="shop_try_place">Try it</string>
     <string name="gift_carry_title">Mongi brought you a gift! 🎁</string>
     <string name="gift_tap_open">Tap to open</string>
+    <string name="msg_backup_invalid">Couldn\'t read that backup file</string>
+    <string name="msg_backup_restored">Backup restored</string>
+    <string name="set_backup_export_sub">Save or share a file</string>
+    <string name="set_backup_restore_sub">Choose a backup file</string>
+    <string name="settings_title_account">Account</string>
+    <string name="account_signout_confirm">Sign out? Your Mongi stays on this device.</string>
+    <string name="account_name">Name</string>
+    <string name="account_email">Email</string>
 </resources>

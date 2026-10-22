@@ -1,19 +1,27 @@
 package app.mongle.model
 
+@kotlinx.serialization.Serializable
 enum class Stage { EGG, BABY, CHILD, ADULT }
 
+@kotlinx.serialization.Serializable
 enum class RepeatRule { NONE, DAILY, WEEKLY, WEEKDAYS, WEEKENDS, MONTHLY, YEARLY, EVERY_N_DAYS }
 
+@kotlinx.serialization.Serializable
 enum class EndKind { NEVER, UNTIL, COUNT }
 
+@kotlinx.serialization.Serializable
 enum class EditScope { ONE, FOLLOWING, ALL }
 
+@kotlinx.serialization.Serializable
 enum class AlertStyle { SILENT, SOUND, VIBRATE }
 
+@kotlinx.serialization.Serializable
 enum class AlarmSound { SOFT, CHIME, BELL }
 
+@kotlinx.serialization.Serializable
 enum class ItemKind { FOOD, GIFT, OUTFIT, WALL, FLOOR, BED, RUG, LAMP, DECOR, COMPANION }
 
+@kotlinx.serialization.Serializable
 enum class ItemMotif {
     GENERIC, COOKIE, CANDY, PEACH, DUMPLING,
     PILLOW, BED, SHELF, TABLE, LAMP, CHAIR, RUG, PLANT, WINDOW, LIGHTS, TANK, PIANO,
@@ -22,16 +30,22 @@ enum class ItemMotif {
     WALL, FLOOR,
 }
 
+@kotlinx.serialization.Serializable
 enum class Rarity { COMMON, UNCOMMON, RARE, EPIC }
 
+@kotlinx.serialization.Serializable
 enum class DecorSlot { WALL, FLOOR, BED, RUG, LAMP }
 
+@kotlinx.serialization.Serializable
 enum class Mood { EGG, HAPPY, CALM, SAD, HUNGRY, SLEEPY, AWAY }
 
+@kotlinx.serialization.Serializable
 enum class Pose { EGG, IDLE, HAPPY, SAD, SLEEP, WALK, OUT }
 
+@kotlinx.serialization.Serializable
 enum class TimeOfDay { MORNING, DAY, EVENING, NIGHT }
 
+@kotlinx.serialization.Serializable
 data class ItemDef(
     val id: String,
     val name: String,
@@ -51,6 +65,7 @@ data class ItemDef(
     fun pictureId(): String = artId.ifBlank { id }
 }
 
+@kotlinx.serialization.Serializable
 data class GameBalance(
     val hungerPerHour: Int = 4,
     val happyPerHour: Int = 2,
@@ -79,6 +94,7 @@ data class GameBalance(
     val starterFood: Int = 3,
 )
 
+@kotlinx.serialization.Serializable
 data class PetRecord(
     val id: String,
     val name: String,
@@ -102,6 +118,7 @@ data class PetRecord(
     val speciesId: String = "base",
 )
 
+@kotlinx.serialization.Serializable
 data class ScheduleRecord(
     val id: String,
     val title: String,
@@ -131,6 +148,7 @@ data class ScheduleRecord(
     val endMillis: Long = 0,
 )
 
+@kotlinx.serialization.Serializable
 data class CompletionRecord(
     val id: String,
     val scheduleId: String,
@@ -139,12 +157,14 @@ data class CompletionRecord(
     val coins: Int,
 )
 
+@kotlinx.serialization.Serializable
 data class GiftRecord(
     val instanceId: String,
     val defId: String,
     val acquiredAt: Long,
 )
 
+@kotlinx.serialization.Serializable
 data class LedgerEntry(
     val id: String,
     val delta: Int,
@@ -154,6 +174,7 @@ data class LedgerEntry(
     val idempotencyKey: String?,
 )
 
+@kotlinx.serialization.Serializable
 data class RoomPreset(
     val index: Int,
     val name: String,
@@ -164,6 +185,7 @@ data class RoomPreset(
     val lampId: String?,
 )
 
+@kotlinx.serialization.Serializable
 data class ActionRecord(
     val key: String,
     val ok: Boolean,
@@ -171,6 +193,7 @@ data class ActionRecord(
     val at: Long,
 )
 
+@kotlinx.serialization.Serializable
 data class AppSettings(
     val tipsEnabled: Boolean = true,
     val quietStartMinute: Int = -1,
@@ -205,6 +228,7 @@ data class AppSettings(
     val widgetBubble: Boolean = true,
 )
 
+@kotlinx.serialization.Serializable
 data class Placement(
     val defId: String,
     val x: Int = 50,
@@ -212,6 +236,7 @@ data class Placement(
     val rotation: Int = 0,
 )
 
+@kotlinx.serialization.Serializable
 data class PetAnimState(
     val clip: String = "idle",
     val trigger: String = "none",
@@ -219,6 +244,7 @@ data class PetAnimState(
     val until: Long = 0,
 )
 
+@kotlinx.serialization.Serializable
 data class PersistedState(
     val pet: PetRecord,
     val schedules: List<ScheduleRecord>,
@@ -259,8 +285,10 @@ data class PersistedState(
     val extras: Map<String, String> = emptyMap(),
 )
 
+@kotlinx.serialization.Serializable
 data class ActionResult(val ok: Boolean, val message: String)
 
+@kotlinx.serialization.Serializable
 data class ScheduleView(
     val id: String,
     val title: String,
@@ -290,6 +318,7 @@ data class ScheduleView(
     val categoryKey: String = "other",
 )
 
+@kotlinx.serialization.Serializable
 data class GiftView(
     val instanceId: String,
     val defId: String,
@@ -299,6 +328,7 @@ data class GiftView(
     val acquiredAt: Long,
 )
 
+@kotlinx.serialization.Serializable
 data class FoodView(
     val defId: String,
     val name: String,
@@ -306,6 +336,7 @@ data class FoodView(
     val hunger: Int,
 )
 
+@kotlinx.serialization.Serializable
 data class OutingView(
     val returnAt: Long,
     val startedAt: Long = returnAt - 20 * 60_000L,
@@ -313,6 +344,7 @@ data class OutingView(
     val label: String,
 )
 
+@kotlinx.serialization.Serializable
 data class ShopOffer(
     val item: ItemDef,
     val price: Int,

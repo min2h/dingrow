@@ -211,6 +211,8 @@ fun MongleAppScreen(
                 overlayState.value = "shop"
             },
             onClose = { overlayState.value = "none" },
+            onExport = { scope.launch { val json = service.exportBackup(); BackupBridge.export?.invoke(json) } },
+            onRestore = { BackupBridge.pickRestore?.invoke { text -> scope.launch { service.importBackup(text) } } },
         )
     } else if (overlay == "shop") {
         CoinShopScreen(

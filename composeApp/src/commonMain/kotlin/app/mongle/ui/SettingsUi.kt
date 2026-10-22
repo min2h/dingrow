@@ -41,12 +41,17 @@ fun SettingsV2(
     onShop: () -> Unit,
     onReset: () -> Unit,
     onClose: () -> Unit,
+    onExport: () -> Unit = {},
+    onRestore: () -> Unit = {},
     version: String = "0.2.0 (2)",
     startPage: String = "home",
 ) {
     var page by remember { mutableStateOf(startPage) }
     var langSheet by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
+    var confirmSignOut by remember { mutableStateOf(false) }
+    val authForSignOut = LocalAuth.current
+    val signOutScope = rememberCoroutineScope()
     val s = state.settings
     Box(Modifier.fillMaxSize().background(Cream).testTag("settings-$page")) {
         Column(Modifier.fillMaxSize()) {
@@ -60,7 +65,7 @@ fun SettingsV2(
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 18.dp)) {
                 when (page) {
                     "home" -> {
-                        ProfileCard(state)
+                        ProfileCard(state) { page = "account" }
                         Section(t("set_sec_display")) {
                             ValueRow(t("lang_label"), langLabel(s.language), "row-language") { langSheet = true }
                             SegRow(t("set_theme"), listOf("light" to t("set_theme_light"), "dark" to t("set_theme_dark"), "system" to t("set_theme_system")), s.theme) { onChange(s.copy(theme = it)) }
@@ -144,19 +149,30 @@ fun SettingsV2(
                             ToggleRow(t("set_widget_bubble"), s.widgetBubble, "toggle-wbub", last = true) { onChange(s.copy(widgetBubble = it)) }
                         }
                     }
+                    "account" -> {
+                        val auth = LocalAuth.current
+                        val session = auth?.session?.collectAsState()?.value
+                        Section(t("set_sec_account")) {
+                            ValueRow(t("set_login_account"), session?.let { t("provider_" + it.provider) } ?: t("provider_guest"), "acct-provider")
+                            if (!session?.displayName.isNullOrBlank()) ValueRow(t("account_name"), session?.displayName.orEmpty(), "acct-name")
+                            if (!session?.email.isNullOrBlank()) ValueRow(t("account_email"), session?.email.orEmpty(), "acct-email")
+                            ValueRow(t("guest_row_device"), session?.device?.substringBefore(" ·").orEmpty(), "row-device", last = true)
+                        }
+                        Section(" ") {
+                            ButtonRow(t("settings_sign_out"), t("settings_sign_out"), Color(0xFFDC5A5A), "sign-out", last = true) { confirmSignOut = true }
+                        }
+                    }
                     "data" -> {
                         Section(t("set_sec_data")) {
-                            ValueRow(t("set_backup_export"), t("set_coming_soon"), "row-export")
-                            ValueRow(t("set_backup_restore"), t("set_coming_soon"), "row-restore")
+                            ValueRow(t("set_backup_export"), t("set_backup_export_sub"), "row-export", onClick = onExport)
+                            ValueRow(t("set_backup_restore"), t("set_backup_restore_sub"), "row-restore", onClick = onRestore)
                             ButtonRow(t("set_reset"), t("set_reset_btn"), Color(0xFFDC5A5A), "row-reset", last = true) { confirmReset = true }
                         }
                         val auth = LocalAuth.current
                         val session = auth?.session?.collectAsState()?.value
                         val scope = rememberCoroutineScope()
                         Section(t("set_sec_account")) {
-                            ValueRow(t("set_login_account"), session?.let { t("provider_" + it.provider) }.orEmpty(), "row-account")
-                            ValueRow(t("guest_row_device"), session?.device?.substringBefore(" ·").orEmpty(), "row-device")
-                            ButtonRow(t("settings_sign_out"), t("settings_sign_out"), Color(0xFFDC5A5A), "sign-out", last = true) { scope.launch { auth?.signOut() } }
+                            ValueRow(t("set_login_account"), session?.let { t("provider_" + it.provider) }.orEmpty(), "row-account", last = true) { page = "account" }
                         }
                         Section(t("set_sec_info")) {
                             ValueRow(t("set_version"), version, "row-version")
@@ -169,6 +185,7 @@ fun SettingsV2(
             }
         }
         if (langSheet) LanguageSheet(s.language, onPick = { onChange(s.copy(language = it)); langSheet = false }, onDismiss = { langSheet = false })
+        if (confirmSignOut) ConfirmSheet(t("account_signout_confirm"), t("settings_sign_out"), onYes = { confirmSignOut = false; signOutScope.launch { authForSignOut?.signOut() } }, onNo = { confirmSignOut = false })
         if (confirmReset) ConfirmSheet(t("set_reset_confirm"), t("set_reset_btn"), onYes = { confirmReset = false; onReset() }, onNo = { confirmReset = false })
     }
 }
@@ -187,10 +204,10 @@ private fun langLabel(code: String): String = when (code) {
 }
 
 @Composable
-private fun ProfileCard(state: GameState) {
+private fun ProfileCard(state: GameState, onClick: () -> Unit = {}) {
     val session = LocalAuth.current?.session?.collectAsState()?.value
     Row(
-        Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 16.dp).shadow(5.dp, RoundedCornerShape(20.dp), spotColor = Color(0x22000000)).background(CardWhite, RoundedCornerShape(20.dp)).padding(horizontal = 14.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 16.dp).shadow(5.dp, RoundedCornerShape(20.dp), spotColor = Color(0x22000000)).background(CardWhite, RoundedCornerShape(20.dp)).clip(RoundedCornerShape(20.dp)).clickable(onClick = onClick).testTag("row-profile").padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         StillPet(state.speciesId, state.stage, app.mongle.model.Pose.HAPPY, Modifier.size(48.dp))
@@ -216,7 +233,7 @@ private fun Divider() = Box(Modifier.padding(horizontal = 16.dp).fillMaxWidth().
 @Composable
 private fun RowShell(label: String, tag: String, last: Boolean, enabled: Boolean = true, onClick: (() -> Unit)? = null, trailing: @Composable () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().height(44.dp).then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(horizontal = 16.dp).testTag(tag),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).then(if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick) else Modifier).padding(horizontal = 16.dp).testTag(tag),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, fontSize = 14.sp, color = if (enabled) Ink else InkSoft, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)

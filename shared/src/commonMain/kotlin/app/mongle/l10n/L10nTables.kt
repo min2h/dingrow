@@ -1049,6 +1049,14 @@ internal val En: Map<String, String> = buildMap {
     put("shop_try_place", "Try it")
     put("gift_carry_title", "Mongi brought you a gift! 🎁")
     put("gift_tap_open", "Tap to open")
+    put("msg_backup_invalid", "Couldn't read that backup file")
+    put("msg_backup_restored", "Backup restored")
+    put("set_backup_export_sub", "Save or share a file")
+    put("set_backup_restore_sub", "Choose a backup file")
+    put("settings_title_account", "Account")
+    put("account_signout_confirm", "Sign out? Your Mongi stays on this device.")
+    put("account_name", "Name")
+    put("account_email", "Email")
 }
 
 internal val Ko: Map<String, String> = buildMap {
@@ -2099,4 +2107,12 @@ internal val Ko: Map<String, String> = buildMap {
     put("shop_try_place", "놓아보기")
     put("gift_carry_title", "몽이가 선물을 가지고 왔어요! 🎁")
     put("gift_tap_open", "눌러서 열어보세요")
+    put("msg_backup_invalid", "백업 파일을 읽을 수 없어요")
+    put("msg_backup_restored", "백업을 복원했어요")
+    put("set_backup_export_sub", "파일로 저장·공유")
+    put("set_backup_restore_sub", "백업 파일 선택")
+    put("settings_title_account", "계정")
+    put("account_signout_confirm", "로그아웃할까요? 기기에 저장된 몽이는 그대로 있어요.")
+    put("account_name", "이름")
+    put("account_email", "이메일")
 }

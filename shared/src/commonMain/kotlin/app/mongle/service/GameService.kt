@@ -345,6 +345,18 @@ class GameService(
     }
 
     /** Settings › 데이터 › 몽이 처음부터 다시: fresh pet and data, settings kept. */
+    /** 백업 내보내기: the whole saved state as JSON (no account tokens are part of it). */
+    suspend fun exportBackup(): String = mutex.withLock {
+        val now = time.now()
+        Backup.encode(LegacyIds.migrate(store.load() ?: Seed.create(now, balance)))
+    }
+
+    /** 백업 복원: replaces the saved state after validating the file. */
+    suspend fun importBackup(json: String): ActionResult {
+        val restored = Backup.decode(json) ?: return ActionResult(false, L10n.t("msg_backup_invalid"))
+        return mutate { _, _ -> done(restored, ActionResult(true, L10n.t("msg_backup_restored"))) }
+    }
+
     suspend fun resetAll(): ActionResult = mutate { state, now ->
         done(Seed.create(now, balance).copy(settings = state.settings, onboarded = false), ActionResult(true, L10n.t("msg_reset_done")))
     }

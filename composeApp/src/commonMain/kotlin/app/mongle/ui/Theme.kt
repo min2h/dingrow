@@ -95,3 +95,9 @@ object PermissionCenter {
 object LocationBridge {
     var request: (() -> Unit)? = null
 }
+
+/** Platform bridge for 백업 내보내기/복원: export saves/shares a JSON file; restore lets the user pick one. */
+object BackupBridge {
+    var export: ((String) -> Unit)? = null
+    var pickRestore: ((onText: (String) -> Unit) -> Unit)? = null
+}
