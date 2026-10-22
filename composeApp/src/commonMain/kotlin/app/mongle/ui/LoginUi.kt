@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -94,23 +95,23 @@ fun LoginScreen(auth: AuthService, onGuest: () -> Unit) {
             Spacer(Modifier.height(8.dp))
             Text(t("login_sub"), fontSize = 12.sp, color = InkSoft, textAlign = TextAlign.Center)
             Spacer(Modifier.height(26.dp))
-            LoginButton(t("login_google"), Color.White, Ink, border = Color(0xFFE6DCD4), tag = "login-google", icon = { GoogleMark() }) {
+            LoginButton(t("login_google"), Color.White, Ink, border = Color(0xFFE6DCD4), tag = "login-google", enabled = !busy, icon = { GoogleMark() }) {
                 busy = true; scope.launch { handle(auth.signInGoogle()) }
             }
             if (auth.appleAvailable) {
                 Spacer(Modifier.height(12.dp))
-                LoginButton(t("login_apple"), Color(0xFF181818), Color.White, tag = "login-apple", icon = { AppleMark() }) {
+                LoginButton(t("login_apple"), Color(0xFF181818), Color.White, tag = "login-apple", enabled = !busy, icon = { AppleMark() }) {
                     busy = true; scope.launch { handle(auth.signInApple()) }
                 }
             }
             Spacer(Modifier.height(12.dp))
             Box(Modifier.fillMaxWidth().then(if (notice != null) Modifier.border(2.5.dp, PeachDeep, RoundedCornerShape(30.dp)).padding(4.dp) else Modifier)) {
-                LoginButton(t("login_guest"), PeachSoft, Color(0xFFC45C4C), tag = "login-guest", shadow = false) {
+                LoginButton(t("login_guest"), PeachSoft, Color(0xFFC45C4C), tag = "login-guest", shadow = false, enabled = !busy) {
                     scope.launch { auth.signInGuest(); onGuest() }
                 }
             }
             if (auth.debugFake) {
-                Text(t("login_debug_fake"), fontSize = 11.sp, color = InkSoft, modifier = Modifier.padding(top = 8.dp).clickable { scope.launch { handle(auth.signInFake()) } }.testTag("login-fake"))
+                Text(t("login_debug_fake"), fontSize = 11.sp, color = InkSoft, modifier = Modifier.padding(top = 8.dp).clickable(enabled = !busy) { busy = true; scope.launch { handle(auth.signInFake()) } }.testTag("login-fake"))
             }
             Spacer(Modifier.height(24.dp))
             Text(t("login_terms"), fontSize = 10.sp, color = InkSoft, textAlign = TextAlign.Center)
@@ -129,14 +130,14 @@ fun LoginScreen(auth: AuthService, onGuest: () -> Unit) {
 }
 
 @Composable
-private fun LoginButton(label: String, bg: Color, fg: Color, border: Color? = null, tag: String, shadow: Boolean = true, icon: (@Composable () -> Unit)? = null, onClick: () -> Unit) {
+private fun LoginButton(label: String, bg: Color, fg: Color, border: Color? = null, tag: String, shadow: Boolean = true, enabled: Boolean = true, icon: (@Composable () -> Unit)? = null, onClick: () -> Unit) {
     val shape = RoundedCornerShape(26.dp)
     Box(
         Modifier.fillMaxWidth().height(52.dp)
             .then(if (shadow) Modifier.shadow(6.dp, shape, spotColor = Color(0x22000000)) else Modifier)
             .background(bg, shape)
             .then(if (border != null) Modifier.border(1.dp, border, shape) else Modifier)
-            .clip(shape).clickable(onClick = onClick).testTag(tag),
+            .clip(shape).clickable(enabled = enabled, onClick = onClick).graphicsLayer { alpha = if (enabled) 1f else 0.5f }.testTag(tag),
         contentAlignment = Alignment.Center,
     ) {
         if (icon != null) Box(Modifier.align(Alignment.CenterStart).padding(start = 52.dp)) { icon() }

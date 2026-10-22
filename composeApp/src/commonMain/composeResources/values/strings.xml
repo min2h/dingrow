@@ -1068,4 +1068,21 @@
     <string name="dex_owned_title">My items</string>
     <string name="dex_hint_gift">Mongi may bring one when you finish schedules</string>
     <string name="dex_sell">Sell</string>
+    <string name="err_title_required">Please enter a title</string>
+    <string name="err_title_long">Titles can be up to 40 characters</string>
+    <string name="err_end_before">End time must be after the start</string>
+    <string name="err_weekdays">Pick at least one day</string>
+    <string name="err_interval">The interval must be at least 1</string>
+    <string name="err_count">Repeat at least once</string>
+    <string name="err_until_before">The end date must be after the start</string>
+    <string name="err_place_long">Places can be up to 40 characters</string>
+    <string name="err_memo_long">Memos can be up to 200 characters</string>
+    <string name="warn_past">This time has passed. You can still save it</string>
+    <string name="err_name_required">Please give a name</string>
+    <string name="err_name_long">Names can be up to 12 characters</string>
+    <string name="end_time">End time</string>
+    <string name="end_time_none">None</string>
+    <string name="end_time_30">30 min</string>
+    <string name="end_time_60">1 hr</string>
+    <string name="end_time_120">2 hr</string>
 </resources>

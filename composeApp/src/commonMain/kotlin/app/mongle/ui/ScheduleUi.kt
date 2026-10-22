@@ -150,10 +150,10 @@ fun ScheduleForm(
     var memo by remember { mutableStateOf("") }
     var scope by remember { mutableStateOf(EditScope.ALL) }
     var picking by remember { mutableStateOf<String?>(null) }
+    var durationMin by remember { mutableIntStateOf(0) }
+    var touched by remember { mutableStateOf(false) }
 
-    fun save() {
-        onSave(
-            ScheduleDraft(
+    fun draft() = ScheduleDraft(
                         title = title,
                         timeMillis = composeMillis(date, isPm, hour12, minute, zone),
                         repeat = repeat,
@@ -168,9 +168,19 @@ fun ScheduleForm(
                         endKind = endKind,
                         endAt = if (endKind == EndKind.UNTIL) composeMillis(endDate, true, 11, 59, zone) else 0L,
                         endCount = if (endKind == EndKind.COUNT) endCount else 0,
-                    ),
-            if (editing) scope else EditScope.ALL,
-        )
+                        endMillis = if (durationMin > 0) composeMillis(date, isPm, hour12, minute, zone) + durationMin * 60_000L else 0L,
+                    )
+    val current = draft()
+    val errors = app.mongle.logic.DraftValidator.errors(current, strictWeekdays = true)
+    val warnings = app.mongle.logic.DraftValidator.warnings(current, Clock.System.now().toEpochMilliseconds())
+    // Title "required" shows only after the user typed or tried to save; other errors show at once.
+    val shown = if (touched) errors else errors - "title"
+    val canSave = errors.isEmpty()
+
+    fun save() {
+        touched = true
+        if (!canSave) return
+        onSave(current, if (editing) scope else EditScope.ALL)
     }
 
     if (picking != null) {
@@ -193,14 +203,15 @@ fun ScheduleForm(
                 Text("‹", color = Ink, fontSize = 22.sp)
             }
             Text(t("add_schedule"), modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Ink)
-            TextButton(onClick = { if (title.isNotBlank()) save() }, enabled = title.isNotBlank(), modifier = Modifier.testTag("save-top")) {
-                Text(t("save"), color = if (title.isNotBlank()) PeachDeep else InkSoft, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            TextButton(onClick = { save() }, enabled = canSave, modifier = Modifier.testTag("save-top")) {
+                Text(t("save"), color = if (canSave) PeachDeep else InkSoft, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
         }
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
         ) {
-            FormField(title, { title = it }, t("task_hint"), "field-title", big = true)
+            FormField(title, { title = it; touched = true }, t("task_hint"), "field-title", big = true)
+            FieldError(shown["title"], "err-title")
             Spacer(Modifier.height(16.dp))
             SectionLabel(t("quick_pick"))
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -222,9 +233,11 @@ fun ScheduleForm(
             Spacer(Modifier.height(14.dp))
             SectionLabel(t("place_label"))
             FormField(place, { place = it }, t("place_hint"), "field-place")
+            FieldError(shown["place"], "err-place")
             Spacer(Modifier.height(10.dp))
             SectionLabel(t("memo_label"))
             FormField(memo, { memo = it }, t("memo_hint"), "field-memo")
+            FieldError(shown["memo"], "err-memo")
             Spacer(Modifier.height(14.dp))
             SectionLabel(t("category"))
             CategoryRow(category) { category = it }
@@ -266,6 +279,11 @@ fun ScheduleForm(
                 )
             }
             }
+            warnings["time"]?.let { Text(t(it), color = Color(0xFFB7791F), fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp).testTag("warn-past")) }
+            Spacer(Modifier.height(10.dp))
+            SectionLabel(t("end_time"))
+            ChoiceRow(listOf(0 to t("end_time_none"), 30 to t("end_time_30"), 60 to t("end_time_60"), 120 to t("end_time_120")), durationMin) { durationMin = it }
+            FieldError(shown["end"], "err-end")
             Spacer(Modifier.height(14.dp))
             SectionLabel(t("repeat"))
             ChoiceRow(
@@ -279,6 +297,8 @@ fun ScheduleForm(
             ) { picked ->
                 repeat = picked
                 if (picked != RepeatRule.WEEKLY) interval = 1
+                // '요일 선택' starts with the start day picked, so it's never empty by default.
+                if (picked == RepeatRule.WEEKLY && weekdays == 0) weekdays = 1 shl (date.dayOfWeek.ordinal + 1) % 7
             }
             ChoiceRow(
                 listOf(
@@ -308,6 +328,8 @@ fun ScheduleForm(
             if (repeat == RepeatRule.WEEKLY || repeat == RepeatRule.MONTHLY && monthOrdinal != 0) {
                 WeekdayToggles(weekdays) { weekdays = it }
             }
+            FieldError(shown["weekdays"], "err-weekdays")
+            FieldError(shown["interval"], "err-interval")
             if (repeat == RepeatRule.EVERY_N_DAYS || (repeat == RepeatRule.WEEKLY && interval >= 2)) {
                 ChoiceRow(
                     listOf(2 to "2", 3 to "3", 4 to "4", 7 to "7"),
@@ -332,6 +354,8 @@ fun ScheduleForm(
             if (endKind == EndKind.COUNT) {
                 ChoiceRow(listOf(5 to t("times_5"), 10 to t("times_10"), 30 to t("times_30")), endCount) { endCount = it }
             }
+            FieldError(shown["count"], "err-count")
+            FieldError(shown["until"], "err-until")
             Spacer(Modifier.height(8.dp))
             SectionLabel(t("lead"))
             LeadRow(leads) { leads = it }
@@ -359,12 +383,18 @@ fun ScheduleForm(
         }
         Button(
             onClick = { save() },
-            enabled = title.isNotBlank(),
+            enabled = canSave,
             shape = PillShape,
             colors = ButtonDefaults.buttonColors(containerColor = Peach, contentColor = Color.White, disabledContainerColor = Peach.copy(alpha = 0.45f), disabledContentColor = Color.White),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 12.dp).height(48.dp).testTag("save-bottom"),
         ) { Text(t("save_big"), fontWeight = FontWeight.Bold, fontSize = 16.sp) }
     }
+}
+
+@Composable
+private fun FieldError(key: String?, tag: String) {
+    if (key == null) return
+    Text(t(key), color = Color(0xFFD9604F), fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp, start = 4.dp).testTag(tag))
 }
 
 @Composable

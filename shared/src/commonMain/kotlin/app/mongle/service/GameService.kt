@@ -166,9 +166,13 @@ class GameService(
         )
     }
 
-    suspend fun addDraft(draft: ScheduleDraft): ActionResult = mutate { state, now -> insertDraft(state, draft, now) }
+    suspend fun addDraft(draft: ScheduleDraft): ActionResult = mutate { state, now ->
+        app.mongle.logic.DraftValidator.errors(draft).values.firstOrNull()?.let { return@mutate done(state, ActionResult(false, L10n.t(it))) }
+        insertDraft(state, draft, now)
+    }
 
     suspend fun editSchedule(rawId: String, scope: EditScope, draft: ScheduleDraft): ActionResult = mutate { state, now ->
+        app.mongle.logic.DraftValidator.errors(draft).values.firstOrNull()?.let { return@mutate done(state, ActionResult(false, L10n.t(it))) }
         val id = rawId.substringBefore('@')
         val row = state.schedules.find { it.id == id } ?: return@mutate done(state, ActionResult(false, L10n.t("msg_missing_task")))
         val occurrence = rawId.substringAfter('@', "").toLongOrNull() ?: row.timeMillis

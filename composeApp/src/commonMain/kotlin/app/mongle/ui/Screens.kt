@@ -469,11 +469,12 @@ private fun Onboarding(
             StillPet("base", app.mongle.model.Stage.BABY, app.mongle.model.Pose.HAPPY, Modifier.size(140.dp))
             Text(t("onb_tip"), color = InkSoft, fontSize = 13.sp)
             Spacer(Modifier.height(8.dp))
-            TextField(value = name, onValueChange = onName, singleLine = true, modifier = Modifier.fillMaxWidth())
+            TextField(value = name, onValueChange = onName, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("field-pet-name"), isError = app.mongle.logic.DraftValidator.petNameError(name) != null)
+            app.mongle.logic.DraftValidator.petNameError(name)?.let { Text(t(it), color = Color(0xFFD9604F), fontSize = 12.sp, modifier = Modifier.testTag("err-name")) }
             Spacer(Modifier.height(8.dp))
             Button(
                 onClick = onStart,
-                enabled = name.isNotBlank(),
+                enabled = app.mongle.logic.DraftValidator.petNameError(name) == null,
                 shape = Pill,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PeachDeep,

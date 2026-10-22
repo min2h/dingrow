@@ -1068,4 +1068,21 @@
     <string name="dex_owned_title">보유 아이템</string>
     <string name="dex_hint_gift">일정을 완료하면 몽이가 가져올지도 몰라요</string>
     <string name="dex_sell">팔기</string>
+    <string name="err_title_required">제목을 입력해 주세요</string>
+    <string name="err_title_long">제목은 40자까지 쓸 수 있어요</string>
+    <string name="err_end_before">끝나는 시간은 시작 시간 뒤여야 해요</string>
+    <string name="err_weekdays">반복할 요일을 하루 이상 골라 주세요</string>
+    <string name="err_interval">반복 간격은 1 이상이어야 해요</string>
+    <string name="err_count">반복 횟수는 1회 이상이어야 해요</string>
+    <string name="err_until_before">종료 날짜는 시작 뒤여야 해요</string>
+    <string name="err_place_long">장소는 40자까지 쓸 수 있어요</string>
+    <string name="err_memo_long">메모는 200자까지 쓸 수 있어요</string>
+    <string name="warn_past">지난 시간이에요. 그래도 저장할 수 있어요</string>
+    <string name="err_name_required">이름을 지어 주세요</string>
+    <string name="err_name_long">이름은 12자까지 쓸 수 있어요</string>
+    <string name="end_time">끝나는 시간</string>
+    <string name="end_time_none">없음</string>
+    <string name="end_time_30">30분</string>
+    <string name="end_time_60">1시간</string>
+    <string name="end_time_120">2시간</string>
 </resources>

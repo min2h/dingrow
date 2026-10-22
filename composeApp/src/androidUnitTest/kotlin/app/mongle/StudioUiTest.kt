@@ -8,6 +8,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -184,5 +186,22 @@ class StudioUiTest {
         rule.onRoot().captureRoboImage(artifact("dex-silhouettes.png"))
         rule.onNodeWithTag("dex-owned-$first").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick); settle()
         rule.onNodeWithText("판매하기").fetchSemanticsNode() // resell confirm sheet
+    }
+
+    @Test fun scheduleFormInlineErrorsDisableSave() {
+        app(coins = 0)
+        rule.onNodeWithTag("tab-Schedule").performClick(); settle()   // empty list opens the form
+        rule.onNodeWithTag("save-bottom").assertIsNotEnabled()
+        rule.onNodeWithTag("field-title").performTextInput("가".repeat(41)); settle()
+        tag("err-title").fetchSemanticsNode()
+        rule.onNodeWithTag("save-bottom").assertIsNotEnabled()
+        rule.onNodeWithTag("field-title").performTextClearance(); settle()
+        tag("err-title").fetchSemanticsNode()  // required
+        rule.onNodeWithTag("field-title").performTextInput("운동"); settle()
+        rule.onNodeWithTag("save-bottom").assertIsEnabled()
+        rule.onNodeWithTag("field-memo").performTextInput("x".repeat(201)); settle()
+        tag("err-memo").fetchSemanticsNode()
+        rule.onNodeWithTag("save-bottom").assertIsNotEnabled()
+        rule.onRoot().captureRoboImage(artifact("form-errors.png"))
     }
 }
