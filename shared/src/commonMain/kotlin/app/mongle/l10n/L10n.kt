@@ -38,9 +38,9 @@ object L10n {
 
     fun fmt(key: String, vararg args: Any): String {
         var index = 0
-        return token.replace(t(key)) {
+        return Regex("%(\\d+)\\$[sd]").replace(token.replace(t(key).replace(Regex("%(\\d+)\\$([sd])")) { "\u0000" + it.groupValues[1] + "\u0000" }) {
             args.getOrNull(index++)?.toString().orEmpty()
-        }.replace("%%", "%")
+        }) { it.value }.replace(Regex("\u0000(\\d+)\u0000")) { args.getOrNull(it.groupValues[1].toInt() - 1)?.toString().orEmpty() }.replace("%%", "%")
     }
 
     fun table(lang: String): Map<String, String> = if (lang == "ko") Ko else En

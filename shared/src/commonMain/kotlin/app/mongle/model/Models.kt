@@ -126,6 +126,9 @@ data class ScheduleRecord(
     val doneDates: String = "",
     val skipDates: String = "",
     val snoozedFrom: Long = 0,
+    val place: String = "",
+    val memo: String = "",
+    val endMillis: Long = 0,
 )
 
 data class CompletionRecord(
@@ -177,6 +180,28 @@ data class AppSettings(
     val vibrateEnabled: Boolean = true,
     val alarmSound: AlarmSound = AlarmSound.SOFT,
     val language: String = "system",
+    val theme: String = "system",
+    val use24h: Boolean = true,
+    val weekStartsMonday: Boolean = true,
+    val fahrenheit: Boolean = false,
+    val useLocation: Boolean = false,
+    val city: String = "suwon",
+    val weatherAlerts: Boolean = true,
+    val scheduleAlerts: Boolean = true,
+    val newScheduleConfirm: Boolean = true,
+    val briefingEnabled: Boolean = true,
+    val briefingMinute: Int = 7 * 60 + 30,
+    val giftAlerts: Boolean = true,
+    val wander: Boolean = true,
+    val bubbleFrequency: Int = 1,
+    val motionLevel: Int = 1,
+    val reduceMotion: Boolean = false,
+    val haptics: Boolean = true,
+    val sfxEnabled: Boolean = false,
+    val sfxVolume: Int = 45,
+    val widgetList: Boolean = true,
+    val widgetCondition: Boolean = true,
+    val widgetBubble: Boolean = true,
 )
 
 data class Placement(
@@ -229,6 +254,8 @@ data class PersistedState(
     val revealKind: String = "",
     val revealLabel: String = "",
     val revealSparkle: Boolean = false,
+    /** Free-form persisted values (condition, weather cache, dialogue history). Stored as meta "x:<key>". */
+    val extras: Map<String, String> = emptyMap(),
 )
 
 data class ActionResult(val ok: Boolean, val message: String)
@@ -256,6 +283,10 @@ data class ScheduleView(
     val doneDates: String = "",
     val skipDates: String = "",
     val seriesId: String = "",
+    val place: String = "",
+    val memo: String = "",
+    val endMillis: Long = 0,
+    val categoryKey: String = "other",
 )
 
 data class GiftView(
@@ -336,6 +367,11 @@ data class GameState(
     val revealLabel: String = "",
     val revealSparkle: Boolean = false,
     val reactionBody: String = "",
+    val condition: app.mongle.logic.Condition = app.mongle.logic.Condition.GOOD,
+    val sick: Boolean = false,
+    val recovery: Int = 0,
+    val weather: app.mongle.logic.WeatherSnapshot? = null,
+    val phase: app.mongle.logic.DayPhase = app.mongle.logic.DayPhase.NOON,
 ) {
     val activeRoom: RoomPreset get() = presets[activePreset.coerceIn(0, presets.lastIndex.coerceAtLeast(0))]
 }

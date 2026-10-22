@@ -518,7 +518,8 @@ class MongleWidgetAlarmWallpaperTest {
         val schedule = AppGraph.service.state.value.schedules.single()
         val alarms = shadowOf(context.getSystemService(AlarmManager::class.java)).scheduledAlarms
         assertTrue(alarms.isNotEmpty())
-        val trigger = alarms.maxOf { it.triggerAtTime }
+        val trigger = alarms.map { it.triggerAtTime }.filter { it < now + 3_600_000 }.maxOrNull() ?: 0L
+        assertTrue("briefing alarm scheduled too", alarms.any { it.triggerAtTime > now + 70_000 })
         assertTrue("trigger=$trigger now=$now", trigger in (now + 50_000)..(now + 70_000))
 
         ReminderReceiver().onReceive(
@@ -530,8 +531,9 @@ class MongleWidgetAlarmWallpaperTest {
             },
         )
         val manager = context.getSystemService(NotificationManager::class.java)
-        await { shadowOf(manager).allNotifications.isNotEmpty() }
-        val notification = shadowOf(manager).allNotifications.single()
+        await { shadowOf(manager).allNotifications.any { it.actions?.isNotEmpty() == true } }
+        assertTrue("new-schedule confirmation posted", shadowOf(manager).allNotifications.any { it.extras.getString(android.app.Notification.EXTRA_TITLE) == "New schedule added" })
+        val notification = shadowOf(manager).allNotifications.single { it.actions?.isNotEmpty() == true }
         assertEquals("보리 is calling", notification.extras.getString(android.app.Notification.EXTRA_TITLE))
         assertEquals(3, notification.actions.size)
         assertEquals("Check", notification.actions[0].title.toString())
@@ -547,9 +549,9 @@ class MongleWidgetAlarmWallpaperTest {
             },
         )
         await {
-            shadowOf(manager).allNotifications.singleOrNull()?.extras?.getString(android.app.Notification.EXTRA_TITLE) == "보리가 불러요"
+            shadowOf(manager).allNotifications.singleOrNull { it.actions?.isNotEmpty() == true }?.extras?.getString(android.app.Notification.EXTRA_TITLE) == "보리가 불러요"
         }
-        val korean = shadowOf(manager).allNotifications.single()
+        val korean = shadowOf(manager).allNotifications.single { it.actions?.isNotEmpty() == true }
         assertEquals("보리가 불러요", korean.extras.getString(android.app.Notification.EXTRA_TITLE))
         assertEquals("확인", korean.actions[0].title.toString())
         assertEquals("5분 뒤", korean.actions[1].title.toString())
@@ -576,7 +578,7 @@ class MongleWidgetAlarmWallpaperTest {
         )
         await { AppGraph.service.state.value.schedules.single().done }
         assertTrue(AppGraph.service.state.value.schedules.single().done)
-        await { shadowOf(manager).allNotifications.isEmpty() }
+        await { shadowOf(manager).allNotifications.none { it.actions?.isNotEmpty() == true } }
     }
 
     @Test

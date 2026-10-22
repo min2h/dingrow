@@ -102,7 +102,8 @@ class SqlGameStore(private val db: MongleDatabase) : GameStore {
             notifiedGiftKey = meta["notified_gift_key"].orEmpty(),
             statusMessage = meta["status_message"].orEmpty(),
             statusUntil = meta["status_until"]?.toLongOrNull() ?: 0L,
-            settings = MetaCodec.parseSettings(meta["settings"]),
+            settings = MetaCodec.applySettings2(MetaCodec.parseSettings(meta["settings"]), meta["settings2"]),
+            extras = meta.filterKeys { it.startsWith("x:") }.mapKeys { it.key.removePrefix("x:") },
             placements = MetaCodec.parsePlacements(meta["placements"]),
             premium = meta["premium"] == "1",
             iapTokens = MetaCodec.parseTokens(meta["iap_tokens"]),
@@ -228,6 +229,8 @@ class SqlGameStore(private val db: MongleDatabase) : GameStore {
             meta("status_until", trimmed.statusUntil.toString())
             meta("species_id", pet.speciesId)
             meta("settings", MetaCodec.settings(trimmed.settings))
+            meta("settings2", MetaCodec.settings2(trimmed.settings))
+            trimmed.extras.forEach { (k, v) -> meta("x:$k", v) }
             meta("placements", MetaCodec.placements(trimmed.placements))
             meta("premium", if (trimmed.premium) "1" else "0")
             meta("iap_tokens", MetaCodec.tokens(trimmed.iapTokens))

@@ -20,6 +20,13 @@ import app.mongle.logic.ScheduleDraft
 import app.mongle.logic.ScheduleRules
 import app.mongle.logic.StoreProducts
 import app.mongle.logic.Tips
+import app.mongle.logic.ConditionRules
+import app.mongle.logic.DayPhase
+import app.mongle.logic.Secretary
+import app.mongle.logic.Situation
+import app.mongle.logic.Weather
+import app.mongle.logic.WeatherSnapshot
+import kotlinx.datetime.plus
 import app.mongle.logic.addMillis
 import app.mongle.logic.beginOuting
 import app.mongle.logic.grantImmediate
@@ -87,6 +94,7 @@ class GameService(
     private var lastNotices: List<ScheduledNotice>? = null
     private var forceNotices = false
     private var forceReload = false
+    private var pendingImmediate: Pair<String, String>? = null
     val tipGapMillis = 6L * 60 * 60 * 1000
     private var lastFingerprint: String? = null
 
@@ -253,7 +261,8 @@ class GameService(
         )
         pet = PetRules.evolve(pet, now, zone, balance)
         val message = if (full) L10n.fmt("msg_ack_full", xp) else L10n.fmt("msg_ack_feed", xp)
-        done(state.copy(pet = pet), ActionResult(true, message))
+        val healed = if (full) ConditionRules.read(state.extras) else ConditionRules.heal(ConditionRules.read(state.extras), ConditionRules.RECOVERY_FEED)
+        done(state.copy(pet = pet, extras = ConditionRules.write(state.extras, healed)), ActionResult(true, message))
     }
 
     suspend fun react(gesture: PetGesture): ActionResult = mutate { state, now ->
@@ -284,6 +293,98 @@ class GameService(
         }
         AppLocale.preference = next.language
         done(state.copy(settings = next), ActionResult(true, L10n.t("msg_settings_saved")))
+    }
+
+    /** Medicine: 50 coins, only while sick, recovery +80. */
+    suspend fun takeMedicine(): ActionResult = mutate { state, now ->
+        val c = ConditionRules.read(state.extras)
+        if (!c.sick) return@mutate done(state, ActionResult(false, L10n.t("msg_not_sick")))
+        if (state.coins < ConditionRules.MEDICINE_PRICE) return@mutate done(state, ActionResult(false, L10n.t("msg_need_coins")))
+        val healed = ConditionRules.heal(c, ConditionRules.RECOVERY_MEDICINE)
+        val extras = ConditionRules.write(state.extras, healed) + if (!healed.sick) mapOf("recovered.at" to now.toString()) else emptyMap()
+        val msg = if (healed.sick) L10n.fmt("msg_medicine", healed.recovery) else L10n.t("msg_recovered")
+        done(
+            state.copy(
+                coins = state.coins - ConditionRules.MEDICINE_PRICE,
+                extras = extras,
+                ledger = state.ledger + LedgerEntry(newId(now), -ConditionRules.MEDICINE_PRICE, "MEDICINE", ConditionRules.MEDICINE_ID, now, null),
+                anim = PetAnimState("happy", "medicine", "eat", now + 2_400),
+            ),
+            ActionResult(true, msg),
+        )
+    }
+
+    /** Weather from the platform (null = location off or denied: weather features disappear). */
+    suspend fun setWeather(snapshot: WeatherSnapshot?): ActionResult {
+        var alert: Pair<String, String>? = null
+        val r = mutate { state, now ->
+            if (snapshot == null || !state.settings.useLocation) {
+                return@mutate done(state.copy(extras = state.extras - "wx"), ActionResult(true, ""))
+            }
+            var extras = state.extras + ("wx" to Weather.encode(snapshot))
+            val change = Weather.upcomingChange(snapshot, now)
+            val nowKey = if (snapshot.kind.wet) "now:${snapshot.kind}" else null
+            val key = change?.let { "${it.kind}:${it.atMillis / 3_600_000L}" } ?: nowKey?.let { "$it:${now / (6 * 3_600_000L)}" }
+            if (state.settings.weatherAlerts && key != null && state.extras["wx.alert"] != key && !inQuiet(state.settings, now)) {
+                extras = extras + ("wx.alert" to key)
+                val kind = change?.kind ?: snapshot.kind
+                val at = change?.let { L10n.clock(it.atMillis, zone) }
+                alert = L10n.t("notice_wx_title_" + kind.name.lowercase()) to
+                    (if (at != null) L10n.fmt("notice_wx_later", at, Weather.label(kind)) else L10n.fmt("notice_wx_now", Weather.label(kind), Weather.temp(snapshot.tempC, state.settings.fahrenheit)))
+            }
+            done(state.copy(extras = extras), ActionResult(true, ""))
+        }
+        alert?.let { notifier.notifyNow(it.first, it.second) }
+        return r
+    }
+
+    /** Asks 몽이 to mutter something to itself (used while wandering). */
+    suspend fun selfTalk(): ActionResult = mutate { state, now -> done(rotateLine(state, now, selfTalk = true), ActionResult(true, "")) }
+
+    private fun inQuiet(settings: AppSettings, now: Long): Boolean {
+        val qs = settings.quietStartMinute; val qe = settings.quietEndMinute
+        if (qs < 0 || qe < 0) return false
+        val m = Instant.fromEpochMilliseconds(now).toLocalDateTime(zone).let { it.hour * 60 + it.minute }
+        return if (qs <= qe) m in qs until qe else m >= qs || m < qe
+    }
+
+    internal fun weatherOf(state: PersistedState, now: Long): WeatherSnapshot? =
+        if (!state.settings.useLocation) null else Weather.decode(state.extras["wx"])?.takeIf { it.usable(now) }
+
+    internal fun situation(state: PersistedState, now: Long): Situation {
+        val w = weatherOf(state, now)
+        val c = ConditionRules.read(state.extras)
+        val cond = ConditionRules.current(c, w, state.pet.outfitId, state.pet.hunger, state.pet.happiness)
+        val today = Instant.fromEpochMilliseconds(now).toLocalDateTime(zone).date
+        val open = state.schedules.filter { !it.done }
+        val todays = state.schedules.filter { Instant.fromEpochMilliseconds(it.timeMillis).toLocalDateTime(zone).date == today }
+        val next = open.filter { it.timeMillis >= now - 30 * 60_000L }.minByOrNull { it.timeMillis }
+        val recoveredAt = state.extras["recovered.at"]?.toLongOrNull() ?: 0L
+        return Situation(
+            now = now, phase = DayPhase.of(now, zone), condition = cond, weather = w, fahrenheit = state.settings.fahrenheit,
+            nextTitle = next?.title, nextPlace = next?.place?.takeIf { it.isNotBlank() }, nextAt = next?.timeMillis,
+            nextClock = next?.let { L10n.clock(it.timeMillis, zone) },
+            todayCount = todays.size, todayLeft = todays.count { !it.done }, hunger = state.pet.hunger,
+            recovered = now - recoveredAt < 10 * 60_000L,
+        )
+    }
+
+    /** Keeps the current speech line stable; replaces it when it ages out or the top priority changes. */
+    internal fun rotateLine(state: PersistedState, now: Long, selfTalk: Boolean = false): PersistedState {
+        val sit = situation(state, now)
+        val top = Secretary.candidates(sit).firstOrNull()?.first.orEmpty()
+        val at = state.extras["line.at"]?.toLongOrNull() ?: 0L
+        val age = when (state.settings.bubbleFrequency) { 0 -> 6 * 60_000L; 2 -> 90_000L; else -> 3 * 60_000L }
+        val sameTop = state.extras["line.top"] == top
+        if (!selfTalk && sameTop && now - at < age && state.extras["line.text"] != null) return state
+        val recent = state.extras["line.recent"].orEmpty().split(",").filter { it.isNotBlank() }
+        val line = Secretary.pick(sit, recent, kotlin.random.Random(now xor state.pet.completions.toLong()), selfTalk)
+        return state.copy(
+            extras = state.extras + mapOf(
+                "line.text" to line.text, "line.key" to line.key, "line.at" to now.toString(), "line.top" to top,
+                "line.recent" to Secretary.remember(recent, line.key).joinToString(","),
+            ),
+        )
     }
 
     /**
@@ -413,7 +514,8 @@ class GameService(
         } else {
             L10n.fmt("msg_fed", L10n.item(def.id), def.hunger)
         }
-        done(state.copy(pet = updated, foods = foods), ActionResult(true, message))
+        val healed = ConditionRules.heal(ConditionRules.read(state.extras), ConditionRules.RECOVERY_FEED)
+        done(state.copy(pet = updated, foods = foods, extras = ConditionRules.write(state.extras, healed)), ActionResult(true, message))
     }
 
     suspend fun startOuting(): ActionResult = mutate { state, now ->
@@ -576,8 +678,11 @@ class GameService(
         if (decision is GrantDecision.Deny) return done(state, ActionResult(false, decision.message))
         val allow = decision as GrantDecision.Allow
         val beforeStage = state.pet.stage
+        val condBefore = ConditionRules.read(state.extras)
+        val gainedXp = ConditionRules.xp(allow.xp, condBefore)
+        val condAfter = ConditionRules.heal(condBefore, ConditionRules.RECOVERY_PER_TASK)
         var pet = state.pet.copy(
-            xp = state.pet.xp + allow.xp,
+            xp = state.pet.xp + gainedXp,
             happiness = (state.pet.happiness + allow.happiness).coerceAtMost(100),
             completions = state.pet.completions + 1,
         )
@@ -588,15 +693,18 @@ class GameService(
         val message = when {
             beforeStage == Stage.EGG && pet.stage == Stage.BABY -> L10n.fmt("msg_hatched", pet.name)
             pet.stage != beforeStage -> L10n.fmt("msg_grew", L10n.stage(pet.stage))
-            else -> L10n.fmt("msg_complete", allow.xp, allow.coins)
+            condBefore.sick && !condAfter.sick -> L10n.t("msg_recovered")
+            condBefore.sick -> L10n.fmt("msg_complete_sick", gainedXp, allow.coins, condAfter.recovery)
+            else -> L10n.fmt("msg_complete", gainedXp, allow.coins)
         }
         var next = state.copy(
+            extras = ConditionRules.write(state.extras, condAfter) + if (condBefore.sick && !condAfter.sick) mapOf("recovered.at" to now.toString()) else emptyMap(),
             pet = pet,
             schedules = schedules,
             coins = state.coins + allow.coins,
             rewardDay = day,
             rewardCount = rewardedToday + 1,
-            completions = state.completions + CompletionRecord(newId(now), id, now, allow.xp, allow.coins),
+            completions = state.completions + CompletionRecord(newId(now), id, now, gainedXp, allow.coins),
             ledger = state.ledger + LedgerEntry(newId(now), allow.coins, "COMPLETE", id, now, null),
         )
         if (next.pet.pendingGiftDefId == null && next.pendingDropKind.isBlank()) {
@@ -712,7 +820,14 @@ class GameService(
                     working = resolved.copy(notifiedGiftKey = key)
                 }
             }
-            val outcome = block(working, now)
+            working = run {
+                val w = weatherOf(working, now)
+                val roll = ((now / 3_600_000L) xor working.pet.id.hashCode().toLong()).mod(100L).toInt()
+                val c = ConditionRules.tick(ConditionRules.read(working.extras), now, w, working.pet.outfitId, working.pet.hunger, roll)
+                working.copy(extras = ConditionRules.write(working.extras, c))
+            }
+            val outcome0 = block(working, now)
+            val outcome = outcome0.copy(state = rotateLine(outcome0.state, now))
             val stamped = if (outcome.result.message.isNotBlank()) {
                 outcome.state.copy(statusMessage = outcome.result.message, statusUntil = now + 8_000)
             } else {
@@ -733,6 +848,8 @@ class GameService(
             }
             outcome.result
         }
+        pendingImmediate?.let { notifier.notifyNow(it.first, it.second) }
+        pendingImmediate = null
         if (sync != null) notifier.sync(sync!!)
         if (immediate != null) notifier.notifyNow(immediate!!.first, immediate!!.second)
         if (reload || immediate != null) notifier.reloadWidgets()
@@ -741,7 +858,8 @@ class GameService(
 
     private fun buildNotices(state: PersistedState, now: Long): List<ScheduledNotice> {
         val notices = mutableListOf<ScheduledNotice>()
-        state.schedules.filter { !it.done }.forEach { row ->
+        briefingNotice(state, now)?.let { notices += it }
+        if (state.settings.scheduleAlerts) state.schedules.filter { !it.done }.forEach { row ->
             val moment = row.timeMillis
             val leads = if (row.snoozedFrom != 0L) listOf(0) else row.leadsMinutes.ifEmpty { listOf(0) }
             val tz = row.tz.ifBlank { zone.id }
@@ -765,6 +883,23 @@ class GameService(
         return notices.take(24)
     }
 
+    /** Next daily briefing at the chosen minute: today's schedules + weather. */
+    internal fun briefingNotice(state: PersistedState, now: Long): ScheduledNotice? {
+        if (!state.settings.briefingEnabled || !state.onboarded) return null
+        val local = Instant.fromEpochMilliseconds(now).toLocalDateTime(zone)
+        var day = local.date
+        val minute = state.settings.briefingMinute
+        fun at(d: kotlinx.datetime.LocalDate) = kotlinx.datetime.LocalDateTime(d.year, d.monthNumber, d.dayOfMonth, minute / 60, minute % 60).toInstant(zone).toEpochMilliseconds()
+        var trigger = at(day)
+        if (trigger <= now) { day = day.plus(1, kotlinx.datetime.DateTimeUnit.DAY); trigger = at(day) }
+        val todays = state.schedules.filter { !it.done && Instant.fromEpochMilliseconds(it.timeMillis).toLocalDateTime(zone).date == day }.sortedBy { it.timeMillis }
+        val list = todays.take(4).joinToString(", ") { L10n.clock(it.timeMillis, zone) + " " + (if (it.place.isNotBlank()) it.place + " " else "") + it.title }
+        val w = weatherOf(state, now)
+        val wx = w?.let { L10n.fmt("brief_weather", Weather.label(it.kind), Weather.temp(it.tempC, state.settings.fahrenheit)) + " " }.orEmpty()
+        val body = wx + if (todays.isEmpty()) L10n.t("brief_none") else L10n.fmt("brief_list", todays.size, list)
+        return ScheduledNotice(id = "brief-$day", scheduleId = "", title = L10n.t("brief_title"), body = body, triggerAtMillis = trigger, alert = "INFO")
+    }
+
     private fun notice(state: PersistedState, row: ScheduleRecord, trigger: Long, lead: Int): ScheduledNotice {
         val tz = ScheduleRules.zoneOrUtc(row.tz.ifBlank { zone.id })
         val clock = L10n.clock(row.timeMillis, tz)
@@ -772,7 +907,7 @@ class GameService(
             id = "sched-${row.id}-$lead-$trigger",
             scheduleId = row.id,
             title = L10n.calling(state.pet.name),
-            body = L10n.noticeBody(clock, row.title),
+            body = L10n.noticeBody(clock, if (row.place.isNotBlank()) row.place + " " + row.title else row.title),
             triggerAtMillis = trigger,
             alert = row.alert.name,
             fullScreen = row.alert == AlertStyle.SOUND,
@@ -788,6 +923,10 @@ class GameService(
             return done(state, ActionResult(false, L10n.fmt("msg_too_many", balance.maxSchedules)))
         }
         val row = fromDraft(draft.copy(title = trimmed), now)
+        if (state.settings.newScheduleConfirm) {
+            val label = L10n.formatWhen(row.timeMillis, zone) + (if (row.place.isNotBlank()) " · " + row.place else "")
+            pendingImmediate = L10n.t("notice_new_title") to L10n.fmt("notice_new_body", label, trimmed)
+        }
         return done(state.copy(schedules = state.schedules + row), ActionResult(true, L10n.fmt("msg_will_remind", trimmed)))
     }
 
@@ -805,6 +944,9 @@ class GameService(
             leadsMinutes = leads,
             alert = draft.alert,
             category = draft.category.ifBlank { "task" },
+            place = draft.place.trim().take(40),
+            memo = draft.memo.trim().take(80),
+            endMillis = draft.endMillis,
             weekdays = draft.weekdays,
             interval = draft.interval.coerceAtLeast(1),
             monthOrdinal = draft.monthOrdinal,

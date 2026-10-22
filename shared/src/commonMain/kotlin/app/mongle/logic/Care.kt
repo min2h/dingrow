@@ -41,6 +41,9 @@ data class ScheduleDraft(
     val endKind: EndKind = EndKind.NEVER,
     val endAt: Long = 0,
     val endCount: Int = 0,
+    val place: String = "",
+    val memo: String = "",
+    val endMillis: Long = 0,
 )
 
 data class PetReaction(
@@ -456,6 +459,36 @@ object MetaCodec {
         )
     }
 
+    fun settings2(v: AppSettings): String = listOf(
+        "theme=${v.theme}", "h24=${b(v.use24h)}", "mon=${b(v.weekStartsMonday)}", "fahr=${b(v.fahrenheit)}",
+        "loc=${b(v.useLocation)}", "city=${v.city}", "wx=${b(v.weatherAlerts)}", "sch=${b(v.scheduleAlerts)}",
+        "newc=${b(v.newScheduleConfirm)}", "brief=${b(v.briefingEnabled)}", "briefm=${v.briefingMinute}", "gift=${b(v.giftAlerts)}",
+        "wander=${b(v.wander)}", "bubble=${v.bubbleFrequency}", "motion=${v.motionLevel}", "reduce=${b(v.reduceMotion)}",
+        "hap=${b(v.haptics)}", "sfx=${b(v.sfxEnabled)}", "vol=${v.sfxVolume}", "wlist=${b(v.widgetList)}",
+        "wcond=${b(v.widgetCondition)}", "wbub=${b(v.widgetBubble)}",
+    ).joinToString(";")
+
+    private fun b(v: Boolean) = if (v) "1" else "0"
+
+    fun applySettings2(base: AppSettings, raw: String?): AppSettings {
+        if (raw.isNullOrBlank()) return base
+        val m = raw.split(";").mapNotNull { p -> p.split("=", limit = 2).takeIf { it.size == 2 }?.let { it[0] to it[1] } }.toMap()
+        fun bo(k: String, d: Boolean) = m[k]?.let { it == "1" } ?: d
+        fun i(k: String, d: Int) = m[k]?.toIntOrNull() ?: d
+        return base.copy(
+            theme = m["theme"]?.takeIf { it in setOf("light", "dark", "system") } ?: base.theme,
+            use24h = bo("h24", base.use24h), weekStartsMonday = bo("mon", base.weekStartsMonday), fahrenheit = bo("fahr", base.fahrenheit),
+            useLocation = bo("loc", base.useLocation), city = m["city"]?.takeIf { it.isNotBlank() } ?: base.city,
+            weatherAlerts = bo("wx", base.weatherAlerts), scheduleAlerts = bo("sch", base.scheduleAlerts),
+            newScheduleConfirm = bo("newc", base.newScheduleConfirm), briefingEnabled = bo("brief", base.briefingEnabled),
+            briefingMinute = i("briefm", base.briefingMinute).coerceIn(0, 1439), giftAlerts = bo("gift", base.giftAlerts),
+            wander = bo("wander", base.wander), bubbleFrequency = i("bubble", base.bubbleFrequency).coerceIn(0, 2),
+            motionLevel = i("motion", base.motionLevel).coerceIn(0, 2), reduceMotion = bo("reduce", base.reduceMotion),
+            haptics = bo("hap", base.haptics), sfxEnabled = bo("sfx", base.sfxEnabled), sfxVolume = i("vol", base.sfxVolume).coerceIn(0, 100),
+            widgetList = bo("wlist", base.widgetList), widgetCondition = bo("wcond", base.widgetCondition), widgetBubble = bo("wbub", base.widgetBubble),
+        )
+    }
+
     fun placements(list: List<Placement>): String =
         list.joinToString(";") { "${it.defId}@${it.x}@${it.y}@${it.rotation}" }
 
@@ -488,7 +521,13 @@ object MetaCodec {
         row.doneDates,
         row.skipDates,
         row.snoozedFrom.toString(),
+        esc(row.place),
+        esc(row.memo),
+        row.endMillis.toString(),
     ).joinToString("|")
+
+    private fun esc(v: String) = v.replace("|", "¦").replace("\n", " ")
+    private fun unesc(v: String?) = v.orEmpty().replace("¦", "|")
 
     fun applySchedule(row: ScheduleRecord, raw: String?): ScheduleRecord {
         if (raw.isNullOrBlank()) return row
@@ -512,6 +551,9 @@ object MetaCodec {
             doneDates = parts.getOrNull(12).orEmpty(),
             skipDates = parts.getOrNull(13).orEmpty(),
             snoozedFrom = parts.getOrNull(14)?.toLongOrNull() ?: 0L,
+            place = unesc(parts.getOrNull(15)),
+            memo = unesc(parts.getOrNull(16)),
+            endMillis = parts.getOrNull(17)?.toLongOrNull() ?: 0L,
         )
     }
 

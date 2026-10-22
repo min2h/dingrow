@@ -52,6 +52,10 @@ fun project(raw: PersistedState, now: Long, zone: TimeZone, balance: GameBalance
                 leadsMinutes = row.leadsMinutes,
                 alert = row.alert,
                 category = row.category,
+                place = row.place,
+                memo = row.memo,
+                endMillis = row.endMillis,
+                categoryKey = app.mongle.logic.Categories.normalize(row.category),
                 weekdays = row.weekdays,
                 anchorMillis = if (row.anchorMillis > 0) row.anchorMillis else row.timeMillis,
                 interval = row.interval,
@@ -84,9 +88,11 @@ fun project(raw: PersistedState, now: Long, zone: TimeZone, balance: GameBalance
     val clip = PetAnimMachine.resolve(pet.stage, PetRules.pose(pet.stage, mood, time), pet.energy, state.statusMessage, state.anim, now)
     val speech = when {
         state.anim.until >= now && state.statusMessage.isNotBlank() -> state.statusMessage
-        next != null -> next.title
-        else -> ""
+        else -> state.extras["line.text"].orEmpty()
     }
+    val weather = if (state.settings.useLocation) app.mongle.logic.Weather.decode(state.extras["wx"])?.takeIf { it.usable(now) } else null
+    val condState = app.mongle.logic.ConditionRules.read(state.extras)
+    val condition = app.mongle.logic.ConditionRules.current(condState, weather, pet.outfitId, pet.hunger, pet.happiness)
     val outing = if (pet.isOut && pet.outingReturnAt != null) {
         val left = (((pet.outingReturnAt - now).coerceAtLeast(0)) / 60_000L).toInt()
         OutingView(pet.outingReturnAt, left, if (left <= 0) L10n.t("outing_soon") else L10n.fmt("outing_later", left))
@@ -164,6 +170,11 @@ fun project(raw: PersistedState, now: Long, zone: TimeZone, balance: GameBalance
         revealLabel = state.revealLabel,
         revealSparkle = state.revealSparkle,
         reactionBody = if (state.anim.until >= now) state.anim.reactionId else "",
+        condition = condition,
+        sick = condState.sick,
+        recovery = condState.recovery,
+        weather = weather,
+        phase = app.mongle.logic.DayPhase.of(now, zone),
     )
 }
 
