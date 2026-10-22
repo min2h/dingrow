@@ -987,7 +987,7 @@ internal val Ko: Map<String, String> = buildMap {
     put("msg_slot_cleared", "치웠어요")
     put("msg_slot_set", "%s을 두었어요")
     put("msg_no_room", "방이 없어요")
-    put("msg_room_changed", "%s 으로 바꿨어요")
+    put("msg_room_changed", "%s 바꿨어요")
     put("msg_already_done", "이미 완료한 일정이에요")
     put("msg_just_done", "방금 완료했어요")
     put("msg_hatched", "알이 부화했어요! %s를 만나요")

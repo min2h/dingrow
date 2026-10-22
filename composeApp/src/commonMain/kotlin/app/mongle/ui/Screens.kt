@@ -409,7 +409,7 @@ private fun Onboarding(
             Button(
                 onClick = { page = 1 },
                 shape = Pill,
-                colors = ButtonDefaults.buttonColors(containerColor = CardWhite, contentColor = Ink),
+                colors = ButtonDefaults.buttonColors(containerColor = PeachDeep, contentColor = Color.White),
                 modifier = Modifier.fillMaxWidth().height(52.dp),
             ) { Text(t("onb_next")) }
         } else {
@@ -424,7 +424,12 @@ private fun Onboarding(
                 onClick = onStart,
                 enabled = name.isNotBlank(),
                 shape = Pill,
-                colors = ButtonDefaults.buttonColors(containerColor = PeachDeep),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PeachDeep,
+                    contentColor = Color.White,
+                    disabledContainerColor = PeachDeep.copy(alpha = 0.45f),
+                    disabledContentColor = Color.White,
+                ),
                 modifier = Modifier.fillMaxWidth().height(52.dp),
             ) { Text(t("onb_start")) }
             TextButton(onClick = onPinWidget) { Text(t("add_widget")) }

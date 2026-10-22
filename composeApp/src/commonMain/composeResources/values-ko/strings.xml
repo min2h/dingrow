@@ -290,7 +290,7 @@
     <string name="msg_slot_cleared">치웠어요</string>
     <string name="msg_slot_set">%s을 두었어요</string>
     <string name="msg_no_room">방이 없어요</string>
-    <string name="msg_room_changed">%s 으로 바꿨어요</string>
+    <string name="msg_room_changed">%s 바꿨어요</string>
     <string name="msg_already_done">이미 완료한 일정이에요</string>
     <string name="msg_just_done">방금 완료했어요</string>
     <string name="msg_hatched">알이 부화했어요! %s를 만나요</string>

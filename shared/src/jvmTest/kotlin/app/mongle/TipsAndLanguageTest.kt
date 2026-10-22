@@ -66,6 +66,15 @@ class TipsAndLanguageTest {
     }
 
     @Test
+    fun roomParticleHasNoStraySpace() {
+        AppLocale.preference = "ko"
+        assertEquals("밤하늘 방으로 바꿨어요", app.mongle.l10n.L10n.fmt("msg_room_changed", app.mongle.service.roomTo("밤하늘 방")))
+        assertEquals("마을로", app.mongle.service.roomTo("마을"))
+        assertEquals("나무로", app.mongle.service.roomTo("나무"))
+        AppLocale.preference = "system"
+    }
+
+    @Test
     fun percentEscapesAreUnescaped() {
         AppLocale.preference = "en"
         assertEquals("Fullness 80%", app.mongle.l10n.L10n.fmt("stat_hunger", 80))

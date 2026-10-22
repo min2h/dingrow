@@ -542,14 +542,14 @@ class GameService(
     suspend fun selectPreset(index: Int): ActionResult = mutate { state, _ ->
         if (state.presets.none { it.index == index }) return@mutate done(state, ActionResult(false, L10n.t("msg_no_room")))
         val picked = state.presets.first { it.index == index }
-        done(state.copy(activePreset = index), ActionResult(true, L10n.fmt("msg_room_changed", L10n.preset(picked.wallpaperId))))
+        done(state.copy(activePreset = index), ActionResult(true, L10n.fmt("msg_room_changed", roomTo(L10n.preset(picked.wallpaperId)))))
     }
 
     suspend fun cyclePreset(): ActionResult = mutate { state, _ ->
         val order = state.presets.sortedBy { it.index }
         val pos = order.indexOfFirst { it.index == state.activePreset }.coerceAtLeast(0)
         val next = order[(pos + 1) % order.size]
-        done(state.copy(activePreset = next.index), ActionResult(true, L10n.fmt("msg_room_changed", L10n.preset(next.wallpaperId))))
+        done(state.copy(activePreset = next.index), ActionResult(true, L10n.fmt("msg_room_changed", roomTo(L10n.preset(next.wallpaperId)))))
     }
 
     private fun complete(state: PersistedState, rawId: String, now: Long): Mutate {
@@ -855,4 +855,13 @@ fun createGameService(
 ): GameService {
     val db = app.mongle.db.MongleDatabase(driver)
     return GameService(app.mongle.data.SqlGameStore(db), time, zone, billing = billing)
+}
+
+/** Korean 으로/로 particle (ㄹ batchim and no batchim take 로); English uses the name as is. */
+internal fun roomTo(name: String): String {
+    if (AppLocale.code() != "ko") return name
+    val last = name.lastOrNull() ?: return name
+    if (last !in '가'..'힣') return name + "(으)로"
+    val jong = (last - '가') % 28
+    return name + if (jong == 0 || jong == 8) "로" else "으로"
 }
