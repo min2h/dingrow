@@ -10,11 +10,30 @@ import platform.Foundation.NSUserDefaults
  * iOS sign-in: guest (stable UUID) + Sign in with Apple.
  * Swift installs [appleSignIn] (ASAuthorizationController) and calls the completion with the Apple user id/name/email,
  * or an empty id when cancelled. Without the hook (e.g. no capability yet) Apple returns "준비 중".
- * Session stored in NSUserDefaults (move to Keychain before release — see IOS_BUILD.md).
+ * Session is stored in the Keychain through [secureGet]/[secureSet], which iOSApp.swift installs (SecItem*).
+ * Older sessions in NSUserDefaults are migrated into the Keychain and removed on first read.
  */
 object IosAuth {
     var appleSignIn: ((complete: (userId: String, name: String, email: String) -> Unit) -> Unit)? = null
     private val defaults get() = NSUserDefaults.standardUserDefaults
+    /** Keychain read installed by Swift. */
+    var secureGet: ((key: String) -> String?)? = null
+    /** Keychain write (null value deletes) installed by Swift. */
+    var secureSet: ((key: String, value: String?) -> Unit)? = null
+
+    private fun read(key: String): String? {
+        val get = secureGet ?: return defaults.stringForKey(key)
+        get(key)?.let { return it }
+        val legacy = defaults.stringForKey(key) ?: return null
+        secureSet?.invoke(key, legacy)
+        defaults.removeObjectForKey(key)
+        return legacy
+    }
+    private fun write(key: String, value: String?) {
+        val set = secureSet
+        if (set != null) { set(key, value); defaults.removeObjectForKey(key); return }
+        if (value == null) defaults.removeObjectForKey(key) else defaults.setObject(value, key)
+    }
 
     private fun encode(s: AuthSession) = listOf(s.provider, s.userId, s.displayName, s.email, s.device, s.createdAt.toString()).joinToString("\u001F")
     private fun decode(raw: String?): AuthSession? {
@@ -25,10 +44,10 @@ object IosAuth {
 
     val service: LocalAuthService by lazy {
         LocalAuthService(
-            load = { decode(defaults.stringForKey("dingrow.auth")) },
-            persist = { s -> if (s == null) defaults.removeObjectForKey("dingrow.auth") else defaults.setObject(encode(s), "dingrow.auth") },
+            load = { decode(read("dingrow.auth")) },
+            persist = { s -> write("dingrow.auth", s?.let(::encode)) },
             guestId = {
-                defaults.stringForKey("dingrow.guest") ?: ("guest-" + NSUUID().UUIDString.lowercase()).also { defaults.setObject(it, "dingrow.guest") }
+                read("dingrow.guest") ?: ("guest-" + NSUUID().UUIDString.lowercase()).also { write("dingrow.guest", it) }
             },
             device = "ios",
             now = { kotlinx.datetime.Clock.System.now().toEpochMilliseconds() },

@@ -154,7 +154,9 @@ private fun StatusRow(state: GameState, showCount: Boolean) {
         Spacer(GlanceModifier.width(3.dp))
         Text(L10n.t("cond_" + (if (state.sick) "sick" else state.condition.name.lowercase())), style = TextStyle(color = ink, fontSize = 11.sp, fontWeight = FontWeight.Bold), maxLines = 1, modifier = GlanceModifier.padding(end = 8.dp))
         if (showCount) {
-            Text("♥ " + state.moodLabel, style = TextStyle(color = ink, fontSize = 11.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+            Text("♥", style = TextStyle(color = ColorProvider(androidx.compose.ui.graphics.Color(0xFFF07A9A)), fontSize = 11.sp, fontWeight = FontWeight.Bold))
+            Spacer(GlanceModifier.width(3.dp))
+            Text(state.moodLabel, style = TextStyle(color = ink, fontSize = 11.sp, fontWeight = FontWeight.Bold), maxLines = 1)
             Spacer(GlanceModifier.defaultWeight())
             Text(L10n.fmt("widget_today_count", widgetRows(state).size), style = TextStyle(color = inkSoft, fontSize = 10.sp), maxLines = 1)
         }

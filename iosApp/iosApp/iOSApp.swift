@@ -5,6 +5,7 @@ import WidgetKit
 import CoreLocation
 import StoreKit
 import AuthenticationServices
+import Security
 
 @main
 struct iOSApp: App {
@@ -102,6 +103,8 @@ final class AppleSignIn: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
     private var completion: ((String, String, String) -> Void)?
 
     func install() {
+        IosAuth.shared.secureGet = { key in Keychain.get(key) }
+        IosAuth.shared.secureSet = { key, value in Keychain.set(key, value) }
         IosAuth.shared.appleSignIn = { complete in
             self.completion = { id, name, email in _ = complete(id, name, email) }
             let request = ASAuthorizationAppleIDProvider().createRequest()
@@ -166,5 +169,30 @@ final class CoinStore {
         await tx.finish()
         WidgetCenter.shared.reloadAllTimelines()
         return msg
+    }
+}
+
+
+/// Minimal generic-password Keychain wrapper for the sign-in session.
+enum Keychain {
+    private static let service = "app.dingrow.auth"
+    private static func query(_ key: String) -> [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: key]
+    }
+    static func get(_ key: String) -> String? {
+        var q = query(key)
+        q[kSecReturnData as String] = true
+        q[kSecMatchLimit as String] = kSecMatchLimitOne
+        var out: AnyObject?
+        guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess, let data = out as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+    static func set(_ key: String, _ value: String?) {
+        SecItemDelete(query(key) as CFDictionary)
+        guard let value = value, let data = value.data(using: .utf8) else { return }
+        var q = query(key)
+        q[kSecValueData as String] = data
+        q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        SecItemAdd(q as CFDictionary, nil)
     }
 }
