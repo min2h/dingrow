@@ -46,6 +46,7 @@ class PetWallpaperService : WallpaperService() {
 
         override fun onTouchEvent(event: MotionEvent) {
             if (event.action == MotionEvent.ACTION_UP && AppGraph.ready) {
+                WallpaperPainter.motion.trigger(app.mongle.ui.motion.PetMotionEngine.shapeFor("pat"))
                 AppGraph.launch { AppGraph.service.react(PetGesture.TAP) }
             }
         }
@@ -84,6 +85,10 @@ internal object WallpaperPainter {
     private var toAct = PetAct.IDLE
     private var toSpecies = ""
     private var blendStart = 0L
+    /** Same spring engine as the in-app pet, stepped by wall-clock deltas each frame. */
+    val motion = app.mongle.ui.motion.PetMotionEngine(11)
+    private var lastMillis = 0L
+    private var lastBody = ""
 
     fun draw(canvas: Canvas, state: GameState?, nowMillis: Long, context: Context) {
         val night = state?.timeOfDay == TimeOfDay.NIGHT
@@ -104,7 +109,20 @@ internal object WallpaperPainter {
             toAct = act
             toSpecies = species
             blendStart = nowMillis
+            motion.pulsePose()
+            if (act == PetAct.HAPPY) motion.trigger(app.mongle.ui.motion.PetMotionEngine.shapeFor("heart"))
+            if (act == PetAct.EAT) motion.trigger(app.mongle.ui.motion.PetMotionEngine.shapeFor("eat"))
         }
+        val body = state?.reactionBody.orEmpty()
+        if (body.isNotBlank() && body != lastBody) motion.trigger(app.mongle.ui.motion.PetMotionEngine.shapeFor(body))
+        lastBody = body
+        motion.walking = act == PetAct.WALK
+        motion.sleeping = act == PetAct.SLEEP
+        val dtMs = if (lastMillis == 0L) 16L else nowMillis - lastMillis
+        lastMillis = nowMillis
+        // Large gaps (screen off) are stepped in chunks so springs stay stable; the engine clamps each step.
+        var left = dtMs.coerceIn(0L, 2_000L) / 1000f
+        while (left > 0f) { val h = minOf(left, 0.05f); motion.step(h); left -= h }
         val blend = ((nowMillis - blendStart) / 360f).coerceIn(0f, 1f)
         val eased = blend * blend * (3f - 2f * blend)
         val squash = sin(eased * PI).toFloat()
@@ -117,16 +135,18 @@ internal object WallpaperPainter {
         val stride = if (SpeciesPoses.weakWalk(species)) 0.35f else 1f
         val imgW = placed.width().coerceAtLeast(1).toFloat()
         val petEdge = (imgW * 0.28f).toInt().coerceIn(48, 420)
-        val bob = wave * if (act == PetAct.SLEEP) 4f else 10f
-        val drift = if (walking) sin(phase * 2 * PI).toFloat() * imgW * 0.06f * stride else wave * 6f
-        val cx = placed.exactCenterX() + drift
-        val cy = placed.bottom - petEdge * 0.28f - bob
+        val unit = petEdge / 110f // engine works in dp for a ~110dp pet
+        val cx = placed.exactCenterX() + motion.translationXdp * unit * stride + if (walking) 0f else wave * 2f
+        val cy = placed.bottom - petEdge * 0.28f + motion.translationYdp * unit
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         paint.color = Color.parseColor("#33000000")
-        val shadowW = petEdge * 0.46f
-        canvas.drawOval(cx - shadowW, cy + petEdge * 0.28f, cx + shadowW, cy + petEdge * 0.38f, paint)
-        val scaleY = (if (act == PetAct.SLEEP) 0.92f else 1f + wave * 0.03f) * (1f - 0.08f * squash)
-        val scaleX = (if (act == PetAct.SLEEP) 1.04f else 1f - wave * 0.025f) * (1f + 0.1f * squash)
+        val shadowW = petEdge * 0.46f * motion.shadowScale
+        val floorY = placed.bottom - petEdge * 0.28f
+        paint.alpha = (255 * (motion.shadowAlpha / 0.2f) * 0.2f).toInt().coerceIn(10, 90)
+        canvas.drawOval(cx - shadowW, floorY + petEdge * 0.28f, cx + shadowW, floorY + petEdge * 0.38f, paint)
+        paint.alpha = 255
+        val scaleY = motion.bodyScaleY() * (1f - 0.04f * squash)
+        val scaleX = motion.bodyScaleX() * (1f + 0.04f * squash)
         val dw = petEdge * scaleX
         val dh = petEdge * scaleY
         val dest = Rect(
@@ -135,8 +155,11 @@ internal object WallpaperPainter {
             (cx + dw / 2f).toInt(),
             (cy + dh * 0.28f).toInt(),
         )
-        val mirror = walking && SpeciesPoses.mirrorSafeWalk(species) && sin(phase * 2 * PI) > 0
+        val mirror = walking && SpeciesPoses.mirrorSafeWalk(species) && motion.facing.value < 0f
+        canvas.save()
+        canvas.rotate(motion.rotation, cx, cy + dh * 0.28f)
         drawPet(canvas, context, species, stage, act, petEdge, dest, paint, eased, mirror, phase)
+        canvas.restore()
         if (act == PetAct.SLEEP) drawSleepMarks(canvas, dest, phase)
         val speech = state?.speech.orEmpty().take(24)
         if (speech.isNotBlank()) {

@@ -40,7 +40,7 @@ object L10n {
         var index = 0
         return token.replace(t(key)) {
             args.getOrNull(index++)?.toString().orEmpty()
-        }
+        }.replace("%%", "%")
     }
 
     fun table(lang: String): Map<String, String> = if (lang == "ko") Ko else En

@@ -227,7 +227,7 @@ private fun sf(id: Int, vararg args: Any): String {
     var index = 0
     return Regex("%[sd]").replace(localizedContext().getString(id)) {
         args.getOrNull(index++)?.toString().orEmpty()
-    }
+    }.replace("%%", "%")
 }
 
 class ReactAction : ActionCallback {

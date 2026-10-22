@@ -66,6 +66,15 @@ class TipsAndLanguageTest {
     }
 
     @Test
+    fun percentEscapesAreUnescaped() {
+        AppLocale.preference = "en"
+        assertEquals("Fullness 80%", app.mongle.l10n.L10n.fmt("stat_hunger", 80))
+        AppLocale.preference = "ko"
+        assertEquals("행복 50%", app.mongle.l10n.L10n.fmt("stat_happy", 50))
+        AppLocale.preference = "system"
+    }
+
+    @Test
     fun acknowledgeWhenFullStillGrantsExp() = runBlocking {
         val clock = Clock(at(10))
         val s = GameService(MemoryGameStore(), clock, zone)
