@@ -1097,6 +1097,17 @@ internal val En: Map<String, String> = buildMap {
     put("deco_no_changes", "No changes yet. Place or move an item, then save.")
     put("msg_billing_pending", "Payment is pending. Coins arrive once it completes.")
     put("msg_billing_owned", "A previous purchase is still open. Reopen the app to receive the coins.")
+    put("msg_purchase_unverified", "We couldn't verify this purchase. Please check you weren't charged.")
+    put("set_cloud", "Cloud save")
+    put("set_cloud_on", "On · sign in on a new device to restore")
+    put("set_cloud_off", "Cloud save isn't configured in this build (on-device only)")
+    put("set_cloud_offline", "Offline · saves automatically when connected")
+    put("set_cloud_sync", "Sync now")
+    put("set_delete_account", "Delete account & server data")
+    put("set_delete_account_desc", "Deletes your account and all data stored on the server, and resets this device. This can't be undone.")
+    put("set_delete_account_confirm", "Delete")
+    put("msg_account_deleted", "Your account and server data were deleted")
+    put("msg_account_delete_failed", "Couldn't delete server data. Check your connection and try again.")
 }
 
 internal val Ko: Map<String, String> = buildMap {
@@ -2195,4 +2206,15 @@ internal val Ko: Map<String, String> = buildMap {
     put("deco_no_changes", "바꾼 내용이 없어요. 아이템을 놓거나 옮긴 뒤 저장해 주세요.")
     put("msg_billing_pending", "결제가 대기 중이에요. 결제가 완료되면 코인이 들어와요.")
     put("msg_billing_owned", "이전 결제가 남아 있어요. 다시 열면 코인이 들어와요.")
+    put("msg_purchase_unverified", "구매를 확인하지 못했어요. 결제가 청구되지 않았는지 확인해 주세요.")
+    put("set_cloud", "서버 저장")
+    put("set_cloud_on", "켜짐 · 기기를 바꿔도 로그인하면 복원돼요")
+    put("set_cloud_off", "이 빌드에는 서버 저장이 설정되지 않았어요(기기에만 저장)")
+    put("set_cloud_offline", "오프라인 · 연결되면 자동으로 저장해요")
+    put("set_cloud_sync", "지금 동기화")
+    put("set_delete_account", "계정과 서버 데이터 삭제")
+    put("set_delete_account_desc", "서버에 저장된 내 데이터와 계정을 지우고 이 기기의 데이터도 처음으로 돌려요. 되돌릴 수 없어요.")
+    put("set_delete_account_confirm", "삭제하기")
+    put("msg_account_deleted", "계정과 서버 데이터를 삭제했어요")
+    put("msg_account_delete_failed", "서버 데이터를 지우지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.")
 }

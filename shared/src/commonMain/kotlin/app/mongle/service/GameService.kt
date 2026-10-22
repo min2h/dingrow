@@ -494,6 +494,7 @@ class GameService(
     suspend fun purchaseProduct(productId: String): ActionResult {
         val receipt = billing.purchase(productId)
         if (!receipt.ok) return receiptToResult(receipt.message, false)
+        if (rejectedByServer(productId, receipt.token)) return receiptToResult(L10n.t("msg_purchase_unverified"), false)
         // Grant first (idempotent by token), then consume: a crash in between is healed by claimPendingPurchases().
         val result = grantStoreProduct(productId, receipt.token)
         if (result.ok) billing.finish(receipt)
@@ -505,6 +506,7 @@ class GameService(
         var granted = 0
         billing.restore().filter { it.ok && it.token.isNotBlank() }.forEach { r ->
             val before = state.value.coins
+            if (rejectedByServer(r.productId, r.token)) return@forEach
             val res = grantStoreProduct(r.productId, r.token)
             if (res.ok) { billing.finish(r); if (state.value.coins > before) granted++ }
         }
@@ -516,11 +518,16 @@ class GameService(
         if (receipts.isEmpty()) return receiptToResult(L10n.t("msg_nothing_restore"), false)
         var last = ActionResult(true, L10n.t("msg_restored"))
         receipts.forEach { receipt ->
+            if (rejectedByServer(receipt.productId, receipt.token)) return@forEach
             last = grantStoreProduct(receipt.productId, receipt.token)
             if (last.ok) billing.finish(receipt)
         }
         return last
     }
+
+    /** Server verification credits coins in Firestore (idempotent per token); the local grant below uses the same key. */
+    private suspend fun rejectedByServer(productId: String, token: String): Boolean =
+        purchaseVerifier?.let { v -> runCatching { v(productId, token) }.getOrNull() is app.mongle.cloud.VerifyResult.Rejected } ?: false
 
     suspend fun grantStoreProduct(productId: String, token: String): ActionResult = mutate { state, now ->
         val product = StoreProducts.byId(productId) ?: return@mutate done(state, ActionResult(false, L10n.t("msg_unknown_product")))
@@ -902,7 +909,36 @@ class GameService(
 
     private fun done(state: PersistedState, result: ActionResult) = Mutate(state, result)
 
+    /** Called (outside the lock) after a user-visible change was saved; CloudSync debounces a push. */
+    var onChanged: (() -> Unit)? = null
+    /** Server purchase verification (Cloud Functions). null = local-only grant. */
+    var purchaseVerifier: (suspend (productId: String, token: String) -> app.mongle.cloud.VerifyResult)? = null
+    private var stampChanges = true
+
+    /** Replaces local state with [block]'s merge of it (cloud pull). Returns the merged state. */
+    suspend fun mergeCloud(block: (PersistedState, Long) -> PersistedState): PersistedState {
+        var out: PersistedState? = null
+        stampChanges = false
+        try {
+            mutate { state, now -> val m = block(state, now); out = m; done(m, ActionResult(true, "")) }
+        } finally { stampChanges = true }
+        return out!!
+    }
+
+    /** Records a successful push at server time [at]: local is clean until the next change. */
+    suspend fun markSynced(at: Long) {
+        stampChanges = false
+        try {
+            mutate { state, _ ->
+                done(state.copy(extras = state.extras + (app.mongle.cloud.CloudMerge.LAST_SYNC to at.toString()) + (app.mongle.cloud.CloudMerge.CHANGED_AT to at.toString())), ActionResult(true, ""))
+            }
+        } finally { stampChanges = true }
+    }
+
+    suspend fun snapshot(): PersistedState = mutex.withLock { LegacyIds.migrate(store.load() ?: Seed.create(time.now(), balance)) }
+
     private suspend fun mutate(block: (PersistedState, Long) -> Mutate): ActionResult {
+        var changed = false
         var sync: List<ScheduledNotice>? = null
         var reload = false
         var immediate: Pair<String, String>? = null
@@ -931,11 +967,13 @@ class GameService(
             }
             val outcome0 = block(working, now)
             val outcome = outcome0.copy(state = rotateLine(outcome0.state, now))
-            val stamped = if (outcome.result.message.isNotBlank()) {
+            val stamped0 = if (outcome.result.message.isNotBlank()) {
                 outcome.state.copy(statusMessage = outcome.result.message, statusUntil = now + 8_000)
             } else {
                 outcome.state
             }
+            changed = stampChanges && cloudRelevant(stamped0) != cloudRelevant(raw)
+            val stamped = if (changed) stamped0.copy(extras = stamped0.extras + (app.mongle.cloud.CloudMerge.CHANGED_AT to now.toString())) else stamped0
             store.save(stamped)
             val view = project(stamped, now, zone, balance)
             _state.value = view
@@ -956,8 +994,16 @@ class GameService(
         if (sync != null) notifier.sync(sync!!)
         if (immediate != null) notifier.notifyNow(immediate!!.first, immediate!!.second)
         if (reload || immediate != null) notifier.reloadWidgets()
+        if (changed) onChanged?.invoke()
         return result
     }
+
+    /** Fields worth syncing (ignores transient UI/animation/status/condition-tick churn). */
+    private fun cloudRelevant(s: PersistedState) = s.copy(
+        statusMessage = "", statusUntil = 0, anim = app.mongle.model.PetAnimState(), lastTipAt = 0, tipIndex = 0,
+        extras = s.extras.filterKeys { it.startsWith("cloud:").not() && it != "cond" && !it.startsWith("w") && !it.startsWith("line") },
+        pet = s.pet.copy(hunger = 0, energy = 0),
+    )
 
     private fun buildNotices(state: PersistedState, now: Long): List<ScheduledNotice> {
         val notices = mutableListOf<ScheduledNotice>()

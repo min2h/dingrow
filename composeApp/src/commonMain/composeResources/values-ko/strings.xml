@@ -1094,4 +1094,15 @@
     <string name="deco_no_changes">바꾼 내용이 없어요. 아이템을 놓거나 옮긴 뒤 저장해 주세요.</string>
     <string name="msg_billing_pending">결제가 대기 중이에요. 결제가 완료되면 코인이 들어와요.</string>
     <string name="msg_billing_owned">이전 결제가 남아 있어요. 다시 열면 코인이 들어와요.</string>
+    <string name="msg_purchase_unverified">구매를 확인하지 못했어요. 결제가 청구되지 않았는지 확인해 주세요.</string>
+    <string name="set_cloud">서버 저장</string>
+    <string name="set_cloud_on">켜짐 · 기기를 바꿔도 로그인하면 복원돼요</string>
+    <string name="set_cloud_off">이 빌드에는 서버 저장이 설정되지 않았어요(기기에만 저장)</string>
+    <string name="set_cloud_offline">오프라인 · 연결되면 자동으로 저장해요</string>
+    <string name="set_cloud_sync">지금 동기화</string>
+    <string name="set_delete_account">계정과 서버 데이터 삭제</string>
+    <string name="set_delete_account_desc">서버에 저장된 내 데이터와 계정을 지우고 이 기기의 데이터도 처음으로 돌려요. 되돌릴 수 없어요.</string>
+    <string name="set_delete_account_confirm">삭제하기</string>
+    <string name="msg_account_deleted">계정과 서버 데이터를 삭제했어요</string>
+    <string name="msg_account_delete_failed">서버 데이터를 지우지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.</string>
 </resources>

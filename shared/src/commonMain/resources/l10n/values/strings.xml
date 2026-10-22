@@ -1094,4 +1094,15 @@
     <string name="deco_no_changes">No changes yet. Place or move an item, then save.</string>
     <string name="msg_billing_pending">Payment is pending. Coins arrive once it completes.</string>
     <string name="msg_billing_owned">A previous purchase is still open. Reopen the app to receive the coins.</string>
+    <string name="msg_purchase_unverified">We couldn\'t verify this purchase. Please check you weren\'t charged.</string>
+    <string name="set_cloud">Cloud save</string>
+    <string name="set_cloud_on">On · sign in on a new device to restore</string>
+    <string name="set_cloud_off">Cloud save isn\'t configured in this build (on-device only)</string>
+    <string name="set_cloud_offline">Offline · saves automatically when connected</string>
+    <string name="set_cloud_sync">Sync now</string>
+    <string name="set_delete_account">Delete account &amp; server data</string>
+    <string name="set_delete_account_desc">Deletes your account and all data stored on the server, and resets this device. This can\'t be undone.</string>
+    <string name="set_delete_account_confirm">Delete</string>
+    <string name="msg_account_deleted">Your account and server data were deleted</string>
+    <string name="msg_account_delete_failed">Couldn\'t delete server data. Check your connection and try again.</string>
 </resources>
