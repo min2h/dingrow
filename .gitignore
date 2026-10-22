@@ -27,3 +27,15 @@ agent-tools/
 secrets/
 *.password
 signing.env
+
+# Firebase config (per-project; see FIREBASE_SETUP.md)
+composeApp/google-services.json
+iosApp/iosApp/GoogleService-Info.plist
+functions/node_modules/
+functions/lib/
+.firebase/
+firebase-debug.log
+firestore-debug.log
+functions/.env
+functions/.env.*
+functions/.secret.local

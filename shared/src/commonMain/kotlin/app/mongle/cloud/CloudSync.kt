@@ -90,6 +90,8 @@ class CloudSync(private val backend: CloudBackend, private val service: GameServ
         if (!backend.available) VerifyResult.Unavailable
         else runCatching { backend.verifyPurchase(platform, productId, token) }.getOrDefault(VerifyResult.Unavailable)
 
+    suspend fun signOut() { runCatching { backend.signOut() } }
+
     /** Deletes server data first (if configured), then the caller resets local data. */
     suspend fun deleteAccount(): Boolean = !backend.available || runCatching { backend.deleteAccount() }.getOrDefault(false)
 }
@@ -139,4 +141,15 @@ class FakeCloudBackend(override val available: Boolean = true) : CloudBackend {
         return true
     }
     override suspend fun signOut() { uid = null }
+}
+
+/** Platform-installed entry points the shared settings UI calls (defaults = cloud not configured). */
+object CloudHooks {
+    var sync: CloudSync? = null
+    fun status(): SyncStatus = sync?.status ?: SyncStatus.OFF
+    suspend fun syncNow(): SyncStatus = sync?.syncNow() ?: SyncStatus.OFF
+    suspend fun deleteAccount(): Boolean = sync?.deleteAccount() ?: true
+    /** Called by platform sign-in with the provider id token so the anonymous Firebase user gets linked. */
+    suspend fun signOut() { sync?.signOut() }
+    suspend fun link(provider: String, idToken: String, nonce: String? = null): Boolean = sync?.link(provider, idToken, nonce) ?: false
 }

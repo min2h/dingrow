@@ -17,6 +17,7 @@ import platform.UserNotifications.UNUserNotificationCenter
 
 fun MainViewController(): UIViewController {
     MongleBridge.start()
+    app.mongle.cloud.IosCloudBridge.install() // no-op unless FirebaseCloud.swift installed its hooks
     PermissionCenter.snapshot.value = PermissionSnapshot(
         notificationsOn = false,
         exactAlarmsOn = true,

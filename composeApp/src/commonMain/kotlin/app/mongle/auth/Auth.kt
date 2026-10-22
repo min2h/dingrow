@@ -54,6 +54,8 @@ class LocalAuthService(
     override val debugFake: Boolean = false,
     private val google: (suspend () -> AuthResult)? = null,
     private val apple: (suspend () -> AuthResult)? = null,
+    /** Signs the Firebase user out too, so a following guest session gets a fresh anonymous account. */
+    private val onSignOut: suspend () -> Unit = { app.mongle.cloud.CloudHooks.signOut() },
 ) : AuthService {
     private val state = MutableStateFlow<AuthSession?>(null)
     private val ready = MutableStateFlow(false)
@@ -100,6 +102,7 @@ class LocalAuthService(
 
     override suspend fun signOut() {
         runCatching { persist(null) }
+        runCatching { onSignOut() }
         autoLoggedIn = false
         state.value = null
     }

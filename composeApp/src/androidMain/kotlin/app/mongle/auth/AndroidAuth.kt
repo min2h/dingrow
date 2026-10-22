@@ -14,6 +14,7 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import java.lang.ref.WeakReference
 import java.util.UUID
+import app.mongle.cloud.CloudHooks
 
 object AndroidAuth {
     /** Placeholder until a real OAuth web client id is configured (res/values/auth.xml). */
@@ -57,7 +58,8 @@ object AndroidAuth {
                     val option = GetGoogleIdOption.Builder().setFilterByAuthorizedAccounts(false).setServerClientId(cid).setAutoSelectEnabled(true).build()
                     val res = CredentialManager.create(act).getCredential(act, GetCredentialRequest.Builder().addCredentialOption(option).build())
                     val g = GoogleIdTokenCredential.createFrom(res.credential.data)
-                    // TODO(backend): send g.idToken to the Dingrow server for verification.
+                    // Link the anonymous Firebase user to this Google account (or switch to it on a new device) and sync.
+                    runCatching { CloudHooks.link("google", g.idToken) }
                     AuthResult.Success(AuthSession("google", g.id, g.displayName.orEmpty(), g.id))
                 } catch (e: GetCredentialCancellationException) {
                     AuthResult.Cancelled

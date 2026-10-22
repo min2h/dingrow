@@ -51,6 +51,9 @@ fun SettingsV2(
     var langSheet by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
     var confirmSignOut by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
+    var cloudStatus by remember { mutableStateOf(app.mongle.cloud.CloudHooks.status()) }
+    var cloudNote by remember { mutableStateOf("") }
     val authForSignOut = LocalAuth.current
     val signOutScope = rememberCoroutineScope()
     val s = state.settings
@@ -175,6 +178,20 @@ fun SettingsV2(
                         Section(t("set_sec_account")) {
                             ValueRow(t("set_login_account"), session?.let { t("provider_" + it.provider) }.orEmpty(), "row-account", last = true) { page = "account" }
                         }
+                        Section(t("set_cloud")) {
+                            val label = when (cloudStatus) {
+                                app.mongle.cloud.SyncStatus.OK -> t("set_cloud_on")
+                                app.mongle.cloud.SyncStatus.OFFLINE -> t("set_cloud_offline")
+                                app.mongle.cloud.SyncStatus.OFF -> t("set_cloud_off")
+                            }
+                            Text(label, fontSize = 12.sp, color = InkSoft, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).testTag("cloud-status"))
+                            Divider()
+                            if (cloudStatus != app.mongle.cloud.SyncStatus.OFF) {
+                                ValueRow(t("set_cloud_sync"), "", "row-cloud-sync") { scope.launch { cloudStatus = app.mongle.cloud.CloudHooks.syncNow() } }
+                            }
+                            ButtonRow(t("set_delete_account"), t("set_delete_account_confirm"), Color(0xFFDC5A5A), "row-delete-account", last = true) { confirmDelete = true }
+                        }
+                        if (cloudNote.isNotBlank()) Text(cloudNote, fontSize = 12.sp, color = PeachDeep, modifier = Modifier.padding(start = 10.dp, bottom = 12.dp).testTag("cloud-note"))
                         Section(t("set_sec_info")) {
                             ValueRow(t("set_version"), version, "row-version")
                             ValueRow(t("set_licenses"), "", "row-licenses")
@@ -187,6 +204,17 @@ fun SettingsV2(
         }
         if (langSheet) LanguageSheet(s.language, onPick = { onChange(s.copy(language = it)); langSheet = false }, onDismiss = { langSheet = false })
         if (confirmSignOut) ConfirmSheet(t("account_signout_confirm"), t("settings_sign_out"), onYes = { confirmSignOut = false; signOutScope.launch { authForSignOut?.signOut() } }, onNo = { confirmSignOut = false })
+        val deletedMsg = t("msg_account_deleted"); val deleteFailedMsg = t("msg_account_delete_failed")
+        if (confirmDelete) ConfirmSheet(t("set_delete_account_desc"), t("set_delete_account_confirm"), onYes = {
+            confirmDelete = false
+            signOutScope.launch {
+                if (app.mongle.cloud.CloudHooks.deleteAccount()) {
+                    cloudNote = deletedMsg
+                    onReset()
+                    authForSignOut?.signOut()
+                } else cloudNote = deleteFailedMsg
+            }
+        }, onNo = { confirmDelete = false })
         if (confirmReset) ConfirmSheet(t("set_reset_confirm"), t("set_reset_btn"), onYes = { confirmReset = false; onReset() }, onNo = { confirmReset = false })
     }
 }

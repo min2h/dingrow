@@ -20,6 +20,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import app.mongle.cloud.CloudSync
+import app.mongle.cloud.CloudHooks
+import app.mongle.cloud.FirebaseCloudBackend
 
 object AppGraph {
     @Volatile
@@ -77,8 +80,29 @@ object AppGraph {
                 // Grant + consume purchases that completed while the app was closed (pending payments, interrupted flows).
                 runCatching { service.claimPendingPurchases() }
             }
+            installCloud(app)
             ready = true
-            scope.launch { service.refresh() }
+            scope.launch { service.refresh(); runCatching { cloud?.syncNow() } }
+        }
+    }
+
+    @Volatile var cloud: CloudSync? = null
+        private set
+    private var pushJob: kotlinx.coroutines.Job? = null
+
+    /** Firebase server save: offline-first, pushes 3 s after the last change; no-op without google-services.json. */
+    private fun installCloud(ctx: Context) {
+        val robot = Build.FINGERPRINT.orEmpty().contains("robolectric")
+        if (robot) return
+        val backend = runCatching { FirebaseCloudBackend(ctx) }.getOrNull() ?: return
+        if (!backend.available) return
+        val sync = CloudSync(backend, service)
+        cloud = sync
+        CloudHooks.sync = sync
+        service.purchaseVerifier = { productId, token -> sync.verify("android", productId, token) }
+        service.onChanged = {
+            pushJob?.cancel()
+            pushJob = scope.launch { kotlinx.coroutines.delay(3_000); runCatching { sync.syncNow() } }
         }
     }
 

@@ -7,35 +7,36 @@
 
 <section id="ko">
 <h1>딩그로(Dingrow) 개인정보처리방침</h1>
-<p>시행일: 2026년 10월 22일 · 운영자: 이민형 (이하 "운영자") · 문의: <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a></p>
-<p>딩그로는 일정 관리와 캐릭터 육성을 결합한 앱입니다. 딩그로는 <b>자체 서버를 운영하지 않으며</b>, 일정·캐릭터·코인·설정 등 앱 데이터는 <b>이용자의 기기 안에만</b> 저장됩니다. 운영자는 이용자의 개인정보를 수집·판매·공유하지 않습니다.</p>
+<p>시행일: 2026년 10월 23일 · 운영자: 이민형 (이하 "운영자") · 문의: <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a></p>
+<p>딩그로는 일정 관리와 캐릭터 육성을 결합한 앱입니다. 앱 데이터(일정·캐릭터·코인·아이템·설정)는 기기에 먼저 저장되고, 기기 변경·재설치 후 복원을 위해 <b>Google Firebase(서울 리전)</b>의 이용자 전용 저장 공간에 동기화됩니다. 운영자는 개인정보를 판매하거나 광고 목적으로 공유하지 않습니다.</p>
 
 <h2>1. 처리하는 정보와 목적</h2>
 <table>
 <tr><th>정보</th><th>언제</th><th>목적·처리 방식</th></tr>
 <tr><td>대략적인 위치(시·구 수준)</td><td>설정에서 '위치 사용'을 켜고 권한을 허용한 경우에만</td><td>현재 날씨를 보여주기 위해 위도·경도(소수점 2자리로 낮춘 값)를 날씨 제공자 Open‑Meteo(api.open-meteo.com)에 보냅니다. 운영자 서버로 전송·저장하지 않으며, 위치 기록을 남기지 않습니다. 권한을 끄면 날씨 기능이 꺼집니다.</td></tr>
-<tr><td>로그인 정보(Google 또는 Apple 계정의 고유 ID, 이름, 이메일)</td><td>Google/Apple 로그인을 선택한 경우</td><td>기기 안에서 계정을 구분하고 설정 화면에 표시합니다. 기기에 암호화하여 저장(Android: EncryptedSharedPreferences, iOS: Keychain)하며 운영자 서버로 전송하지 않습니다. 게스트로 시작하면 무작위 기기 ID만 만듭니다.</td></tr>
-<tr><td>구매 정보(상품 ID, 구매 토큰/거래 ID)</td><td>코인을 구매한 경우</td><td>결제는 Google Play 또는 App Store가 처리하며 운영자는 카드번호 등 결제 정보를 받지 않습니다. 중복 지급을 막기 위해 구매 토큰을 기기에만 저장합니다.</td></tr>
-<tr><td>알림 설정·일정 내용</td><td>앱 사용 중</td><td>일정 알림을 기기에서 예약합니다. 일정 내용은 기기 밖으로 전송되지 않습니다.</td></tr>
-<tr><td>앱 데이터(일정, 캐릭터, 코인, 아이템, 설정)</td><td>앱 사용 중</td><td>기기 내부 저장소(SQLite/앱 설정)에 저장됩니다. '백업 내보내기'를 직접 실행한 경우에만 이용자가 고른 위치에 파일로 저장됩니다.</td></tr>
+<tr><td>로그인 정보(Google 또는 Apple 계정의 고유 ID, 이름, 이메일)</td><td>Google/Apple 로그인을 선택한 경우</td><td>계정을 구분하고 서버 저장 데이터를 복원하기 위해 Firebase Authentication에 로그인 토큰을 보내 Firebase 사용자 ID와 연결합니다. 기기에는 암호화하여 저장(Android: EncryptedSharedPreferences, iOS: Keychain)합니다. 게스트는 Firebase 익명 계정(무작위 ID)을 사용합니다.</td></tr>
+<tr><td>구매 정보(상품 ID, 구매 토큰/거래 ID)</td><td>코인을 구매한 경우</td><td>결제는 Google Play 또는 App Store가 처리하며 운영자는 카드번호 등 결제 정보를 받지 않습니다. 구매가 진짜인지 확인하고 중복 지급을 막기 위해 구매 토큰/거래 ID를 Firebase 서버(Cloud Functions)로 보내 Google Play/App Store에 확인하고, 상품 ID·코인 수·토큰을 저장합니다.</td></tr>
+<tr><td>알림 설정·일정 내용</td><td>앱 사용 중</td><td>일정 알림은 기기에서 예약합니다. 일정 내용은 아래 '앱 데이터'와 함께 서버에 저장됩니다.</td></tr>
+<tr><td>앱 데이터(일정, 캐릭터, 코인, 아이템, 설정)</td><td>앱 사용 중</td><td>기기 내부 저장소에 저장되고, Firebase Cloud Firestore의 본인 계정 문서(users/본인ID)에 동기화됩니다. 본인만 읽고 쓸 수 있으며 전송은 HTTPS로 암호화됩니다.</td></tr>
 </table>
 <p>딩그로는 광고 SDK, 분석(애널리틱스) SDK, 추적 기술을 사용하지 않습니다.</p>
 
 <h2>2. 제3자 제공 및 처리 위탁</h2>
-<p>운영자는 개인정보를 제3자에게 제공하지 않습니다. 다만 기능 제공을 위해 다음 서비스가 이용자의 기기와 직접 통신합니다: Open‑Meteo(날씨, 위치 사용 시), Google Play 결제·Google 로그인(Google LLC), App Store 결제·Apple로 로그인(Apple Inc.). 각 서비스의 개인정보 처리는 해당 회사의 방침을 따릅니다.</p>
+<p>운영자는 개인정보를 제3자에게 제공하지 않습니다. 다만 기능 제공을 위해 다음 서비스가 이용자의 기기와 직접 통신합니다: Open‑Meteo(날씨, 위치 사용 시), Google Play 결제·Google 로그인(Google LLC), App Store 결제·Apple로 로그인(Apple Inc.). 서버 저장·인증·구매 확인은 Google Firebase(Google LLC, 서울 리전 asia-northeast3)에 처리를 위탁합니다. 각 서비스의 개인정보 처리는 해당 회사의 방침을 따릅니다.</p>
 
 <h2>3. 보관 기간</h2>
-<p>모든 데이터는 이용자의 기기에 있으며, 앱을 삭제하거나 아래 방법으로 삭제할 때까지 보관됩니다. 운영자가 별도로 보관하는 데이터는 없습니다.</p>
+<p>기기와 서버의 데이터는 이용자가 아래 방법으로 계정을 삭제할 때까지 보관됩니다. 계정 삭제 시 서버의 앱 데이터와 Firebase 계정은 즉시 삭제되며, 구매 중복 사용 방지를 위한 구매 토큰·상품 ID 기록만 사용자와의 연결을 끊은 상태로 관계 법령(전자상거래법 5년)에 따라 보관합니다.</p>
 
 <h2 id="delete">4. 데이터 삭제 방법</h2>
 <ol>
-<li>앱 안에서: <b>설정(톱니바퀴) → 데이터 → 몽이 처음부터 다시</b>를 누르면 일정·캐릭터·코인·아이템·설정이 즉시 삭제됩니다.</li>
+<li><b>계정 삭제(서버 데이터 포함)</b>: <b>설정(톱니바퀴) → 데이터 → 계정과 서버 데이터 삭제</b>를 누르면 서버의 앱 데이터와 Firebase 계정이 삭제되고 기기 데이터도 초기화됩니다.</li>
+<li>기기 데이터만 초기화: <b>설정(톱니바퀴) → 데이터 → 몽이 처음부터 다시</b>를 누르면 일정·캐릭터·코인·아이템·설정이 즉시 삭제됩니다.</li>
 <li>로그아웃: <b>설정(톱니바퀴) → 계정 → 로그아웃</b>을 누르면 기기에 저장된 로그인 정보가 삭제됩니다.</li>
-<li>앱 삭제: 앱을 삭제하면 기기에 저장된 모든 데이터가 함께 삭제됩니다.</li>
+<li>앱 삭제: 기기 데이터만 삭제됩니다. 서버 데이터는 다시 로그인하면 복원되며, 삭제하려면 위 '계정 삭제'를 이용하거나 이메일로 요청해 주세요.</li>
 <li>Google/Apple 계정 연결 해제: Google 계정 설정 → 보안 → 타사 앱 연결, 또는 iPhone 설정 → Apple ID → 암호 및 보안 → Apple로 로그인에서 딩그로를 삭제할 수 있습니다.</li>
-<li>운영자는 서버에 데이터를 보관하지 않으므로 별도로 삭제할 데이터가 없습니다. 궁금한 점은 <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a>로 문의해 주세요(7일 이내 답변).</li>
+<li>앱을 사용할 수 없는 경우: 로그인한 계정 이메일과 함께 삭제를 요청하시면 확인 후 삭제합니다. 궁금한 점은 <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a>로 문의해 주세요(7일 이내 답변).</li>
 </ol>
-<p>참고: 구매한 코인은 기기에 저장되므로 데이터를 초기화하거나 앱을 삭제하면 복구되지 않을 수 있습니다. 소비성 상품의 환불은 Google Play/App Store 환불 정책을 따릅니다.</p>
+<p>참고: 같은 Google/Apple 계정으로 로그인하면 재설치 후에도 코인·아이템이 복원됩니다. 게스트(익명) 계정은 앱 삭제 시 복원되지 않을 수 있습니다. 계정을 삭제하면 구매한 코인도 복구되지 않습니다. 소비성 상품의 환불은 Google Play/App Store 환불 정책을 따릅니다.</p>
 
 <h2>5. 아동의 개인정보</h2>
 <p>딩그로는 만 14세 미만 아동을 대상으로 하지 않으며, 아동의 개인정보를 의도적으로 수집하지 않습니다.</p>
@@ -51,35 +52,36 @@
 
 <section id="en">
 <h1>Dingrow Privacy Policy</h1>
-<p>Effective: October 22, 2026 · Operator: MinHyoung Lee ("we") · Contact: <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a></p>
-<p>Dingrow combines a planner with a virtual pet. Dingrow <b>does not run its own servers</b>: your schedules, pet, coins and settings are stored <b>only on your device</b>. We do not collect, sell or share your personal data.</p>
+<p>Effective: October 23, 2026 · Operator: MinHyoung Lee ("we") · Contact: <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a></p>
+<p>Dingrow combines a planner with a virtual pet. Your schedules, pet, coins, items and settings are saved on the device first and synced to your private space in <b>Google Firebase (Seoul region)</b> so you can restore them after reinstalling or changing devices. We never sell your data or share it for advertising.</p>
 
 <h2>1. What is processed and why</h2>
 <table>
 <tr><th>Data</th><th>When</th><th>Purpose / handling</th></tr>
 <tr><td>Approximate location</td><td>Only if you turn on "Use location" and grant permission</td><td>To show the current weather, latitude/longitude (rounded to 2 decimals) is sent to the weather provider Open‑Meteo (api.open-meteo.com). It is never sent to or stored by us, and no location history is kept. Turning the permission off disables weather.</td></tr>
-<tr><td>Sign-in info (Google or Apple account ID, name, email)</td><td>If you sign in with Google/Apple</td><td>Used on the device to identify your account and show it in Settings. Stored encrypted on the device (Android EncryptedSharedPreferences, iOS Keychain); never sent to us. Guest mode creates only a random device ID.</td></tr>
-<tr><td>Purchase info (product ID, purchase token / transaction ID)</td><td>If you buy coins</td><td>Payments are processed by Google Play or the App Store; we never receive card details. The purchase token is kept on the device to prevent double crediting.</td></tr>
-<tr><td>Notification settings and schedule content</td><td>While using the app</td><td>Reminders are scheduled locally. Schedule content never leaves the device.</td></tr>
-<tr><td>App data (schedules, pet, coins, items, settings)</td><td>While using the app</td><td>Stored in on-device storage. Written to a file only when you run "Export backup" and choose a location.</td></tr>
+<tr><td>Sign-in info (Google or Apple account ID, name, email)</td><td>If you sign in with Google/Apple</td><td>Your sign-in token is sent to Firebase Authentication to link your account so server data can be restored. Stored encrypted on the device (Android EncryptedSharedPreferences, iOS Keychain). Guests use an anonymous Firebase account (random ID).</td></tr>
+<tr><td>Purchase info (product ID, purchase token / transaction ID)</td><td>If you buy coins</td><td>Payments are processed by Google Play or the App Store; we never receive card details. The purchase token / transaction ID is sent to our Firebase server (Cloud Functions), checked with Google Play / the App Store, and stored with the product ID and coin amount to prevent fraud and double crediting.</td></tr>
+<tr><td>Notification settings and schedule content</td><td>While using the app</td><td>Reminders are scheduled locally. Schedule content is stored on the server together with your app data.</td></tr>
+<tr><td>App data (schedules, pet, coins, items, settings)</td><td>While using the app</td><td>Stored on the device and synced to your own Cloud Firestore document (users/your-id), readable and writable only by you, encrypted in transit (HTTPS).</td></tr>
 </table>
 <p>Dingrow contains no advertising SDKs, no analytics SDKs and no tracking.</p>
 
 <h2>2. Third parties</h2>
-<p>We do not share personal data. To provide features, your device talks directly to: Open‑Meteo (weather, only with location on), Google Play Billing and Google Sign-In (Google LLC), App Store and Sign in with Apple (Apple Inc.). Their own privacy policies apply.</p>
+<p>We do not share personal data. To provide features, your device talks directly to: Open‑Meteo (weather, only with location on), Google Play Billing and Google Sign-In (Google LLC), App Store and Sign in with Apple (Apple Inc.). Server storage, authentication and purchase verification are processed by Google Firebase (Google LLC, region asia-northeast3). Their own privacy policies apply.</p>
 
 <h2>3. Retention</h2>
-<p>All data stays on your device until you delete it or uninstall the app. We keep no copies.</p>
+<p>Device and server data are kept until you delete your account as described below. Deleting the account immediately removes your server app data and Firebase account; only purchase token/product records, unlinked from you, are kept as required by law (5 years, Korean e-commerce act) to prevent token reuse.</p>
 
 <h2>4. How to delete your data</h2>
 <ol>
-<li>In the app: <b>Settings (gear) → Data → Start over with Mongi</b> deletes schedules, pet, coins, items and settings immediately.</li>
+<li><b>Delete account (incl. server data)</b>: <b>Settings (gear) → Data → Delete account &amp; server data</b> deletes your server data and Firebase account and resets the device.</li>
+<li>Reset the device only: <b>Settings (gear) → Data → Start over with Mongi</b> deletes schedules, pet, coins, items and settings immediately.</li>
 <li>Sign out: <b>Settings (gear) → Account → Sign out</b> removes the stored sign-in info.</li>
-<li>Uninstall the app: all on-device data is removed.</li>
+<li>Uninstalling removes only on-device data; server data is restored when you sign in again. To delete it, use "Delete account" above or email us.</li>
 <li>Disconnect Google/Apple: Google Account → Security → Third-party connections, or iPhone Settings → Apple ID → Password &amp; Security → Sign in with Apple.</li>
-<li>We hold no server data, so there is nothing else to delete. Questions: <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a> (reply within 7 days).</li>
+<li>If you can't use the app, email us from your sign-in address and we will delete your data. Questions: <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a> (reply within 7 days).</li>
 </ol>
-<p>Note: coins are stored on the device and may not be recoverable after a reset or uninstall. Refunds for consumables follow Google Play / App Store policies.</p>
+<p>Note: signing in with the same Google/Apple account restores coins and items after reinstalling; guest (anonymous) data may not be recoverable. Coins are not recoverable after deleting the account. Refunds for consumables follow Google Play / App Store policies.</p>
 
 <h2>5. Children</h2>
 <p>Dingrow is not directed to children under 13 (under 14 in Korea) and does not knowingly collect their data.</p>

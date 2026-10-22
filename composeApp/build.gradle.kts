@@ -47,6 +47,11 @@ kotlin {
             implementation("androidx.credentials:credentials:1.3.0")
             implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
             implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+            implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.7.0"))
+            implementation("com.google.firebase:firebase-auth")
+            implementation("com.google.firebase:firebase-firestore")
+            implementation("com.google.firebase:firebase-functions")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
         }
         getByName("androidUnitTest").dependencies {
             implementation(kotlin("test"))
@@ -120,6 +125,9 @@ android {
         }
     }
 }
+
+// Firebase is optional: without composeApp/google-services.json (gitignored) the app builds and runs on-device only.
+if (file("google-services.json").exists()) apply(plugin = "com.google.gms.google-services")
 
 compose.resources {
     publicResClass = true

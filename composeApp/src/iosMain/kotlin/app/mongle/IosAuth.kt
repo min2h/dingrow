@@ -3,6 +3,7 @@ package app.mongle
 import app.mongle.auth.AuthResult
 import app.mongle.auth.AuthSession
 import app.mongle.auth.LocalAuthService
+import kotlinx.coroutines.launch
 import platform.Foundation.NSUUID
 import platform.Foundation.NSUserDefaults
 
@@ -15,6 +16,9 @@ import platform.Foundation.NSUserDefaults
  */
 object IosAuth {
     var appleSignIn: ((complete: (userId: String, name: String, email: String) -> Unit) -> Unit)? = null
+    /** Set by Swift right before completing Apple sign-in: identity token + raw nonce for Firebase linking. */
+    var appleIdToken: String = ""
+    var appleNonce: String = ""
     private val defaults get() = NSUserDefaults.standardUserDefaults
     /** Keychain read installed by Swift. */
     var secureGet: ((key: String) -> String?)? = null
@@ -57,6 +61,10 @@ object IosAuth {
                 val hook = appleSignIn ?: return@apple AuthResult.Unavailable("login_apple_unavailable")
                 kotlinx.coroutines.suspendCancellableCoroutine { cont ->
                     hook { id, name, email ->
+                        if (id.isNotBlank() && appleIdToken.isNotBlank()) {
+                            val token = appleIdToken; val nonce = appleNonce
+                            kotlinx.coroutines.MainScope().launch { runCatching { app.mongle.cloud.CloudHooks.link("apple", token, nonce) } }
+                        }
                         cont.resumeWith(Result.success(
                             if (id.isBlank()) AuthResult.Cancelled
                             else AuthResult.Success(AuthSession("apple", id, name, email, "ios", kotlinx.datetime.Clock.System.now().toEpochMilliseconds())),
