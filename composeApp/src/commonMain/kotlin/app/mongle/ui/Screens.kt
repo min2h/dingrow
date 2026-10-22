@@ -89,6 +89,12 @@ private enum class Tab(val labelKey: String) {
     My("tab_my"),
 }
 
+/** Which waiting gift was tapped open (in-app only; the gift itself persists in the service until kept/sold). */
+internal object GiftOpen {
+    var opened by mutableStateOf<String?>(null)
+    var openNext by mutableStateOf(false)
+}
+
 private enum class RoomPane { Furniture, Outfit }
 
 private val CardShape = RoundedCornerShape(24.dp)
@@ -136,6 +142,11 @@ fun MongleAppScreen(
                 showComposer = false
                 overlayState.value = "none"
                 highlightId = route.removePrefix("schedule/")
+                NavigationBus.consume()
+            } else if (route == "gift") {
+                // Notification tap: go home and open the waiting gift.
+                tabState.value = Tab.Home; showComposer = false; overlayState.value = "none"
+                GiftOpen.openNext = true
                 NavigationBus.consume()
             } else if (route?.startsWith("alarm") == true) {
                 overlayState.value = "alarm"
@@ -489,9 +500,15 @@ private fun HomeScreen(
         },
         extra = {
             state.outing?.let { OutingCard(it.returnAt, it.startedAt, service::nowMillis) }
-        if (state.pendingGift != null || state.pendingDropKind == "COINS") {
+        val giftKey0 = (state.pendingGift?.acquiredAt ?: 0L).toString() + state.pendingDropKind + state.pendingDropCoins
+        if (GiftOpen.openNext && (state.pendingGift != null || state.pendingDropKind == "COINS")) { GiftOpen.opened = giftKey0; GiftOpen.openNext = false }
+        val giftKey = (state.pendingGift?.acquiredAt ?: 0L).toString() + state.pendingDropKind + state.pendingDropCoins
+        if ((state.pendingGift != null || state.pendingDropKind == "COINS") && GiftOpen.opened != giftKey) {
                 Spacer(Modifier.height(8.dp))
-                SoftCard {
+                GiftCarrier(state) { GiftOpen.opened = giftKey }
+        } else if (state.pendingGift != null || state.pendingDropKind == "COINS") {
+                Spacer(Modifier.height(8.dp))
+                SoftCard(Modifier.testTag("gift-opened")) {
                     val gift = state.pendingGift
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (gift != null) {

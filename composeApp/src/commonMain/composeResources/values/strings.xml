@@ -1044,4 +1044,6 @@
     <string name="shop_room_after_buy">Rooms can be applied after purchase.</string>
     <string name="shop_try_wear">Try on</string>
     <string name="shop_try_place">Try it</string>
+    <string name="gift_carry_title">Mongi brought you a gift! 🎁</string>
+    <string name="gift_tap_open">Tap to open</string>
 </resources>

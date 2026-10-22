@@ -1047,6 +1047,8 @@ internal val En: Map<String, String> = buildMap {
     put("shop_room_after_buy", "Rooms can be applied after purchase.")
     put("shop_try_wear", "Try on")
     put("shop_try_place", "Try it")
+    put("gift_carry_title", "Mongi brought you a gift! 🎁")
+    put("gift_tap_open", "Tap to open")
 }
 
 internal val Ko: Map<String, String> = buildMap {
@@ -2095,4 +2097,6 @@ internal val Ko: Map<String, String> = buildMap {
     put("shop_room_after_buy", "방은 구매한 후에 적용할 수 있어요")
     put("shop_try_wear", "입어보기")
     put("shop_try_place", "놓아보기")
+    put("gift_carry_title", "몽이가 선물을 가지고 왔어요! 🎁")
+    put("gift_tap_open", "눌러서 열어보세요")
 }

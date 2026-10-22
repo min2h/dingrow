@@ -89,6 +89,8 @@ fun project(raw: PersistedState, now: Long, zone: TimeZone, balance: GameBalance
     val clip = PetAnimMachine.resolve(pet.stage, PetRules.pose(pet.stage, mood, time), pet.energy, state.statusMessage, state.anim, now)
     val speech = when {
         state.anim.until >= now && state.statusMessage.isNotBlank() -> state.statusMessage
+        // A waiting completion gift: the home/widget/wallpaper bubble says so until it's opened.
+        pet.pendingGiftDefId != null || state.pendingDropKind == "COINS" -> L10n.t("gift_carry_title")
         else -> state.extras["line.text"].orEmpty()
     }
     val weather = if (state.settings.useLocation) app.mongle.logic.Weather.decode(state.extras["wx"])?.takeIf { it.usable(now) } else null

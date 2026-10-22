@@ -158,6 +158,7 @@ class MongleFlowScreenshotTest {
         val reveal = harness.service.state.value
         assertTrue(reveal.pendingGift != null || reveal.pendingDropKind.isNotBlank())
         val coins = reveal.coins
+        harness.clickTag("gift-carrier"); harness.settle()
         harness.clickTag("sell-gift")
         harness.settle()
         assertTrue(harness.service.state.value.coins > coins)

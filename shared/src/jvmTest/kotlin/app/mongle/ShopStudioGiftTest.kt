@@ -11,6 +11,7 @@ import app.mongle.model.RepeatRule
 import app.mongle.platform.JvmNotices
 import app.mongle.service.GameService
 import app.mongle.service.TimeProvider
+import app.mongle.service.toSnapshot
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.TimeZone
 import kotlin.test.Test
@@ -128,3 +129,17 @@ class ShopStudioGiftTest {
     }
 }
 
+
+class GiftBubbleTest {
+    @Test fun waitingGiftShowsInWidgetBubble() = runBlocking {
+        val c = Clock2(1_792_000_000_000)
+        val s = GameService(MemoryGameStore(Seed.create(c.now).copy(onboarded = true)), c, TimeZone.of("Asia/Seoul"))
+        s.giftChance = { true }
+        s.addSchedule("물", c.now + 60_000, RepeatRule.NONE)
+        c.now += 120_000
+        s.completeSchedule(s.state.value.schedules.first().id)
+        c.now += 60_000; s.refresh()
+        assertTrue(s.state.value.toSnapshot().speech.contains("🎁"))
+        assertTrue(s.state.value.speech.contains("🎁"), s.state.value.speech)
+    }
+}

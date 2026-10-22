@@ -145,4 +145,26 @@ class StudioUiTest {
         clickNoScroll("deco-save")
         assertTrue(s.state.value.placements.any { it.defId == "mug" && it.rotation % 1000 == 90 })
     }
+
+    @Test fun giftBoxWaitsThenOpensByTapOrNotificationRoute() {
+        val s = app(coins = 0) {
+            giftChance = { true }
+            addSchedule("물 마시기", nowMillis() - 60_000, app.mongle.model.RepeatRule.NONE)
+            completeSchedule(state.value.schedules.first().id)
+        }
+        rule.onNodeWithTag("tab-Home").performClick(); settle()
+        tag("gift-carrier").fetchSemanticsNode()
+        rule.onRoot().captureRoboImage(artifact("gift-carrier.png"))
+        clickNoScroll("gift-carrier")
+        tag("gift-opened").fetchSemanticsNode()
+        rule.onRoot().captureRoboImage(artifact("gift-opened.png"))
+        // The gift itself still waits in the service until kept/sold.
+        assertTrue(s.state.value.pendingGift != null || s.state.value.pendingDropKind.isNotBlank())
+        // Notification route opens the next gift directly.
+        app.mongle.ui.GiftOpen.opened = null
+        settle()
+        tag("gift-carrier").fetchSemanticsNode()
+        app.mongle.platform.NavigationBus.request("gift"); settle()
+        tag("gift-opened").fetchSemanticsNode()
+    }
 }

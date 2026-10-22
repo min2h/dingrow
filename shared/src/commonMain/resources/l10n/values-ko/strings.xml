@@ -1044,4 +1044,6 @@
     <string name="shop_room_after_buy">방은 구매한 후에 적용할 수 있어요</string>
     <string name="shop_try_wear">입어보기</string>
     <string name="shop_try_place">놓아보기</string>
+    <string name="gift_carry_title">몽이가 선물을 가지고 왔어요! 🎁</string>
+    <string name="gift_tap_open">눌러서 열어보세요</string>
 </resources>

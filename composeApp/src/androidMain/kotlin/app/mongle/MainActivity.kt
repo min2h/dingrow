@@ -91,6 +91,7 @@ class MainActivity : ComponentActivity() {
         val scheme = data?.scheme
         val alarmId = intent?.getStringExtra("alarmScheduleId")
         if (!alarmId.isNullOrBlank()) NavigationBus.request("alarm:$alarmId")
+        if (route == "gift") { NavigationBus.request("gift"); return }
         val focusId = scheduleIdFromUri(data)
         if (focusId != null) { NavigationBus.request("schedule/$focusId"); return }
         if (route == "add-schedule" || ((scheme == "dingrow" || scheme == "mongle") && data?.host == "schedule")) {
