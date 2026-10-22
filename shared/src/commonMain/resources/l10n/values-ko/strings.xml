@@ -800,7 +800,7 @@
     <string name="msg_need_coins">코인이 부족해요</string>
     <string name="msg_medicine">약을 먹었어요. 회복 %d%%</string>
     <string name="notice_wx_later">%s쯤 %s 소식이 있어요. 우산 챙겨요!</string>
-    <string name="notice_wx_now">지금 %s, %s예요</string>
+    <string name="notice_wx_now">지금 날씨는 %s, %s</string>
     <string name="notice_wx_title_rain">비 소식 ☔</string>
     <string name="notice_wx_title_snow">눈 소식 ❄</string>
     <string name="notice_wx_title_storm">폭풍 주의 ⚡</string>
@@ -857,4 +857,12 @@
     <string name="guest_continue">몽이 만나러 가기</string>
     <string name="settings_account">계정</string>
     <string name="settings_sign_out">로그아웃</string>
+    <string name="line_wx_now_0">지금 %s, 날씨는 %s</string>
+    <string name="line_wx_now_1">바깥은 지금 %s! 날씨는 %s</string>
+    <string name="line_wx_now_2">현재 기온 %s, 하늘은 %s</string>
+    <string name="line_wx_pm_0">오후에는 %s 예보예요</string>
+    <string name="line_wx_pm_1">오후 날씨는 %s래요</string>
+    <string name="line_wx_pm_2">이따 오후엔 %s 소식이 있어요</string>
+    <string name="brief_pm">오후엔 %s, %s.</string>
+    <string name="settings_weather">날씨 (위치 사용)</string>
 </resources>

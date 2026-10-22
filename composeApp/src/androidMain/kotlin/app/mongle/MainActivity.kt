@@ -29,6 +29,13 @@ import app.mongle.widget.LargeWidgetReceiver
 import app.mongle.widget.SmallWidgetReceiver
 
 class MainActivity : ComponentActivity() {
+    private val locationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        AppGraph.launch {
+            val st = AppGraph.service.state.value.settings
+            AppGraph.service.updateSettings(st.copy(useLocation = granted))
+            app.mongle.weather.WeatherFetcher.refresh(applicationContext, AppGraph.service, force = true)
+        }
+    }
     private val notificationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { updatePermissions() }
@@ -40,6 +47,7 @@ class MainActivity : ComponentActivity() {
         app.mongle.billing.BillingHost.activity = this
         updatePermissions()
         handleIntent(intent)
+        app.mongle.ui.LocationBridge.request = { locationPermission.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION) }
         app.mongle.auth.AndroidAuth.activity = java.lang.ref.WeakReference(this)
         setContent {
             val permissions by PermissionCenter.snapshot.collectAsState()
@@ -67,6 +75,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         updatePermissions()
+        AppGraph.launch { runCatching { app.mongle.weather.WeatherFetcher.refresh(applicationContext, AppGraph.service) } }
     }
 
     private fun handleIntent(intent: Intent?) {

@@ -366,6 +366,7 @@ class GameService(
             nextClock = next?.let { L10n.clock(it.timeMillis, zone) },
             todayCount = todays.size, todayLeft = todays.count { !it.done }, hunger = state.pet.hunger,
             recovered = now - recoveredAt < 10 * 60_000L,
+            afternoon = w?.let { Weather.afternoon(it, now, zone) }?.let { Weather.label(it.first) },
         )
     }
 
@@ -895,7 +896,11 @@ class GameService(
         val todays = state.schedules.filter { !it.done && Instant.fromEpochMilliseconds(it.timeMillis).toLocalDateTime(zone).date == day }.sortedBy { it.timeMillis }
         val list = todays.take(4).joinToString(", ") { L10n.clock(it.timeMillis, zone) + " " + (if (it.place.isNotBlank()) it.place + " " else "") + it.title }
         val w = weatherOf(state, now)
-        val wx = w?.let { L10n.fmt("brief_weather", Weather.label(it.kind), Weather.temp(it.tempC, state.settings.fahrenheit)) + " " }.orEmpty()
+        val pm = w?.let { Weather.afternoon(it, trigger - 1, zone) ?: Weather.afternoon(it, now, zone) }
+        val wx = w?.let {
+            L10n.fmt("brief_weather", Weather.label(it.kind), Weather.temp(it.tempC, state.settings.fahrenheit)) + " " +
+                (pm?.let { p -> L10n.fmt("brief_pm", Weather.label(p.first), Weather.temp(p.second, state.settings.fahrenheit)) + " " }.orEmpty())
+        }.orEmpty()
         val body = wx + if (todays.isEmpty()) L10n.t("brief_none") else L10n.fmt("brief_list", todays.size, list)
         return ScheduledNotice(id = "brief-$day", scheduleId = "", title = L10n.t("brief_title"), body = body, triggerAtMillis = trigger, alert = "INFO")
     }

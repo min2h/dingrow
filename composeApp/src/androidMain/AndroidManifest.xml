@@ -3,6 +3,8 @@
 
     <!-- 일정 리마인더. 사용자가 알림을 허용한 뒤에만 울린다. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- 정시 알림. USE_EXACT_ALARM은 쓰지 않는다. 사용자가 알람 및 리마인더를 켠 경우에만 setExactAndAllowWhileIdle. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <!-- 재부팅 뒤 다음 일정 알람을 다시 등록한다. -->

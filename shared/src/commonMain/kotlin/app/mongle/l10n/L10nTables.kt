@@ -860,6 +860,14 @@ internal val En: Map<String, String> = buildMap {
     put("guest_continue", "Go meet Mongi")
     put("settings_account", "Account")
     put("settings_sign_out", "Sign out")
+    put("line_wx_now_0", "It's %s and %s right now")
+    put("line_wx_now_1", "Outside: %s, %s")
+    put("line_wx_now_2", "Now %s with %s skies")
+    put("line_wx_pm_0", "This afternoon: %s")
+    put("line_wx_pm_1", "The afternoon looks %s")
+    put("line_wx_pm_2", "Later this afternoon: %s")
+    put("brief_pm", "Afternoon: %s, %s.")
+    put("settings_weather", "Weather (uses location)")
 }
 
 internal val Ko: Map<String, String> = buildMap {
@@ -1664,7 +1672,7 @@ internal val Ko: Map<String, String> = buildMap {
     put("msg_need_coins", "코인이 부족해요")
     put("msg_medicine", "약을 먹었어요. 회복 %d%%")
     put("notice_wx_later", "%s쯤 %s 소식이 있어요. 우산 챙겨요!")
-    put("notice_wx_now", "지금 %s, %s예요")
+    put("notice_wx_now", "지금 날씨는 %s, %s")
     put("notice_wx_title_rain", "비 소식 ☔")
     put("notice_wx_title_snow", "눈 소식 ❄")
     put("notice_wx_title_storm", "폭풍 주의 ⚡")
@@ -1721,4 +1729,12 @@ internal val Ko: Map<String, String> = buildMap {
     put("guest_continue", "몽이 만나러 가기")
     put("settings_account", "계정")
     put("settings_sign_out", "로그아웃")
+    put("line_wx_now_0", "지금 %s, 날씨는 %s")
+    put("line_wx_now_1", "바깥은 지금 %s! 날씨는 %s")
+    put("line_wx_now_2", "현재 기온 %s, 하늘은 %s")
+    put("line_wx_pm_0", "오후에는 %s 예보예요")
+    put("line_wx_pm_1", "오후 날씨는 %s래요")
+    put("line_wx_pm_2", "이따 오후엔 %s 소식이 있어요")
+    put("brief_pm", "오후엔 %s, %s.")
+    put("settings_weather", "날씨 (위치 사용)")
 }

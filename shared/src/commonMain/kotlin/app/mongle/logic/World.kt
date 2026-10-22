@@ -64,7 +64,7 @@ object Weather {
     fun url(lat: Double, lon: Double): String =
         "https://api.open-meteo.com/v1/forecast?latitude=${fmt(lat)}&longitude=${fmt(lon)}" +
             "&current=temperature_2m,weather_code,wind_speed_10m,precipitation" +
-            "&hourly=weather_code,temperature_2m&forecast_hours=12&timeformat=unixtime&timezone=auto"
+            "&hourly=weather_code,temperature_2m&forecast_hours=24&timeformat=unixtime&timezone=auto"
 
     private fun fmt(v: Double) = ((v * 100).roundToInt() / 100.0).toString() // coarse: ~1km
 
@@ -107,6 +107,18 @@ object Weather {
     /** First upcoming hour (within [withinHours]) whose kind is wet and differs from now. */
     fun upcomingChange(w: WeatherSnapshot, now: Long, withinHours: Int = 6): HourForecast? =
         w.hours.firstOrNull { it.atMillis > now && it.atMillis <= now + withinHours * 3_600_000L && it.kind.wet && it.kind != w.kind }
+
+    /** This afternoon (12–18 local): the most notable kind (wet beats dry) and mean temperature; null once past. */
+    fun afternoon(w: WeatherSnapshot, now: Long, zone: kotlinx.datetime.TimeZone): Pair<WeatherKind, Double>? {
+        val today = Instant.fromEpochMilliseconds(now).toLocalDateTime(zone).date
+        val hrs = w.hours.filter {
+            val t = Instant.fromEpochMilliseconds(it.atMillis).toLocalDateTime(zone)
+            t.date == today && t.hour in 12..18 && it.atMillis >= now - 3_600_000L
+        }
+        if (hrs.isEmpty()) return null
+        val kind = hrs.map { it.kind }.maxByOrNull { k -> when (k) { WeatherKind.STORM -> 4; WeatherKind.SNOW -> 3; WeatherKind.RAIN -> 2; WeatherKind.CLOUDY -> 1; else -> 0 } }!!
+        return kind to hrs.map { it.tempC }.average()
+    }
 
     fun label(kind: WeatherKind): String = L10n.t("wx_" + kind.name.lowercase())
 
@@ -223,6 +235,8 @@ data class Situation(
     val todayLeft: Int,
     val hunger: Int,
     val recovered: Boolean = false,
+    /** This afternoon's forecast label (null when unknown/past or weather off). */
+    val afternoon: String? = null,
 )
 
 data class Line(val key: String, val text: String)
@@ -236,7 +250,7 @@ object Secretary {
 
     val groups: Map<String, Int> = linkedMapOf(
         "soon" to 6, "soon_rain" to 3, "soon_place" to 4, "late" to 3,
-        "rain_now" to 4, "snow_now" to 4, "storm_now" to 3, "rain_later" to 4, "snow_later" to 2, "temp" to 4,
+        "rain_now" to 4, "snow_now" to 4, "storm_now" to 3, "rain_later" to 4, "snow_later" to 2, "temp" to 4, "wx_now" to 3, "wx_pm" to 3,
         "today_one" to 3, "today_many" to 3, "today_none" to 4, "today_done" to 3, "tonight" to 3,
         "sick" to 5, "recovered" to 3, "cold" to 5, "hot" to 5, "hungry" to 5, "happy" to 5,
         "dawn" to 3, "morning" to 4, "noon" to 3, "evening" to 3, "night" to 4, "self" to 8,
@@ -279,6 +293,8 @@ object Secretary {
             s.todayLeft == 1 && s.nextClock != null -> out += "today_one" to listOf(s.nextClock, if (place.isNotBlank()) "$place $title" else title)
             s.nextClock != null -> out += "today_many" to listOf(s.todayLeft, s.nextClock, title)
         }
+        if (w != null) out += "wx_now" to listOf(Weather.temp(w.tempC, s.fahrenheit), Weather.label(w.kind))
+        if (w != null && s.afternoon != null) out += "wx_pm" to listOf(s.afternoon)
         if (s.phase == DayPhase.EVENING && s.todayLeft > 0 && s.nextClock != null) out += "tonight" to listOf(title)
         when (s.condition) {
             Condition.COLD -> out += "cold" to emptyList()

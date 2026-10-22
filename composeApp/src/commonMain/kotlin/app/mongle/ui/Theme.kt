@@ -75,3 +75,8 @@ data class PermissionSnapshot(
 object PermissionCenter {
     val snapshot = MutableStateFlow(PermissionSnapshot())
 }
+
+/** Platform bridge: the settings weather toggle asks the OS for coarse location through this. */
+object LocationBridge {
+    var request: (() -> Unit)? = null
+}

@@ -460,6 +460,10 @@ fun SettingsScreen(
             SettingRow(t("perm_notifications"), if (permissions.notificationsOn) t("perm_on") else t("perm_off"))
             SettingRow(t("perm_exact"), if (permissions.exactAlarmsOn) t("exact_on") else t("exact_off"))
             SettingRow(t("perm_battery"), if (permissions.notificationsOn) t("battery_on") else t("battery_off"))
+            SettingToggle(t("settings_weather"), settings.useLocation) { on ->
+                if (!on) onChange(settings.copy(useLocation = false))
+                else LocationBridge.request?.invoke() ?: onChange(settings.copy(useLocation = true))
+            }
             SettingToggle(t("tips_toggle"), settings.tipsEnabled) { onChange(settings.copy(tipsEnabled = it)) }
             TextButton(onClick = onTip) { Text(t("tip_one")) }
             Button(

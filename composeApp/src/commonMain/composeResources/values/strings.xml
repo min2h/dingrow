@@ -857,4 +857,12 @@
     <string name="guest_continue">Go meet Mongi</string>
     <string name="settings_account">Account</string>
     <string name="settings_sign_out">Sign out</string>
+    <string name="line_wx_now_0">It\'s %s and %s right now</string>
+    <string name="line_wx_now_1">Outside: %s, %s</string>
+    <string name="line_wx_now_2">Now %s with %s skies</string>
+    <string name="line_wx_pm_0">This afternoon: %s</string>
+    <string name="line_wx_pm_1">The afternoon looks %s</string>
+    <string name="line_wx_pm_2">Later this afternoon: %s</string>
+    <string name="brief_pm">Afternoon: %s, %s.</string>
+    <string name="settings_weather">Weather (uses location)</string>
 </resources>

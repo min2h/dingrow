@@ -113,4 +113,18 @@ class WorldTest {
         assertEquals("행복 50%", L10n.fmt("stat_happy", 50))
         AppLocale.preference = "system"
     }
+
+    @Test fun afternoonForecastAndWeatherLines() {
+        fun at(h: Int): Long = kotlinx.datetime.LocalDateTime(2026, 10, 22, h, 0).toInstant(seoul).toEpochMilliseconds()
+        val w = WeatherSnapshot(11.0, 0, 3.0, 0.0, at(9), 37.5, 127.0, (10..20).map { HourForecast(at(it), if (it == 15) 61 else 1, 14.0) })
+        assertEquals(WeatherKind.RAIN, Weather.afternoon(w, at(9), seoul)!!.first)
+        assertNull(Weather.afternoon(w, at(21), seoul))
+        AppLocale.preference = "ko"
+        val s = Situation(at(9), DayPhase.MORNING, Condition.GOOD, w, false, null, null, null, null, 0, 0, 80, afternoon = "비")
+        val groups = Secretary.candidates(s).map { it.first }
+        assertTrue(groups.containsAll(listOf("wx_now", "wx_pm")))
+        val line = Secretary.format(L10n.t("line_wx_now_0"), Secretary.candidates(s).first { it.first == "wx_now" }.second)
+        assertEquals("지금 **11°**, 날씨는 **맑음**", line)
+        AppLocale.preference = "system"
+    }
 }
