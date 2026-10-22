@@ -8,10 +8,15 @@ import android.graphics.Canvas
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.RemoteViews
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -79,8 +84,10 @@ class MongleFlowScreenshotTest {
     fun onboardingNamingAndHome() {
         val harness = Harness()
         harness.show()
+        composeRule.onNodeWithText("다음").performClick()
+        harness.settle()
         composeRule.onNode(hasSetTextAction()).performTextReplacement("보리")
-        composeRule.onNodeWithText("같이 시작하기").performClick()
+        composeRule.onNodeWithText("시작하기").performClick()
         harness.settle()
         assertEquals("보리", harness.service.state.value.petName)
         assertTrue(harness.service.state.value.onboarded)
@@ -90,15 +97,17 @@ class MongleFlowScreenshotTest {
     fun scheduleAddListAndComplete() {
         val harness = Harness()
         harness.show()
+        composeRule.onNodeWithText("다음").performClick()
+        harness.settle()
         composeRule.onNode(hasSetTextAction()).performTextReplacement("보리")
-        composeRule.onNodeWithText("같이 시작하기").performClick()
+        composeRule.onNodeWithText("시작하기").performClick()
         harness.settle()
         composeRule.onNodeWithTag("tab-Schedule").performClick()
         harness.settle()
         harness.clickText("추가")
         harness.settle()
         composeRule.onNode(hasSetTextAction()).performTextReplacement("물 마시기")
-        composeRule.onNodeWithText("알림 맡기기").performClick()
+        composeRule.onNodeWithText("저장").performClick()
         harness.settle()
         val added = harness.service.state.value.schedules.single()
         assertEquals("물 마시기", added.title)
@@ -188,8 +197,10 @@ class MongleFlowScreenshotTest {
             "coins $before -> ${harness.service.state.value.coins} (${harness.service.state.value.statusMessage})",
             harness.service.state.value.coins < before,
         )
-        harness.clickTag("buy-sprout_hat")
-        harness.settle()
+        if ("sprout_hat" !in harness.service.state.value.owned) {
+            harness.clickTag("buy-sprout_hat")
+            harness.settle()
+        }
         assertTrue(
             "owned=${harness.service.state.value.owned} coins=${harness.service.state.value.coins} ${harness.service.state.value.statusMessage}",
             "sprout_hat" in harness.service.state.value.owned,
@@ -211,6 +222,144 @@ class MongleFlowScreenshotTest {
         harness.capture("dex.png")
     }
 
+    @Test
+    fun languagePickerAndBothLocales() {
+        val harness = Harness()
+        harness.show()
+        harness.capture("ko-onboarding.png")
+        composeRule.onNodeWithText("다음").performClick()
+        harness.settle()
+        harness.capture("ko-onboarding-gift.png")
+        composeRule.onNode(hasSetTextAction()).performTextReplacement("보리")
+        composeRule.onNodeWithText("시작하기").performClick()
+        harness.settle()
+        runBlocking {
+            harness.service.addSchedule("산책", System.currentTimeMillis() + 3_600_000, RepeatRule.NONE)
+        }
+        app.mongle.platform.NavigationBus.request("alarm")
+        harness.settle()
+        composeRule.onNodeWithText("5분 뒤 다시").assertExists()
+        harness.capture("ko-alarm.png")
+        composeRule.onNodeWithText("5분 뒤 다시").performClick()
+        harness.settle()
+        composeRule.onNodeWithTag("tab-Schedule").performClick()
+        harness.settle()
+        harness.clickTag("open-settings")
+        harness.settle()
+        harness.capture("ko-settings.png")
+        composeRule.onNodeWithText("English").performClick()
+        harness.settle()
+        composeRule.onNodeWithText("Settings").assertExists()
+        composeRule.onNodeWithText("Add a widget").assertExists()
+        assertEquals("en", harness.service.state.value.settings.language)
+        harness.capture("en-settings.png")
+        harness.clickTag("overlay-back")
+        harness.settle()
+        harness.clickTag("tab-Home")
+        harness.settle()
+        composeRule.onNodeWithText("Dingrow").assertExists()
+        harness.capture("en-home.png")
+        composeRule.onNodeWithTag("tab-Schedule").performClick()
+        harness.settle()
+        harness.capture("en-schedule.png")
+        composeRule.onNodeWithTag("tab-Room").performClick()
+        harness.settle()
+        harness.capture("en-room.png")
+        harness.capture("en-shop.png")
+        composeRule.onNodeWithTag("tab-My").performClick()
+        harness.settle()
+        harness.capture("en-dex.png")
+        app.mongle.platform.NavigationBus.request("alarm")
+        harness.settle()
+        composeRule.onNodeWithText("In 5 minutes").assertExists()
+        harness.capture("en-alarm.png")
+    }
+
+    @Test
+    fun scheduleFormBothLocales() {
+        val harness = Harness()
+        val language = mutableStateOf("ko")
+        composeRule.setContent {
+            app.mongle.ui.LanguageProvider(language.value) {
+                MongleTheme { app.mongle.ui.ScheduleForm(editing = false, onSave = { _, _ -> }, onClose = {}) }
+            }
+        }
+        harness.capture("ko-schedule-form.png")
+        composeRule.runOnIdle { language.value = "en" }
+        harness.settle()
+        composeRule.onNodeWithText("Add a task").assertExists()
+        harness.capture("en-schedule-form.png")
+    }
+
+    @Test
+    fun reactionGalleryBothLocales() {
+        val harness = Harness()
+        val language = mutableStateOf("ko")
+        composeRule.setContent {
+            app.mongle.ui.LanguageProvider(language.value) {
+                MongleTheme { app.mongle.ui.ReactionGallery(previewPeak = true) }
+            }
+        }
+        harness.capture("ko-reactions.png")
+        composeRule.runOnIdle { language.value = "en" }
+        harness.settle()
+        composeRule.onNodeWithText("Mongi tap reactions").assertExists()
+        harness.capture("en-reactions.png")
+    }
+
+    @Test
+    fun resellSheetBothLocales() {
+        val harness = Harness()
+        val legendary = app.mongle.model.Catalog.byId("comet_shard")!!
+        val language = mutableStateOf("ko")
+        composeRule.setContent {
+            app.mongle.ui.LanguageProvider(language.value) {
+                MongleTheme {
+                    Box(Modifier.fillMaxSize().background(app.mongle.ui.Cream), contentAlignment = Alignment.BottomCenter) {
+                        app.mongle.ui.ResellSheet(legendary, {}, {})
+                    }
+                }
+            }
+        }
+        harness.capture("ko-resell.png")
+        composeRule.runOnIdle { language.value = "en" }
+        harness.settle()
+        composeRule.onNodeWithText("Sells for 2400").assertExists()
+        harness.capture("en-resell.png")
+    }
+
+    @Test
+    fun coinShopBothLocales() {
+        val harness = Harness()
+        val language = mutableStateOf("en")
+        val phase = mutableStateOf("list")
+        composeRule.setContent {
+            app.mongle.ui.LanguageProvider(language.value) {
+                MongleTheme {
+                    app.mongle.ui.CoinShopScreen(
+                        coins = 2400,
+                        phase = phase.value,
+                        product = if (phase.value == "confirm") app.mongle.logic.StoreProducts.coinsLarge else null,
+                        message = "",
+                        onPick = {},
+                        onPay = {},
+                        onRestore = {},
+                        onClose = {},
+                    )
+                }
+            }
+        }
+        composeRule.onNodeWithText("Coin shop").assertExists()
+        harness.capture("en-coin-shop.png")
+        composeRule.runOnIdle {
+            language.value = "ko"
+            phase.value = "confirm"
+        }
+        harness.settle()
+        composeRule.onNodeWithText("결제하기").assertExists()
+        harness.capture("ko-coin-shop.png")
+    }
+
     private inner class Harness {
         val clock = MutableClock(System.currentTimeMillis())
         val service = GameService(MemoryGameStore(), clock, TimeZone.of("Asia/Seoul"))
@@ -219,6 +368,8 @@ class MongleFlowScreenshotTest {
 
         init {
             primeComposeResources()
+            app.mongle.l10n.AppLocale.preference = "system"
+            app.mongle.ui.languageTick.value = "system"
             AndroidHooks.sync = {}
             AndroidHooks.notifyNow = { _, _ -> }
             AndroidHooks.reloadWidgets = {}
@@ -306,9 +457,17 @@ class MongleWidgetAlarmWallpaperTest {
         val context = RuntimeEnvironment.getApplication()
         saveGlance(context, "widget-small.png", 180, 180) { SmallBody(service.state.value) }
         saveGlance(context, "widget-large.png", 320, 360) { LargeBody(service.state.value) }
+        app.mongle.l10n.AppLocale.preference = "ko"
+        saveGlance(context, "widget-small-ko.png", 180, 180) { SmallBody(service.state.value) }
+        saveGlance(context, "widget-large-ko.png", 320, 360) { LargeBody(service.state.value) }
+        app.mongle.l10n.AppLocale.preference = "system"
 
         FeedAction().onAction(context, glanceId, actionParametersOf())
-        assertTrue(service.state.value.hunger > 80 || service.state.value.statusMessage.contains("먹"))
+        assertTrue(
+            service.state.value.hunger > 80 ||
+                service.state.value.statusMessage.contains("먹") ||
+                service.state.value.statusMessage.contains("Fed"),
+        )
 
         grow(service, clock, Stage.CHILD)
         CompleteAction().onAction(context, glanceId, actionParametersOf())
@@ -368,11 +527,30 @@ class MongleWidgetAlarmWallpaperTest {
         val manager = context.getSystemService(NotificationManager::class.java)
         await { shadowOf(manager).allNotifications.isNotEmpty() }
         val notification = shadowOf(manager).allNotifications.single()
-        assertEquals("보리", notification.extras.getString(android.app.Notification.EXTRA_TITLE))
-        assertEquals(2, notification.actions.size)
-        assertEquals("완료", notification.actions[0].title.toString())
-        assertEquals("10분 뒤", notification.actions[1].title.toString())
-        saveNotification(context, notification, "notification.png")
+        assertEquals("보리 is calling", notification.extras.getString(android.app.Notification.EXTRA_TITLE))
+        assertEquals(3, notification.actions.size)
+        assertEquals("Check", notification.actions[0].title.toString())
+        assertEquals("In 5 min", notification.actions[1].title.toString())
+        assertEquals("Done", notification.actions[2].title.toString())
+        saveNotification(context, notification, "notification-en.png")
+
+        app.mongle.l10n.AppLocale.preference = "ko"
+        ReminderReceiver().onReceive(
+            context,
+            android.content.Intent(AlarmScheduler.ACTION_SHOW).apply {
+                putExtra(AlarmScheduler.EXTRA_SCHEDULE_ID, schedule.id)
+            },
+        )
+        await {
+            shadowOf(manager).allNotifications.singleOrNull()?.extras?.getString(android.app.Notification.EXTRA_TITLE) == "보리가 불러요"
+        }
+        val korean = shadowOf(manager).allNotifications.single()
+        assertEquals("보리가 불러요", korean.extras.getString(android.app.Notification.EXTRA_TITLE))
+        assertEquals("확인", korean.actions[0].title.toString())
+        assertEquals("5분 뒤", korean.actions[1].title.toString())
+        assertEquals("완료", korean.actions[2].title.toString())
+        saveNotification(context, korean, "notification.png")
+        app.mongle.l10n.AppLocale.preference = "system"
 
         ReminderReceiver().onReceive(
             context,
@@ -380,9 +558,10 @@ class MongleWidgetAlarmWallpaperTest {
                 putExtra(AlarmScheduler.EXTRA_SCHEDULE_ID, schedule.id)
             },
         )
-        await { AppGraph.service.state.value.schedules.single().timeMillis >= now + 9 * 60_000 }
+        await { AppGraph.service.state.value.schedules.single().timeMillis >= System.currentTimeMillis() + 3 * 60_000 }
         val snoozed = AppGraph.service.state.value.schedules.single().timeMillis
-        assertTrue(snoozed >= now + 9 * 60_000)
+        val delta = snoozed - System.currentTimeMillis()
+        assertTrue("delta=$delta", delta in 4 * 60_000..6 * 60_000)
 
         ReminderReceiver().onReceive(
             context,

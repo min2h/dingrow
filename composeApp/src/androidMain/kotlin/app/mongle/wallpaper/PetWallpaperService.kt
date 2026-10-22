@@ -9,14 +9,17 @@ import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
 import android.service.wallpaper.WallpaperService
+import android.view.MotionEvent
 import android.view.SurfaceHolder
 import app.mongle.AppGraph
+import app.mongle.logic.PetGesture
 import app.mongle.model.GameState
 import app.mongle.model.Pose
 import app.mongle.model.Stage
 import app.mongle.model.TimeOfDay
 import app.mongle.ui.ArtBitmaps
 import app.mongle.ui.PetAct
+import app.mongle.ui.SpeciesPoses
 import app.mongle.ui.petAct
 import app.mongle.ui.petAssetId
 import app.mongle.ui.roomAssetFor
@@ -33,6 +36,17 @@ class PetWallpaperService : WallpaperService() {
             override fun run() {
                 drawFrame()
                 if (visible) handler.postDelayed(this, 16)
+            }
+        }
+
+        override fun onCreate(surfaceHolder: SurfaceHolder) {
+            super.onCreate(surfaceHolder)
+            setTouchEventsEnabled(true)
+        }
+
+        override fun onTouchEvent(event: MotionEvent) {
+            if (event.action == MotionEvent.ACTION_UP && AppGraph.ready) {
+                AppGraph.launch { AppGraph.service.react(PetGesture.TAP) }
             }
         }
 
@@ -65,6 +79,12 @@ class PetWallpaperService : WallpaperService() {
 }
 
 internal object WallpaperPainter {
+    private var fromAct = PetAct.IDLE
+    private var fromSpecies = ""
+    private var toAct = PetAct.IDLE
+    private var toSpecies = ""
+    private var blendStart = 0L
+
     fun draw(canvas: Canvas, state: GameState?, nowMillis: Long, context: Context) {
         val night = state?.timeOfDay == TimeOfDay.NIGHT
         val wallpaper = state?.activeRoom?.wallpaperId
@@ -72,25 +92,41 @@ internal object WallpaperPainter {
         val pose = state?.pose ?: Pose.IDLE
         val species = state?.speciesId ?: "base"
         val act = if (state == null) PetAct.IDLE else petAct(stage, pose, state.energy, state.statusMessage)
+        if (toSpecies.isEmpty()) {
+            fromAct = act
+            fromSpecies = species
+            toAct = act
+            toSpecies = species
+            blendStart = nowMillis - 1_000L
+        } else if (toAct != act || toSpecies != species) {
+            fromAct = toAct
+            fromSpecies = toSpecies
+            toAct = act
+            toSpecies = species
+            blendStart = nowMillis
+        }
+        val blend = ((nowMillis - blendStart) / 360f).coerceIn(0f, 1f)
+        val eased = blend * blend * (3f - 2f * blend)
+        val squash = sin(eased * PI).toFloat()
         canvas.drawColor(if (night) Color.parseColor("#2C3A5A") else Color.parseColor("#FFF6EE"))
         val room = ArtBitmaps.decode(context, roomAssetFor(wallpaper, night, square = false), 720)
         val placed = drawContain(canvas, room)
         val walking = act == PetAct.WALK
         val phase = (nowMillis % 3200) / 3200f
         val wave = sin(phase * 2 * PI).toFloat()
+        val stride = if (SpeciesPoses.weakWalk(species)) 0.35f else 1f
         val imgW = placed.width().coerceAtLeast(1).toFloat()
         val petEdge = (imgW * 0.28f).toInt().coerceIn(48, 420)
-        val pet = ArtBitmaps.decode(context, petAssetId(species, stage, act), petEdge)
         val bob = wave * if (act == PetAct.SLEEP) 4f else 10f
-        val drift = if (walking) sin(phase * 2 * PI).toFloat() * imgW * 0.06f else wave * 6f
+        val drift = if (walking) sin(phase * 2 * PI).toFloat() * imgW * 0.06f * stride else wave * 6f
         val cx = placed.exactCenterX() + drift
         val cy = placed.bottom - petEdge * 0.28f - bob
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         paint.color = Color.parseColor("#33000000")
         val shadowW = petEdge * 0.46f
         canvas.drawOval(cx - shadowW, cy + petEdge * 0.28f, cx + shadowW, cy + petEdge * 0.38f, paint)
-        val scaleY = if (act == PetAct.SLEEP) 0.92f else 1f + wave * 0.03f
-        val scaleX = if (act == PetAct.SLEEP) 1.04f else 1f - wave * 0.025f
+        val scaleY = (if (act == PetAct.SLEEP) 0.92f else 1f + wave * 0.03f) * (1f - 0.08f * squash)
+        val scaleX = (if (act == PetAct.SLEEP) 1.04f else 1f - wave * 0.025f) * (1f + 0.1f * squash)
         val dw = petEdge * scaleX
         val dh = petEdge * scaleY
         val dest = Rect(
@@ -99,7 +135,91 @@ internal object WallpaperPainter {
             (cx + dw / 2f).toInt(),
             (cy + dh * 0.28f).toInt(),
         )
-        canvas.drawBitmap(pet, null, dest, paint)
+        val mirror = walking && SpeciesPoses.mirrorSafeWalk(species) && sin(phase * 2 * PI) > 0
+        drawPet(canvas, context, species, stage, act, petEdge, dest, paint, eased, mirror, phase)
+        if (act == PetAct.SLEEP) drawSleepMarks(canvas, dest, phase)
+        val speech = state?.speech.orEmpty().take(24)
+        if (speech.isNotBlank()) {
+            val bubble = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE
+                textSize = (canvas.width * 0.04f).coerceIn(28f, 48f)
+            }
+            val width = bubble.measureText(speech) + 36f
+            val left = (cx - width / 2f).coerceAtLeast(12f)
+            val top = dest.top - 64f
+            canvas.drawRoundRect(left, top, left + width, top + 48f, 24f, 24f, bubble)
+            bubble.color = Color.parseColor("#5C4636")
+            canvas.drawText(speech, left + 18f, top + 32f, bubble)
+        }
+    }
+
+    private fun drawPet(
+        canvas: Canvas,
+        context: Context,
+        species: String,
+        stage: Stage,
+        act: PetAct,
+        petEdge: Int,
+        dest: Rect,
+        paint: Paint,
+        eased: Float,
+        mirror: Boolean,
+        phase: Float,
+    ) {
+        fun blit(bitmap: Bitmap, alpha: Float) {
+            if (alpha <= 0.01f) return
+            paint.alpha = (alpha * 255).toInt().coerceIn(0, 255)
+            if (!mirror) {
+                canvas.drawBitmap(bitmap, null, dest, paint)
+                return
+            }
+            canvas.save()
+            canvas.scale(-1f, 1f, dest.exactCenterX(), dest.exactCenterY())
+            canvas.drawBitmap(bitmap, null, dest, paint)
+            canvas.restore()
+        }
+        val current = ArtBitmaps.decode(context, petAssetId(species, stage, act), petEdge)
+        if (eased < 0.98f && (fromAct != act || fromSpecies != species)) {
+            val previous = ArtBitmaps.decode(context, petAssetId(fromSpecies.ifBlank { species }, stage, fromAct), petEdge)
+            blit(previous, 1f - eased)
+            blit(current, eased)
+        } else if (act == PetAct.IDLE) {
+            val blinkId = petAssetId(species, stage, PetAct.BLINK)
+            val idleId = petAssetId(species, stage, PetAct.IDLE)
+            blit(current, 1f)
+            if (blinkId != idleId) {
+                val blink = ((phase + 0.62f) % 1f)
+                val amount = if (blink > 0.9f) {
+                    val t = (blink - 0.9f) / 0.1f
+                    if (t < 0.5f) t * 2f else (1f - t) * 2f
+                } else {
+                    0f
+                }
+                if (amount > 0.02f) {
+                    blit(ArtBitmaps.decode(context, blinkId, petEdge), amount)
+                }
+            }
+        } else {
+            blit(current, 1f)
+        }
+        paint.alpha = 255
+    }
+
+    private fun drawSleepMarks(canvas: Canvas, dest: Rect, phase: Float) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#6E8CAE")
+            textAlign = Paint.Align.CENTER
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        }
+        repeat(3) { index ->
+            val travel = (phase + index * 0.33f) % 1f
+            val fade = sin(travel * PI).toFloat().coerceIn(0f, 1f)
+            paint.alpha = (fade * 220).toInt()
+            paint.textSize = dest.height() * (0.08f + index * 0.025f)
+            val x = dest.right - dest.width() * (0.18f - index * 0.06f)
+            val y = dest.top + dest.height() * (0.42f - travel * 0.36f)
+            canvas.drawText("z", x, y, paint)
+        }
     }
 
     private fun drawContain(canvas: Canvas, bitmap: Bitmap): Rect {

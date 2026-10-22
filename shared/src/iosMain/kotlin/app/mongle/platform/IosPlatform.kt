@@ -19,7 +19,6 @@ import platform.UserNotifications.UNAuthorizationOptionSound
 import platform.UserNotifications.UNCalendarNotificationTrigger
 import platform.UserNotifications.UNMutableNotificationContent
 import platform.UserNotifications.UNNotificationAction
-import platform.UserNotifications.UNNotificationActionOptionForeground
 import platform.UserNotifications.UNNotificationCategory
 import platform.UserNotifications.UNNotificationRequest
 import platform.UserNotifications.UNTimeIntervalNotificationTrigger
@@ -76,11 +75,12 @@ private fun ensurePermission(center: UNUserNotificationCenter) {
 private fun ensureCategory(center: UNUserNotificationCenter) {
     if (iosCategoryReady) return
     iosCategoryReady = true
-    val complete = UNNotificationAction.actionWithIdentifier("COMPLETE", "완료", UNNotificationActionOptionForeground)
-    val snooze = UNNotificationAction.actionWithIdentifier("SNOOZE", "10분 뒤", 0u)
+    val ack = UNNotificationAction.actionWithIdentifier("ACK", "확인", 0u)
+    val snooze = UNNotificationAction.actionWithIdentifier("SNOOZE", "5분 뒤", 0u)
+    val complete = UNNotificationAction.actionWithIdentifier("COMPLETE", "완료", 0u)
     val category = UNNotificationCategory.categoryWithIdentifier(
         "DINGROW_SCHEDULE",
-        listOf(complete, snooze),
+        listOf(ack, snooze, complete),
         emptyList<String>(),
         0u,
     )
@@ -155,6 +155,7 @@ object MongleBridge {
     fun confirmBuy(): String = call { it.confirmBuy() }
     fun cancelBuy(): String = call { it.cancelBuy() }
     fun cyclePreset(): String = call { it.cyclePreset() }
+    fun acknowledge(id: String): String = call { it.acknowledge(id) }
     fun completeSchedule(id: String): String = call { it.completeSchedule(id) }
     fun snooze(id: String): String = call { it.snooze(id) }
 

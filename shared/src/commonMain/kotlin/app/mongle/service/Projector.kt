@@ -1,11 +1,15 @@
 package app.mongle.service
 
+import app.mongle.l10n.AppLocale
+import app.mongle.l10n.L10n
 import app.mongle.logic.Korean
 import app.mongle.logic.PetAnimMachine
 import app.mongle.logic.PetRules
+import app.mongle.logic.Recurrence
 import app.mongle.logic.ShopRotation
 import app.mongle.logic.resellAmount
 import app.mongle.logic.resolveState
+import app.mongle.logic.spec
 import app.mongle.model.Catalog
 import app.mongle.model.FoodView
 import app.mongle.model.GameBalance
@@ -40,30 +44,40 @@ fun project(raw: PersistedState, now: Long, zone: TimeZone, balance: GameBalance
                 id = row.id,
                 title = row.title,
                 timeMillis = row.timeMillis,
-                timeLabel = Korean.formatWhen(row.timeMillis, zone),
+                timeLabel = L10n.formatWhen(row.timeMillis, zone),
                 repeat = row.repeat,
-                repeatLabel = Korean.repeatLabel(row.repeat, row.weekdays),
+                repeatLabel = Recurrence.label(row.spec()),
                 done = row.done,
                 overdue = !row.done && row.timeMillis <= now,
                 leadsMinutes = row.leadsMinutes,
                 alert = row.alert,
                 category = row.category,
                 weekdays = row.weekdays,
+                anchorMillis = if (row.anchorMillis > 0) row.anchorMillis else row.timeMillis,
+                interval = row.interval,
+                monthOrdinal = row.monthOrdinal,
+                endKind = row.endKind,
+                endAt = row.endAt,
+                endCount = row.endCount,
+                exdates = row.exdates,
+                doneDates = row.doneDates,
+                skipDates = row.skipDates,
+                seriesId = row.seriesId,
             )
         }
     val next = schedules.filter { !it.done }.minByOrNull { it.timeMillis }
     val pending = pet.pendingGiftDefId?.let { id ->
         Catalog.byId(id)?.let { def ->
-            GiftView("pending", def.id, def.name, def.rarity, resellAmount(def), pet.pendingGiftAt ?: now)
+            GiftView("pending", def.id, L10n.item(def.id), def.rarity, resellAmount(def), pet.pendingGiftAt ?: now)
         }
     }
     val gifts = state.gifts.mapNotNull { row ->
         val def = Catalog.byId(row.defId) ?: return@mapNotNull null
-        GiftView(row.instanceId, def.id, def.name, def.rarity, resellAmount(def), row.acquiredAt)
+        GiftView(row.instanceId, def.id, L10n.item(def.id), def.rarity, resellAmount(def), row.acquiredAt)
     }
     val foods = state.foods.mapNotNull { (id, qty) ->
         val def = Catalog.byId(id) ?: return@mapNotNull null
-        if (qty <= 0) null else FoodView(id, def.name, qty, def.hunger)
+        if (qty <= 0) null else FoodView(id, L10n.item(id), qty, def.hunger)
     }.sortedBy { it.name }
     val offer = ShopRotation.today(now, zone, state.owned)
     val (fraction, xpNext, progress) = progressOf(pet.stage, pet.xp, pet.completions, balance)
@@ -75,20 +89,20 @@ fun project(raw: PersistedState, now: Long, zone: TimeZone, balance: GameBalance
     }
     val outing = if (pet.isOut && pet.outingReturnAt != null) {
         val left = (((pet.outingReturnAt - now).coerceAtLeast(0)) / 60_000L).toInt()
-        OutingView(pet.outingReturnAt, left, if (left <= 0) "곧 돌아와요" else "약 ${left}분 뒤 돌아와요")
+        OutingView(pet.outingReturnAt, left, if (left <= 0) L10n.t("outing_soon") else L10n.fmt("outing_later", left))
     } else {
         null
     }
     val confirm = if (state.pendingConfirmDef != null && now <= state.pendingConfirmUntil) {
         val def = Catalog.byId(state.pendingConfirmDef)
-        if (def == null) "" else "${def.name}${Korean.eulReul(def.name)} ${offerPrice(state, now, zone)}코인에 살까요?"
+        if (def == null) "" else L10n.fmt("confirm_buy", L10n.item(def.id), offerPrice(state, now, zone))
     } else {
         ""
     }
     return GameState(
         petName = pet.name,
         stage = pet.stage,
-        stageLabel = Korean.stageLabel(pet.stage),
+        stageLabel = L10n.stage(pet.stage),
         xp = pet.xp,
         xpForNext = xpNext,
         progressFraction = fraction,
@@ -97,7 +111,17 @@ fun project(raw: PersistedState, now: Long, zone: TimeZone, balance: GameBalance
         happiness = pet.happiness,
         energy = pet.energy,
         mood = mood,
-        moodLabel = Korean.moodLabel(mood),
+        moodLabel = L10n.t(
+            when (mood) {
+                app.mongle.model.Mood.EGG -> "mood_egg"
+                app.mongle.model.Mood.HAPPY -> "mood_happy"
+                app.mongle.model.Mood.CALM -> "mood_calm"
+                app.mongle.model.Mood.SAD -> "mood_sad"
+                app.mongle.model.Mood.HUNGRY -> "mood_hungry"
+                app.mongle.model.Mood.SLEEPY -> "mood_sleepy"
+                app.mongle.model.Mood.AWAY -> "mood_away"
+            },
+        ),
         pose = PetRules.pose(pet.stage, mood, time),
         outfitId = pet.outfitId,
         coins = state.coins,
@@ -139,6 +163,7 @@ fun project(raw: PersistedState, now: Long, zone: TimeZone, balance: GameBalance
         revealKind = state.revealKind,
         revealLabel = state.revealLabel,
         revealSparkle = state.revealSparkle,
+        reactionBody = if (state.anim.until >= now) state.anim.reactionId else "",
     )
 }
 
@@ -153,19 +178,19 @@ private fun progressOf(stage: Stage, xp: Int, completions: Int, balance: GameBal
         Stage.EGG -> Triple(
             completions / balance.hatchCompletions.toFloat(),
             balance.hatchCompletions,
-            "부화까지 일정 $completions/${balance.hatchCompletions}",
+            L10n.fmt("progress_hatch", completions, balance.hatchCompletions),
         )
         Stage.BABY -> Triple(
             (xp / balance.xpChild.toFloat()).coerceIn(0f, 1f),
             balance.xpChild,
-            "어린이까지 경험치 $xp/${balance.xpChild}",
+            L10n.fmt("progress_child", xp, balance.xpChild),
         )
         Stage.CHILD -> Triple(
             (xp / balance.xpAdult.toFloat()).coerceIn(0f, 1f),
             balance.xpAdult,
-            "어른까지 경험치 $xp/${balance.xpAdult}",
+            L10n.fmt("progress_adult", xp, balance.xpAdult),
         )
-        Stage.ADULT -> Triple(1f, 0, "다 자랐어요")
+        Stage.ADULT -> Triple(1f, 0, L10n.t("progress_done"))
     }
 }
 
@@ -184,6 +209,9 @@ fun GameState.fingerprint(): String = listOf(
     confirmText,
     completions,
     petName,
+    speech,
+    reactionBody,
+    settings.language,
 ).joinToString("|")
 
 @Serializable
@@ -220,6 +248,7 @@ data class WidgetSnapshot(
     val speciesId: String = "base",
     val level: Int = 1,
     val speech: String = "",
+    val language: String = "",
 )
 
 fun GameState.toSnapshot(): WidgetSnapshot {
@@ -240,10 +269,10 @@ fun GameState.toSnapshot(): WidgetSnapshot {
         nextTime = nextSchedule?.timeLabel.orEmpty(),
         pendingGiftName = latestGift?.name.orEmpty(),
         pendingGiftPrice = latestGift?.sellPrice ?: 0,
-        todayName = todayOffer.item.name,
+        todayName = L10n.item(todayOffer.item.id),
         todayPrice = todayOffer.price,
         confirmText = confirmText,
-        presetName = room.name,
+        presetName = L10n.preset(room.wallpaperId),
         wallHex = wallHex,
         floorHex = floorHex,
         bedId = room.bedId.orEmpty(),
@@ -258,6 +287,7 @@ fun GameState.toSnapshot(): WidgetSnapshot {
         speciesId = speciesId,
         level = level,
         speech = speech,
+        language = AppLocale.code(),
     )
 }
 

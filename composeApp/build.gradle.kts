@@ -42,6 +42,7 @@ kotlin {
             implementation(libs.work.runtime)
             implementation(libs.core.ktx)
             implementation(libs.coroutines.core)
+            implementation("com.android.billingclient:billing-ktx:7.1.1")
         }
         getByName("androidUnitTest").dependencies {
             implementation(kotlin("test"))
@@ -64,6 +65,7 @@ fun buildProp(primary: String, legacy: String): String? = buildProp(primary) ?: 
 android {
     namespace = "app.dingrow"
     compileSdk = 36
+    buildFeatures { buildConfig = true }
     defaultConfig {
         applicationId = "app.dingrow"
         minSdk = 26

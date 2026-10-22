@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- 정확한 알람이 기기를 잠깐 깨울 때. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="com.android.vending.BILLING" />
 
     <application
         android:name="app.mongle.MongleApp"
@@ -72,6 +74,9 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
             </intent-filter>
         </receiver>
 

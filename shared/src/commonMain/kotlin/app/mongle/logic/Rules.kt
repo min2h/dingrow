@@ -61,6 +61,10 @@ object Korean {
         RepeatRule.DAILY -> "매일"
         RepeatRule.WEEKLY -> "매주"
         RepeatRule.WEEKDAYS -> "평일"
+        RepeatRule.WEEKENDS -> "주말"
+        RepeatRule.MONTHLY -> "매월"
+        RepeatRule.YEARLY -> "매년"
+        RepeatRule.EVERY_N_DAYS -> "N일마다"
     }
 
     fun repeatLabel(rule: RepeatRule, weekdays: Int): String {
@@ -98,6 +102,13 @@ object Korean {
         Stage.BABY -> "$petName: \"$title\" 하자! 나 기다릴게"
         Stage.CHILD -> "${subject(petName)} 알려줘요. \"$title\" 시간!"
         Stage.ADULT -> "$petName: \"$title\". 같이 해낼 수 있어요"
+    }
+
+    fun clockLabel(millis: Long, zone: TimeZone): String {
+        val ldt = Instant.fromEpochMilliseconds(millis).toLocalDateTime(zone)
+        val hour = ldt.hour.toString().padStart(2, '0')
+        val minute = ldt.minute.toString().padStart(2, '0')
+        return "$hour:$minute"
     }
 
     fun formatWhen(millis: Long, zone: TimeZone): String {
@@ -271,13 +282,13 @@ object PetRules {
     }
 
     fun outingBlock(state: PersistedState, pet: PetRecord, now: Long, balance: GameBalance): String? {
-        if (pet.stage == Stage.EGG || pet.stage == Stage.BABY) return "어린이가 되면 밖에 나갈 수 있어요"
-        if (pet.isOut) return "이미 외출 중이에요"
-        if (pet.pendingGiftDefId != null || state.pendingDropKind.isNotBlank()) return "선물을 먼저 정리해 주세요"
-        if (pet.hunger < balance.outingMinHunger) return "배가 고파서 나가지 않아요"
-        if (pet.energy < balance.outingMinEnergy) return "피곤해서 쉬고 있어요"
+        if (pet.stage == Stage.EGG || pet.stage == Stage.BABY) return app.mongle.l10n.L10n.t("msg_block_stage")
+        if (pet.isOut) return app.mongle.l10n.L10n.t("msg_block_out")
+        if (pet.pendingGiftDefId != null || state.pendingDropKind.isNotBlank()) return app.mongle.l10n.L10n.t("msg_block_gift")
+        if (pet.hunger < balance.outingMinHunger) return app.mongle.l10n.L10n.t("msg_block_hunger")
+        if (pet.energy < balance.outingMinEnergy) return app.mongle.l10n.L10n.t("msg_block_energy")
         if (state.lastOutingEndedAt > 0 && now - state.lastOutingEndedAt < balance.outingCooldownMillis) {
-            return "조금 쉬었다가 다시 나갈 수 있어요"
+            return app.mongle.l10n.L10n.t("msg_block_cool")
         }
         return null
     }
@@ -371,7 +382,7 @@ fun PersistedState.grantImmediate(drop: GiftDrop, now: Long): PersistedState {
         revealKind = drop.kind.name,
         revealLabel = if (drop.kind == DropKind.COINS) "${drop.coins}코인" else def?.name.orEmpty(),
         revealSparkle = drop.sparkle,
-        statusMessage = if (drop.sparkle) drop.reactionLine else statusMessage,
+        statusMessage = if (drop.sparkle) app.mongle.l10n.L10n.t("msg_legendary") else statusMessage,
         statusUntil = if (drop.sparkle) now + 8_000 else statusUntil,
         anim = if (drop.sparkle) PetAnimState("happy", "legendary", drop.reactionId, now + 2_800) else anim,
     )
@@ -388,7 +399,7 @@ fun PersistedState.withDrop(drop: GiftDrop, now: Long): PersistedState {
             pendingGiftDefId = drop.defId,
             pendingGiftAt = if (drop.defId != null) now else pet.pendingGiftAt,
         ),
-        statusMessage = if (legendary) drop.reactionLine else statusMessage,
+        statusMessage = if (legendary) app.mongle.l10n.L10n.t("msg_legendary") else statusMessage,
         statusUntil = if (legendary) now + 8_000 else statusUntil,
         anim = if (legendary) {
             PetAnimState("happy", "legendary", drop.reactionId, now + 2_800)

@@ -5,6 +5,7 @@ import app.mongle.model.AlertStyle
 import app.mongle.model.AppSettings
 import app.mongle.model.Catalog
 import app.mongle.model.EconomyConfig
+import app.mongle.model.EndKind
 import app.mongle.model.ItemDef
 import app.mongle.model.Mood
 import app.mongle.model.PetAnimState
@@ -35,6 +36,11 @@ data class ScheduleDraft(
     val alert: AlertStyle = AlertStyle.SOUND,
     val category: String = "task",
     val weekdays: Int = 0,
+    val interval: Int = 1,
+    val monthOrdinal: Int = 0,
+    val endKind: EndKind = EndKind.NEVER,
+    val endAt: Long = 0,
+    val endCount: Int = 0,
 )
 
 data class PetReaction(
@@ -43,6 +49,7 @@ data class PetReaction(
     val line: String,
     val clip: PetClip,
     val tags: Set<String> = emptySet(),
+    val body: String = "",
 )
 
 data class StoreProduct(
@@ -50,14 +57,27 @@ data class StoreProduct(
     val title: String,
     val coins: Int,
     val premium: Boolean,
+    val priceLabel: String = "",
+    val popular: Boolean = false,
+    val grantsLegendary: Boolean = false,
+    val blurb: String = "",
 )
 
 object StoreProducts {
-    val coinsSmall = StoreProduct("dingrow_coins_small", "코인 120", 120, false)
-    val coinsMedium = StoreProduct("dingrow_coins_medium", "코인 400", 400, false)
-    val coinsLarge = StoreProduct("dingrow_coins_large", "코인 1200", 1200, false)
-    val premium = StoreProduct("dingrow_premium", "광고 없이", 0, true)
-    val all = listOf(coinsSmall, coinsMedium, coinsLarge, premium)
+    val coinsSmall = StoreProduct("dingrow_coins_small", "코인 한 줌", 500, false, "₩1,200", blurb = "500")
+    val coinsMedium = StoreProduct("dingrow_coins_medium", "코인 주머니", 1200, false, "₩2,500", blurb = "1,200")
+    val coinsLarge = StoreProduct("dingrow_coins_large", "코인 상자", 3000, false, "₩5,900", popular = true, blurb = "3,000")
+    val coinsVault = StoreProduct("dingrow_coins_vault", "코인 금고", 6500, false, "₩11,000", blurb = "6,500")
+    val premium = StoreProduct(
+        "dingrow_premium",
+        "프리미엄 팩",
+        10000,
+        true,
+        "₩19,000",
+        blurb = "코인 10,000 + 전설",
+        grantsLegendary = true,
+    )
+    val all = listOf(coinsSmall, coinsMedium, coinsLarge, coinsVault, premium)
     fun byId(id: String): StoreProduct? = all.find { it.id == id }
 }
 
@@ -78,8 +98,8 @@ class FakeBilling : BillingGateway {
 
     override suspend fun purchase(productId: String): StoreReceipt {
         val known = StoreProducts.byId(productId)
-            ?: return StoreReceipt(productId, "", false, "없는 상품이에요")
-        val receipt = StoreReceipt(known.id, "fake:${known.id}:${receipts.size}", true, "테스트 구매")
+            ?: return StoreReceipt(productId, "", false, app.mongle.l10n.L10n.t("msg_unknown_product"))
+        val receipt = StoreReceipt(known.id, "fake:${known.id}:${receipts.size}", true, app.mongle.l10n.L10n.t("msg_test_purchase"))
         receipts += receipt
         return receipt
     }
@@ -144,10 +164,10 @@ object GiftDrops {
         if (kind == DropKind.RARE || kind == DropKind.LEGENDARY) 0 else current + 1
 
     fun label(kind: String): String = when (kind) {
-        "COINS" -> "코인"
-        "COMMON" -> "흔함"
-        "RARE" -> "희귀"
-        "LEGENDARY" -> "전설"
+        "COINS" -> app.mongle.l10n.L10n.t("drop_coins")
+        "COMMON" -> app.mongle.l10n.L10n.t("drop_common")
+        "RARE" -> app.mongle.l10n.L10n.t("drop_rare")
+        "LEGENDARY" -> app.mongle.l10n.L10n.t("drop_legendary")
         else -> ""
     }
 
@@ -196,7 +216,7 @@ object Tips {
         "행복이 높으면 방을 더 자주 걸어 다녀요",
         "이름을 부르듯 머리를 톡톡 눌러 주세요",
     )
-    fun next(index: Int): String = lines[index.floorMod(lines.size)]
+    fun next(index: Int): String = app.mongle.l10n.L10n.tip(index, lines.size)
 }
 
 private fun Int.floorMod(mod: Int): Int {
@@ -204,8 +224,49 @@ private fun Int.floorMod(mod: Int): Int {
     return if (r < 0) r + mod else r
 }
 
+object ReactionBodies {
+    val order = listOf(
+        "bounce", "squish", "spin", "jump", "heart", "blush",
+        "yawn", "surprise", "dance", "bow", "pat", "tickle",
+    )
+
+    fun guess(reaction: PetReaction): String {
+        if (reaction.body.isNotBlank()) return reaction.body
+        val text = reaction.line
+        return when {
+            "깜짝" in text -> "surprise"
+            "하품" in text || "졸" in text -> "yawn"
+            "춤" in text || "랄랄" in text -> "dance"
+            "부끄" in text || "부고" in text -> "blush"
+            "간지" in text || reaction.gesture == PetGesture.SWIPE -> "tickle"
+            "쓰담" in text || reaction.gesture == PetGesture.LONG_PRESS -> "pat"
+            "안녕" in text || "손" in text -> "bow"
+            "사랑" in text || "좋아" in text || "심장" in text -> "heart"
+            "튀" in text || "통통" in text || "팡" in text -> "bounce"
+            "말랑" in text || "포슬" in text -> "squish"
+            "빙글" in text || "데굴" in text -> "spin"
+            else -> "jump"
+        }
+    }
+}
+
 object PetReactions {
-    val all: List<PetReaction> = listOf(
+    val showcase: List<PetReaction> = listOf(
+        posed("bounce", PetGesture.TAP, "통통!", PetClip.HAPPY, "bounce"),
+        posed("squish", PetGesture.TAP, "말랑~", PetClip.IDLE, "squish"),
+        posed("spin", PetGesture.TAP, "빙글빙글", PetClip.HAPPY, "spin"),
+        posed("jump", PetGesture.TAP, "얍!", PetClip.HAPPY, "jump"),
+        posed("heart", PetGesture.TAP, "좋아해!", PetClip.HAPPY, "heart"),
+        posed("blush", PetGesture.TAP, "부고…", PetClip.IDLE, "blush"),
+        posed("yawn", PetGesture.TAP, "졸려…", PetClip.SLEEP, "yawn"),
+        posed("surprise", PetGesture.TAP, "깜짝이야!", PetClip.BLINK, "surprise"),
+        posed("dance", PetGesture.TAP, "랄랄라~", PetClip.HAPPY, "dance"),
+        posed("bow", PetGesture.TAP, "안녕!", PetClip.WALK, "bow"),
+        posed("pat", PetGesture.LONG_PRESS, "기분 좋아~", PetClip.HAPPY, "pat"),
+        posed("tickle", PetGesture.SWIPE, "히히 간지러워!", PetClip.HAPPY, "tickle"),
+    )
+
+    val all: List<PetReaction> = showcase + listOf(
         line("t01", PetGesture.TAP, "간지러워요", PetClip.HAPPY),
         line("t02", PetGesture.TAP, "또 눌러 주세요", PetClip.HAPPY),
         line("t03", PetGesture.TAP, "헤헤, 간식 생각나요", PetClip.EAT, "hungry"),
@@ -289,6 +350,14 @@ object PetReactions {
         clip: PetClip,
         vararg tags: String,
     ) = PetReaction(id, gesture, text, clip, tags.toSet())
+
+    private fun posed(
+        id: String,
+        gesture: PetGesture,
+        text: String,
+        clip: PetClip,
+        body: String,
+    ) = PetReaction(id, gesture, text, clip, emptySet(), body)
 }
 
 object NoticePlan {
@@ -349,10 +418,10 @@ object PetAnimMachine {
             return runCatching { PetClip.valueOf(anim.clip.uppercase()) }.getOrDefault(PetClip.IDLE)
         }
         if (stage == Stage.EGG || pose == Pose.EGG) return PetClip.IDLE
-        if ("먹였" in status) return PetClip.EAT
+        if ("먹였" in status || "Fed" in status) return PetClip.EAT
         if (pose == Pose.SLEEP || energy <= 15) return PetClip.SLEEP
         if (pose == Pose.WALK || pose == Pose.OUT) return PetClip.WALK
-        if (pose == Pose.HAPPY || "완료" in status || "자랐" in status) return PetClip.HAPPY
+        if (pose == Pose.HAPPY || "완료" in status || "자랐" in status || "Done" in status || "Grew" in status) return PetClip.HAPPY
         return PetClip.IDLE
     }
 
@@ -368,6 +437,7 @@ object MetaCodec {
         if (value.soundEnabled) "1" else "0",
         if (value.vibrateEnabled) "1" else "0",
         value.alarmSound.name,
+        value.language.ifBlank { "system" },
     ).joinToString("|")
 
     fun parseSettings(raw: String?): AppSettings {
@@ -382,6 +452,7 @@ object MetaCodec {
             soundEnabled = parts[4] != "0",
             vibrateEnabled = parts[5] != "0",
             alarmSound = runCatching { AlarmSound.valueOf(parts[6]) }.getOrDefault(AlarmSound.SOFT),
+            language = parts.getOrNull(7)?.takeIf { it == "ko" || it == "en" || it == "system" } ?: "system",
         )
     }
 
@@ -406,6 +477,17 @@ object MetaCodec {
         row.alert.name,
         row.category,
         row.weekdays.toString(),
+        row.interval.toString(),
+        row.monthOrdinal.toString(),
+        row.endKind.name,
+        row.endAt.toString(),
+        row.endCount.toString(),
+        row.anchorMillis.toString(),
+        row.seriesId,
+        row.exdates,
+        row.doneDates,
+        row.skipDates,
+        row.snoozedFrom.toString(),
     ).joinToString("|")
 
     fun applySchedule(row: ScheduleRecord, raw: String?): ScheduleRecord {
@@ -419,6 +501,17 @@ object MetaCodec {
             alert = alert,
             category = parts[2].ifBlank { "task" },
             weekdays = parts[3].toIntOrNull() ?: 0,
+            interval = parts.getOrNull(4)?.toIntOrNull()?.coerceAtLeast(1) ?: 1,
+            monthOrdinal = parts.getOrNull(5)?.toIntOrNull() ?: 0,
+            endKind = parts.getOrNull(6)?.let { runCatching { EndKind.valueOf(it) }.getOrNull() } ?: EndKind.NEVER,
+            endAt = parts.getOrNull(7)?.toLongOrNull() ?: 0L,
+            endCount = parts.getOrNull(8)?.toIntOrNull() ?: 0,
+            anchorMillis = parts.getOrNull(9)?.toLongOrNull() ?: 0L,
+            seriesId = parts.getOrNull(10).orEmpty(),
+            exdates = parts.getOrNull(11).orEmpty(),
+            doneDates = parts.getOrNull(12).orEmpty(),
+            skipDates = parts.getOrNull(13).orEmpty(),
+            snoozedFrom = parts.getOrNull(14)?.toLongOrNull() ?: 0L,
         )
     }
 

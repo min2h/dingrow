@@ -38,10 +38,33 @@ enum AppGroup {
     }
 }
 
+enum DingrowStrings {
+    static func text(_ key: String, language: String) -> String {
+        let lang = resolved(language)
+        if let path = Bundle.main.path(forResource: lang, ofType: "lproj"),
+           let localized = Bundle(path: path) {
+            let value = localized.localizedString(forKey: key, value: key, table: nil)
+            if value != key { return value }
+        }
+        return NSLocalizedString(key, comment: "")
+    }
+
+    static func format(_ key: String, language: String, _ args: [CVarArg]) -> String {
+        let pattern = text(key, language: language).replacingOccurrences(of: "%s", with: "%@")
+        return String(format: pattern, locale: Locale(identifier: resolved(language)), arguments: args)
+    }
+
+    static func resolved(_ language: String) -> String {
+        if language == "ko" || language == "en" { return language }
+        let code = Locale.current.language.languageCode?.identifier ?? "en"
+        return code == "ko" ? "ko" : "en"
+    }
+}
+
 struct WidgetSnapshot: Codable {
-    var petName: String = "몽이"
-    var stageLabel: String = "알"
-    var moodLabel: String = "포근함"
+    var petName: String = "Mongi"
+    var stageLabel: String = "Egg"
+    var moodLabel: String = "Calm"
     var pose: String = "idle"
     var hunger: Int = 80
     var happiness: Int = 80
@@ -56,7 +79,7 @@ struct WidgetSnapshot: Codable {
     var todayName: String = ""
     var todayPrice: Int = 0
     var confirmText: String = ""
-    var presetName: String = "포근한 방"
+    var presetName: String = "Cozy room"
     var wallHex: String = "#FFF6EE"
     var floorHex: String = "#F3D7B5"
     var bedId: String = ""
@@ -70,23 +93,29 @@ struct WidgetSnapshot: Codable {
     var progressLabel: String = ""
     var speciesId: String = "base"
     var level: Int = 1
+    var speech: String = ""
+    var language: String = ""
 
-    static let placeholder = WidgetSnapshot(
-        petName: "몽이",
-        stageLabel: "아기",
-        moodLabel: "기분 좋아요",
-        pose: "happy",
-        hunger: 72,
-        happiness: 84,
-        energy: 70,
-        coins: 40,
-        nextTitle: "물 마시기",
-        nextTime: "오늘 09:00",
-        todayName: "풀잎 쿠키",
-        todayPrice: 11,
-        presetName: "포근한 방",
-        progressLabel: "어린이까지 경험치 8/50"
-    )
+    static var placeholder: WidgetSnapshot {
+        let lang = DingrowStrings.resolved("")
+        return WidgetSnapshot(
+            petName: DingrowStrings.text("widget_preview_pet", language: lang),
+            stageLabel: DingrowStrings.text("widget_preview_stage", language: lang),
+            moodLabel: DingrowStrings.text("widget_preview_mood", language: lang),
+            pose: "happy",
+            hunger: 72,
+            happiness: 84,
+            energy: 70,
+            coins: 40,
+            nextTitle: DingrowStrings.text("widget_preview_task", language: lang),
+            nextTime: DingrowStrings.text("widget_preview_time", language: lang),
+            todayName: DingrowStrings.text("widget_preview_item", language: lang),
+            todayPrice: 11,
+            presetName: DingrowStrings.text("widget_preview_preset", language: lang),
+            progressLabel: DingrowStrings.text("widget_preview_progress", language: lang),
+            language: lang
+        )
+    }
 }
 
 enum MongleKit {
@@ -155,5 +184,11 @@ enum MongleKit {
     static func snooze(id: String) -> String {
         start()
         return MongleBridge.shared.snooze(id: id)
+    }
+
+    @discardableResult
+    static func acknowledge(id: String) -> String {
+        start()
+        return MongleBridge.shared.acknowledge(id: id)
     }
 }

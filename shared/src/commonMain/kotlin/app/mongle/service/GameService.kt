@@ -3,32 +3,60 @@ package app.mongle.service
 import app.mongle.data.GameStore
 import app.mongle.data.Seed
 import app.mongle.data.newId
+import app.mongle.logic.BillingGateway
+import app.mongle.l10n.AppLocale
+import app.mongle.l10n.L10n
+import app.mongle.logic.FakeBilling
+import app.mongle.logic.FreeDecor
 import app.mongle.logic.GiftDrops
 import app.mongle.logic.Korean
+import app.mongle.logic.NoticePlan
+import app.mongle.logic.PetGesture
+import app.mongle.logic.PetReactions
 import app.mongle.logic.PetRules
+import app.mongle.logic.ReactionBodies
+import app.mongle.logic.Recurrence
+import app.mongle.logic.ScheduleDraft
 import app.mongle.logic.ScheduleRules
+import app.mongle.logic.StoreProducts
+import app.mongle.logic.Tips
+import app.mongle.logic.addMillis
 import app.mongle.logic.beginOuting
 import app.mongle.logic.grantImmediate
 import app.mongle.logic.keptGift
 import app.mongle.logic.levelOf
+import app.mongle.logic.parseMillis
 import app.mongle.logic.resellAmount
 import app.mongle.logic.resolveState
+import app.mongle.logic.spec
 import app.mongle.logic.withDrop
 import app.mongle.model.ActionRecord
 import app.mongle.model.ActionResult
+import app.mongle.model.AlertStyle
+import app.mongle.model.AppSettings
 import app.mongle.model.Catalog
 import app.mongle.model.CompletionRecord
 import app.mongle.model.DecorSlot
+import app.mongle.model.EditScope
+import app.mongle.model.EndKind
 import app.mongle.model.GameBalance
 import app.mongle.model.ItemKind
 import app.mongle.model.LegacyIds
 import app.mongle.model.LedgerEntry
 import app.mongle.model.PersistedState
+import app.mongle.model.PetAnimState
+import app.mongle.model.Placement
 import app.mongle.model.RepeatRule
 import app.mongle.model.RoomPreset
 import app.mongle.model.ScheduleRecord
 import app.mongle.model.SpeciesCatalog
 import app.mongle.model.Stage
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.minus
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 import app.mongle.platform.PlatformNotifier
 import app.mongle.platform.ScheduledNotice
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,9 +81,11 @@ class GameService(
     private val balance: GameBalance = GameBalance(),
     private val authority: EconomyAuthority = LocalEconomyAuthority(balance),
     private val notifier: PlatformNotifier = PlatformNotifier(),
+    private val billing: BillingGateway = FakeBilling(),
 ) {
     private val mutex = Mutex()
     private var lastNotices: List<ScheduledNotice>? = null
+    private var forceNotices = false
     private var lastFingerprint: String? = null
 
     private val initial = run {
@@ -72,81 +102,273 @@ class GameService(
     val state: StateFlow<app.mongle.model.GameState> = _state
 
     init {
+        AppLocale.preference = initial.settings.language
         lastFingerprint = _state.value.fingerprint()
     }
 
     suspend fun refresh(): ActionResult = mutate { state, _ -> done(state, ActionResult(true, "")) }
 
+    /** 재부팅·시간대 변경 뒤 알람 매니저가 비어도 다음 회차를 다시 등록한다. */
+    suspend fun refreshAlarms(): ActionResult {
+        forceNotices = true
+        return refresh()
+    }
+
     suspend fun tick(): ActionResult = mutate { state, now ->
         val pet = state.pet
         val block = PetRules.outingBlock(state, pet, now, balance)
-        if (block == null) done(beginOuting(state, now, balance), ActionResult(true, "몽이가 외출을 떠났어요"))
+        if (block == null) done(beginOuting(state, now, balance), ActionResult(true, L10n.t("msg_outing_left_short")))
         else done(state, ActionResult(true, ""))
     }
 
     suspend fun setName(name: String): ActionResult = mutate { state, _ ->
         val trimmed = name.trim()
-        if (trimmed.isEmpty()) return@mutate done(state, ActionResult(false, "이름을 적어 주세요"))
-        if (trimmed.length > 12) return@mutate done(state, ActionResult(false, "이름은 12자까지예요"))
-        done(state.copy(pet = state.pet.copy(name = trimmed)), ActionResult(true, "${trimmed}라고 부를게요"))
+        if (trimmed.isEmpty()) return@mutate done(state, ActionResult(false, L10n.t("msg_need_name")))
+        if (trimmed.length > 12) return@mutate done(state, ActionResult(false, L10n.t("msg_name_len")))
+        done(state.copy(pet = state.pet.copy(name = trimmed)), ActionResult(true, L10n.fmt("msg_named", trimmed)))
     }
 
     suspend fun completeOnboarding(name: String): ActionResult = mutate { state, _ ->
         val trimmed = name.trim().ifBlank { state.pet.name }
-        if (trimmed.length > 12) return@mutate done(state, ActionResult(false, "이름은 12자까지예요"))
+        if (trimmed.length > 12) return@mutate done(state, ActionResult(false, L10n.t("msg_name_len")))
         done(
             state.copy(pet = state.pet.copy(name = trimmed), onboarded = true),
-            ActionResult(true, "잘 부탁해, $trimmed"),
+            ActionResult(true, L10n.fmt("msg_hello", trimmed)),
         )
     }
 
     suspend fun addSchedule(title: String, timeMillis: Long, repeat: RepeatRule): ActionResult = mutate { state, now ->
-        val trimmed = title.trim()
-        if (trimmed.isEmpty()) return@mutate done(state, ActionResult(false, "할 일을 적어 주세요"))
-        if (trimmed.length > 40) return@mutate done(state, ActionResult(false, "제목은 40자까지예요"))
-        if (state.schedules.count { !it.done } >= balance.maxSchedules) {
-            return@mutate done(state, ActionResult(false, "일정은 ${balance.maxSchedules}개까지예요"))
-        }
-        val row = ScheduleRecord(
-            id = newId(now),
-            title = trimmed,
-            timeMillis = timeMillis,
-            repeat = repeat,
-            done = false,
-            createdAt = now,
-            completedAt = null,
-            tz = zone.id,
+        insertDraft(
+            state,
+            ScheduleDraft(
+                title = title,
+                timeMillis = timeMillis,
+                repeat = repeat,
+                leadsMinutes = listOf(state.settings.defaultLeadMinutes),
+            ),
+            now,
         )
-        done(state.copy(schedules = state.schedules + row), ActionResult(true, "\"$trimmed\" 알려줄게요"))
+    }
+
+    suspend fun addDraft(draft: ScheduleDraft): ActionResult = mutate { state, now -> insertDraft(state, draft, now) }
+
+    suspend fun editSchedule(rawId: String, scope: EditScope, draft: ScheduleDraft): ActionResult = mutate { state, now ->
+        val id = rawId.substringBefore('@')
+        val row = state.schedules.find { it.id == id } ?: return@mutate done(state, ActionResult(false, L10n.t("msg_missing_task")))
+        val occurrence = rawId.substringAfter('@', "").toLongOrNull() ?: row.timeMillis
+        val trimmed = draft.title.trim()
+        if (trimmed.isEmpty()) return@mutate done(state, ActionResult(false, L10n.t("msg_need_task")))
+        when (scope) {
+            EditScope.ONE -> {
+                val parent = row.copy(exdates = addMillis(row.exdates, occurrence))
+                val advanced = if (occurrence == row.timeMillis || occurrence == row.snoozedFrom) {
+                    val spec = parent.spec()
+                    val next = Recurrence.nextOpen(occurrence, spec, now, closedOf(parent))
+                    if (next == null) parent.copy(done = true, snoozedFrom = 0) else parent.copy(timeMillis = next, snoozedFrom = 0, anchorMillis = spec.anchorMillis)
+                } else {
+                    parent
+                }
+                val child = fromDraft(draft.copy(title = trimmed, repeat = RepeatRule.NONE), now).copy(seriesId = row.id)
+                done(
+                    state.copy(schedules = state.schedules.map { if (it.id == id) advanced else it } + child),
+                    ActionResult(true, L10n.t("msg_edited_one")),
+                )
+            }
+            EditScope.FOLLOWING -> {
+                val tz = ScheduleRules.zoneOrUtc(row.tz.ifBlank { zone.id })
+                val prev = Instant.fromEpochMilliseconds(occurrence).toLocalDateTime(tz).date.minus(1, DateTimeUnit.DAY)
+                val endAt = LocalDateTime(prev.year, prev.monthNumber, prev.dayOfMonth, 23, 59).toInstant(tz).toEpochMilliseconds()
+                val parent = row.copy(endKind = EndKind.UNTIL, endAt = endAt)
+                val stopped = if (row.timeMillis >= occurrence) parent.copy(done = true, snoozedFrom = 0) else parent
+                val child = fromDraft(draft.copy(title = trimmed), now)
+                done(
+                    state.copy(schedules = state.schedules.map { if (it.id == id) stopped else it } + child),
+                    ActionResult(true, L10n.t("msg_edited_following")),
+                )
+            }
+            EditScope.ALL -> {
+                val updated = fromDraft(draft.copy(title = trimmed), row.createdAt).copy(
+                    id = row.id,
+                    seriesId = row.seriesId,
+                    createdAt = row.createdAt,
+                    doneDates = row.doneDates,
+                    skipDates = row.skipDates,
+                )
+                done(
+                    state.copy(schedules = state.schedules.map { if (it.id == id) updated else it }),
+                    ActionResult(true, L10n.t("msg_edited_all")),
+                )
+            }
+        }
+    }
+
+    suspend fun skipSchedule(rawId: String): ActionResult = mutate { state, now ->
+        val located = locate(state, rawId) ?: return@mutate done(state, ActionResult(false, L10n.t("msg_missing_task")))
+        val (row, at) = located
+        val skipped = row.copy(skipDates = addMillis(row.skipDates, at))
+        val nextRow = if (row.repeat == RepeatRule.NONE) {
+            skipped.copy(done = true, snoozedFrom = 0)
+        } else {
+            val spec = skipped.spec()
+            val next = Recurrence.nextOpen(at, spec, now, closedOf(skipped))
+            if (next == null) skipped.copy(done = true, snoozedFrom = 0) else skipped.copy(timeMillis = next, snoozedFrom = 0, done = false, anchorMillis = spec.anchorMillis)
+        }
+        done(
+            state.copy(schedules = state.schedules.map { if (it.id == row.id) nextRow else it }),
+            ActionResult(true, L10n.t("msg_skipped")),
+        )
     }
 
     suspend fun deleteSchedule(id: String): ActionResult = mutate { state, _ ->
-        done(state.copy(schedules = state.schedules.filterNot { it.id == id }), ActionResult(true, "일정을 지웠어요"))
+        done(state.copy(schedules = state.schedules.filterNot { it.id == id }), ActionResult(true, L10n.t("msg_deleted")))
     }
 
-    suspend fun snooze(id: String): ActionResult = mutate { state, now ->
-        val row = state.schedules.find { it.id == id } ?: return@mutate done(state, ActionResult(false, "일정을 찾지 못했어요"))
-        val moved = row.copy(timeMillis = now + 10 * 60 * 1000, done = false)
-        val next = state.schedules.map { if (it.id == id) moved else it }
-        done(state.copy(schedules = next), ActionResult(true, "10분 뒤로 미뤘어요"))
+    suspend fun snooze(rawId: String): ActionResult = mutate { state, now ->
+        val located = locate(state, rawId) ?: return@mutate done(state, ActionResult(false, L10n.t("msg_missing_task")))
+        val (row, at) = located
+        val origin = if (row.snoozedFrom != 0L) row.snoozedFrom else at
+        val anchor = if (row.anchorMillis > 0) row.anchorMillis else origin
+        val moved = row.copy(
+            timeMillis = now + 5 * 60 * 1000,
+            done = false,
+            anchorMillis = anchor,
+            snoozedFrom = if (row.repeat == RepeatRule.NONE) 0L else origin,
+        )
+        val next = state.schedules.map { if (it.id == row.id) moved else it }
+        done(state.copy(schedules = next), ActionResult(true, L10n.t("msg_snoozed")))
+    }
+
+    suspend fun acknowledge(rawId: String): ActionResult = mutate { state, now ->
+        if (locate(state, rawId) == null && rawId.isNotBlank() && state.schedules.none { it.id == rawId.substringBefore('@') }) {
+            return@mutate done(state, ActionResult(false, L10n.t("msg_missing_task")))
+        }
+        val full = state.pet.hunger >= balance.fullHunger
+        val xp = 4
+        var pet = state.pet.copy(
+            hunger = if (full) state.pet.hunger else (state.pet.hunger + 18).coerceAtMost(100),
+            happiness = (state.pet.happiness + if (full) 0 else 4).coerceAtMost(100),
+            xp = state.pet.xp + xp,
+        )
+        pet = PetRules.evolve(pet, now, zone, balance)
+        val message = if (full) L10n.fmt("msg_ack_full", xp) else L10n.fmt("msg_ack_feed", xp)
+        done(state.copy(pet = pet), ActionResult(true, message))
+    }
+
+    suspend fun react(gesture: PetGesture): ActionResult = mutate { state, now ->
+        val hour = Instant.fromEpochMilliseconds(now).toLocalDateTime(zone).hour
+        val mood = PetRules.mood(state.pet, now, PetRules.timeOfDay(now, zone))
+        val picked = PetReactions.pick(
+            gesture,
+            mood,
+            hour,
+            state.pet.hunger,
+            levelOf(state.pet.stage),
+            now xor state.pet.completions.toLong(),
+        )
+        val body = ReactionBodies.guess(picked)
+        val anim = PetAnimState(
+            clip = picked.clip.name.lowercase(),
+            trigger = body,
+            reactionId = body,
+            until = now + 1_200,
+        )
+        done(state.copy(anim = anim), ActionResult(true, L10n.react(picked.id, picked.line)))
+    }
+
+    suspend fun updateSettings(next: AppSettings): ActionResult = mutate { state, _ ->
+        AppLocale.preference = next.language
+        done(state.copy(settings = next), ActionResult(true, L10n.t("msg_settings_saved")))
+    }
+
+    suspend fun showTip(): ActionResult = mutate { state, now ->
+        if (!state.settings.tipsEnabled) return@mutate done(state, ActionResult(false, L10n.t("msg_tips_off")))
+        if (now - state.lastTipAt < 60_000 && state.lastTipAt != 0L) {
+            return@mutate done(state, ActionResult(false, L10n.t("msg_tip_wait")))
+        }
+        val line = Tips.next(state.tipIndex)
+        done(state.copy(lastTipAt = now, tipIndex = state.tipIndex + 1), ActionResult(true, line))
+    }
+
+    suspend fun placeDecor(defId: String): ActionResult = mutate { state, now ->
+        if (!FreeDecor.allowed(defId, state.owned)) return@mutate done(state, ActionResult(false, L10n.t("msg_buy_first")))
+        if (state.placements.any { it.defId == defId }) return@mutate done(state, ActionResult(true, L10n.t("msg_already_placed")))
+        val placed = state.placements + Placement(defId, 50, 70, 0)
+        done(state.copy(placements = placed), ActionResult(true, L10n.t("msg_placed_free")))
+    }
+
+    suspend fun rotatePlacement(defId: String): ActionResult = mutate { state, _ ->
+        val next = state.placements.map { if (it.defId == defId) it.copy(rotation = (it.rotation + 90) % 360) else it }
+        done(state.copy(placements = next), ActionResult(true, L10n.t("msg_rotated")))
+    }
+
+    suspend fun removePlacement(defId: String): ActionResult = mutate { state, _ ->
+        done(state.copy(placements = state.placements.filterNot { it.defId == defId }), ActionResult(true, L10n.t("msg_cleared")))
+    }
+
+    suspend fun resellOwned(defId: String): ActionResult = mutate { state, now ->
+        if (defId !in state.owned && state.gifts.none { it.defId == defId }) {
+            return@mutate done(state, ActionResult(false, L10n.t("msg_not_owned")))
+        }
+        val gift = state.gifts.find { it.defId == defId }
+        sellDef(state, defId, now, fromPending = false, instanceId = gift?.instanceId)
+    }
+
+    suspend fun purchaseProduct(productId: String): ActionResult {
+        val receipt = billing.purchase(productId)
+        if (!receipt.ok) return receiptToResult(receipt.message, false)
+        return grantStoreProduct(productId, receipt.token)
+    }
+
+    suspend fun restorePurchases(): ActionResult {
+        val receipts = billing.restore().filter { it.ok && it.token.isNotBlank() }
+        if (receipts.isEmpty()) return receiptToResult(L10n.t("msg_nothing_restore"), false)
+        var last = ActionResult(true, L10n.t("msg_restored"))
+        receipts.forEach { receipt ->
+            last = grantStoreProduct(receipt.productId, receipt.token)
+        }
+        return last
+    }
+
+    suspend fun grantStoreProduct(productId: String, token: String): ActionResult = mutate { state, now ->
+        val product = StoreProducts.byId(productId) ?: return@mutate done(state, ActionResult(false, L10n.t("msg_unknown_product")))
+        val key = "iap:$token"
+        if (token.isBlank()) return@mutate done(state, ActionResult(false, L10n.t("msg_no_receipt")))
+        if (token in state.iapTokens || state.ledger.any { it.idempotencyKey == key }) {
+            return@mutate done(state, ActionResult(true, L10n.t("msg_already_granted")))
+        }
+        val owned = if (product.grantsLegendary) state.owned + "comet_shard" else state.owned
+        done(
+            state.copy(
+                coins = state.coins + product.coins,
+                premium = state.premium || product.premium,
+                owned = owned,
+                iapTokens = state.iapTokens + token,
+                ledger = state.ledger + LedgerEntry(newId(now), product.coins, "IAP", productId, now, key),
+            ),
+            ActionResult(true, L10n.fmt("msg_coins_in", product.coins)),
+        )
+    }
+
+    private suspend fun receiptToResult(message: String, ok: Boolean): ActionResult = mutate { state, _ ->
+        done(state, ActionResult(ok, message))
     }
 
     suspend fun completeSchedule(id: String): ActionResult = mutate { state, now -> complete(state, id, now) }
 
     suspend fun completeNext(): ActionResult = mutate { state, now ->
         val next = state.schedules.filter { !it.done }.minByOrNull { it.timeMillis }
-            ?: return@mutate done(state, ActionResult(false, "남은 일정이 없어요"))
+            ?: return@mutate done(state, ActionResult(false, L10n.t("msg_no_tasks_left")))
         complete(state, next.id, now)
     }
 
     suspend fun feed(foodId: String? = null): ActionResult = mutate { state, now ->
         val pet = state.pet
-        if (pet.hunger >= balance.fullHunger) return@mutate done(state, ActionResult(false, "배가 불러요"))
+        if (pet.hunger >= balance.fullHunger) return@mutate done(state, ActionResult(false, L10n.t("msg_full")))
         val chosen = foodId ?: state.foods.entries.firstOrNull { it.value > 0 }?.key
         val def = Catalog.byId(chosen)
-        if (def == null || def.kind != ItemKind.FOOD) return@mutate done(state, ActionResult(false, "먹이가 없어요. 상점에서 사 주세요"))
+        if (def == null || def.kind != ItemKind.FOOD) return@mutate done(state, ActionResult(false, L10n.t("msg_no_food")))
         val qty = state.foods[def.id] ?: 0
-        if (qty <= 0) return@mutate done(state, ActionResult(false, "먹이가 없어요. 상점에서 사 주세요"))
+        if (qty <= 0) return@mutate done(state, ActionResult(false, L10n.t("msg_no_food")))
         var updated = pet.copy(
             hunger = (pet.hunger + def.hunger).coerceAtMost(100),
             happiness = (pet.happiness + def.happiness).coerceAtMost(100),
@@ -157,9 +379,9 @@ class GameService(
         val foods = state.foods.toMutableMap()
         foods[def.id] = qty - 1
         val message = if (updated.stage != before) {
-            "${Korean.stageLabel(updated.stage)}로 자랐어요"
+            L10n.fmt("msg_grew", L10n.stage(updated.stage))
         } else {
-            "${def.name}${Korean.eulReul(def.name)} 먹였어요. 포만감 +${def.hunger}"
+            L10n.fmt("msg_fed", L10n.item(def.id), def.hunger)
         }
         done(state.copy(pet = updated, foods = foods), ActionResult(true, message))
     }
@@ -167,12 +389,12 @@ class GameService(
     suspend fun startOuting(): ActionResult = mutate { state, now ->
         val reason = PetRules.outingBlock(state, state.pet, now, balance)
         if (reason != null) return@mutate done(state, ActionResult(false, reason))
-        done(beginOuting(state, now, balance), ActionResult(true, "몽이가 산책을 떠났어요"))
+        done(beginOuting(state, now, balance), ActionResult(true, L10n.t("msg_outing_left")))
     }
 
     suspend fun keepGift(): ActionResult = mutate { state, now ->
         if (state.pendingDropKind == "COINS") return@mutate claimCoins(state, now)
-        val defId = state.pet.pendingGiftDefId ?: return@mutate done(state, ActionResult(false, "도착한 선물이 없어요"))
+        val defId = state.pet.pendingGiftDefId ?: return@mutate done(state, ActionResult(false, L10n.t("msg_no_gift")))
         val def = Catalog.byId(defId)
         val gift = keptGift(defId, now)
         done(
@@ -185,7 +407,7 @@ class GameService(
                 owned = if (defId in Catalog.uniqueIds) state.owned + defId else state.owned,
                 ownedAt = if (defId in Catalog.uniqueIds) state.ownedAt + (defId to now) else state.ownedAt,
             ),
-            ActionResult(true, "${def?.name ?: "선물"}을 보관했어요"),
+            ActionResult(true, L10n.fmt("msg_kept", def?.let { L10n.item(it.id) } ?: L10n.t("gift"))),
         )
     }
 
@@ -194,13 +416,13 @@ class GameService(
         val pending = state.pet.pendingGiftDefId
         if (pending != null) return@mutate sellDef(state, pending, now, fromPending = true, instanceId = null)
         val latest = state.gifts.maxByOrNull { it.acquiredAt }
-            ?: return@mutate done(state, ActionResult(false, "팔 선물이 없어요"))
+            ?: return@mutate done(state, ActionResult(false, L10n.t("msg_no_sell")))
         sellDef(state, latest.defId, now, fromPending = false, instanceId = latest.instanceId)
     }
 
     suspend fun sellGift(instanceId: String): ActionResult = mutate { state, now ->
         val gift = state.gifts.find { it.instanceId == instanceId }
-            ?: return@mutate done(state, ActionResult(false, "선물을 찾지 못했어요"))
+            ?: return@mutate done(state, ActionResult(false, L10n.t("msg_gift_missing")))
         sellDef(state, gift.defId, now, fromPending = false, instanceId = instanceId)
     }
 
@@ -220,16 +442,16 @@ class GameService(
         if (decision is GrantDecision.Deny) return@mutate done(state, ActionResult(false, decision.message))
         done(
             state.copy(pendingConfirmDef = offer.item.id, pendingConfirmUntil = now + balance.confirmWindowMillis),
-            ActionResult(true, "${offer.item.name}${Korean.eulReul(offer.item.name)} ${offer.price}코인에 살까요?"),
+            ActionResult(true, L10n.fmt("confirm_buy", L10n.item(offer.item.id), offer.price)),
         )
     }
 
     suspend fun confirmBuy(): ActionResult = mutate { state, now ->
-        val defId = state.pendingConfirmDef ?: return@mutate done(state, ActionResult(false, "확인할 구매가 없어요"))
+        val defId = state.pendingConfirmDef ?: return@mutate done(state, ActionResult(false, L10n.t("msg_no_confirm")))
         if (now > state.pendingConfirmUntil) {
             return@mutate done(
                 state.copy(pendingConfirmDef = null, pendingConfirmUntil = 0),
-                ActionResult(false, "구매 확인 시간이 지났어요"),
+                ActionResult(false, L10n.t("msg_confirm_timeout")),
             )
         }
         val key = "buy:$defId:${state.pendingConfirmUntil}"
@@ -246,30 +468,30 @@ class GameService(
     suspend fun cancelBuy(): ActionResult = mutate { state, _ ->
         done(
             state.copy(pendingConfirmDef = null, pendingConfirmUntil = 0),
-            ActionResult(true, "구매를 취소했어요"),
+            ActionResult(true, L10n.t("msg_buy_cancelled")),
         )
     }
 
     suspend fun equipOutfit(defId: String?): ActionResult = mutate { state, _ ->
         if (defId != null && (defId !in state.owned || Catalog.byId(defId)?.kind != ItemKind.OUTFIT)) {
-            return@mutate done(state, ActionResult(false, "가지고 있는 옷이 아니에요"))
+            return@mutate done(state, ActionResult(false, L10n.t("msg_not_outfit")))
         }
-        val label = if (defId == null) "옷을 벗었어요" else "${Catalog.byId(defId)?.name}을 입었어요"
+        val label = if (defId == null) L10n.t("msg_outfit_off") else L10n.fmt("msg_outfit_on", L10n.item(defId))
         done(state.copy(pet = state.pet.copy(outfitId = defId)), ActionResult(true, label))
     }
 
     suspend fun equipSpecies(defId: String): ActionResult = mutate { state, now ->
         val species = SpeciesCatalog.all.find { it.id == defId }
-            ?: return@mutate done(state, ActionResult(false, "모르는 친구예요"))
+            ?: return@mutate done(state, ActionResult(false, L10n.t("msg_unknown_friend")))
         val free = species.price == 0
         if (defId !in state.owned && !free) {
-            return@mutate done(state, ActionResult(false, "아직 만나지 못한 친구예요"))
+            return@mutate done(state, ActionResult(false, L10n.t("msg_not_met")))
         }
         val owned = if (defId in state.owned) state.owned else state.owned + defId
         val ownedAt = if (defId in state.ownedAt) state.ownedAt else state.ownedAt + (defId to now)
         done(
             state.copy(pet = state.pet.copy(speciesId = species.id), owned = owned, ownedAt = ownedAt),
-            ActionResult(true, "${species.name}${Korean.eulReul(species.name)} 데려왔어요"),
+            ActionResult(true, L10n.fmt("msg_brought", L10n.species(species.id))),
         )
     }
 
@@ -277,42 +499,45 @@ class GameService(
         if (defId != null) {
             val item = Catalog.byId(defId)
             if (item == null || item.id !in state.owned || Catalog.slotOf(item.kind) != slot) {
-                return@mutate done(state, ActionResult(false, "이 칸에 놓을 수 없어요"))
+                return@mutate done(state, ActionResult(false, L10n.t("msg_bad_slot")))
             }
         }
         val presets = state.presets.map { preset ->
             if (preset.index != state.activePreset) preset else applySlot(preset, slot, defId)
         }
-        val name = if (defId == null) "치웠어요" else "${Catalog.byId(defId)?.name}을 두었어요"
+        val name = if (defId == null) L10n.t("msg_slot_cleared") else L10n.fmt("msg_slot_set", L10n.item(defId))
         done(state.copy(presets = presets), ActionResult(true, name))
     }
 
     suspend fun selectPreset(index: Int): ActionResult = mutate { state, _ ->
-        if (state.presets.none { it.index == index }) return@mutate done(state, ActionResult(false, "방이 없어요"))
-        val name = state.presets.first { it.index == index }.name
-        done(state.copy(activePreset = index), ActionResult(true, "$name 으로 바꿨어요"))
+        if (state.presets.none { it.index == index }) return@mutate done(state, ActionResult(false, L10n.t("msg_no_room")))
+        val picked = state.presets.first { it.index == index }
+        done(state.copy(activePreset = index), ActionResult(true, L10n.fmt("msg_room_changed", L10n.preset(picked.wallpaperId))))
     }
 
     suspend fun cyclePreset(): ActionResult = mutate { state, _ ->
         val order = state.presets.sortedBy { it.index }
         val pos = order.indexOfFirst { it.index == state.activePreset }.coerceAtLeast(0)
         val next = order[(pos + 1) % order.size]
-        done(state.copy(activePreset = next.index), ActionResult(true, "${next.name}으로 바꿨어요"))
+        done(state.copy(activePreset = next.index), ActionResult(true, L10n.fmt("msg_room_changed", L10n.preset(next.wallpaperId))))
     }
 
-    private fun complete(state: PersistedState, id: String, now: Long): Mutate {
-        val row = state.schedules.find { it.id == id } ?: return done(state, ActionResult(false, "일정을 찾지 못했어요"))
-        if (row.done && row.repeat == RepeatRule.NONE) return done(state, ActionResult(false, "이미 완료한 일정이에요"))
+    private fun complete(state: PersistedState, rawId: String, now: Long): Mutate {
+        val located = locate(state, rawId) ?: return done(state, ActionResult(false, L10n.t("msg_missing_task")))
+        val (row, consumed) = located
+        val id = row.id
+        if (row.done && row.repeat == RepeatRule.NONE) return done(state, ActionResult(false, L10n.t("msg_already_done")))
+        if (consumed in parseMillis(row.doneDates)) return done(state, ActionResult(false, L10n.t("msg_already_done")))
         val last = state.completions.filter { it.scheduleId == id }.maxByOrNull { it.completedAt }
         if (last != null && now - last.completedAt < balance.repeatGuardMillis) {
-            return done(state, ActionResult(false, "방금 완료했어요"))
+            return done(state, ActionResult(false, L10n.t("msg_just_done")))
         }
         val day = Korean.dayKey(now, zone)
         val rewardedToday = if (state.rewardDay == day) state.rewardCount else 0
         val decision = authority.grantCompletion(
             CompletionRequest(
                 createdAt = row.createdAt,
-                scheduledAt = row.timeMillis,
+                scheduledAt = consumed,
                 now = now,
                 stage = state.pet.stage,
                 rewardedToday = rewardedToday,
@@ -328,18 +553,12 @@ class GameService(
         )
         pet = PetRules.evolve(pet, now, zone, balance)
         val schedules = state.schedules.map { item ->
-            if (item.id != id) item
-            else if (item.repeat == RepeatRule.NONE) item.copy(done = true, completedAt = now)
-            else item.copy(
-                done = false,
-                completedAt = now,
-                timeMillis = ScheduleRules.advance(item.timeMillis, item.repeat, item.tz, now),
-            )
+            if (item.id != id) item else finishOccurrence(item, consumed, now)
         }
         val message = when {
-            beforeStage == Stage.EGG && pet.stage == Stage.BABY -> "알이 부화했어요! ${pet.name}를 만나요"
-            pet.stage != beforeStage -> "${Korean.stageLabel(pet.stage)}로 자랐어요"
-            else -> "완료! 경험치 +${allow.xp}, 코인 +${allow.coins}"
+            beforeStage == Stage.EGG && pet.stage == Stage.BABY -> L10n.fmt("msg_hatched", pet.name)
+            pet.stage != beforeStage -> L10n.fmt("msg_grew", L10n.stage(pet.stage))
+            else -> L10n.fmt("msg_complete", allow.xp, allow.coins)
         }
         var next = state.copy(
             pet = pet,
@@ -363,7 +582,7 @@ class GameService(
     private fun claimCoins(state: PersistedState, now: Long): Mutate {
         val amount = state.pendingDropCoins
         if (state.pendingDropKind != "COINS" || amount <= 0) {
-            return done(state, ActionResult(false, "받을 코인이 없어요"))
+            return done(state, ActionResult(false, L10n.t("msg_no_coins_in")))
         }
         return done(
             state.copy(
@@ -374,13 +593,13 @@ class GameService(
                 pet = state.pet.copy(pendingGiftDefId = null, pendingGiftAt = null),
                 ledger = state.ledger + LedgerEntry(newId(now), amount, "GIFT_COIN", null, now, "gift-coin:$now"),
             ),
-            ActionResult(true, "${amount}코인을 받았어요"),
+            ActionResult(true, L10n.fmt("msg_coins_got", amount)),
         )
     }
 
     private fun purchase(state: PersistedState, defId: String, now: Long, idempotencyKey: String?): Mutate {
-        val item = Catalog.byId(defId) ?: return done(state, ActionResult(false, "없는 물건이에요"))
-        if (item.price <= 0) return done(state, ActionResult(false, "살 수 없는 물건이에요"))
+        val item = Catalog.byId(defId) ?: return done(state, ActionResult(false, L10n.t("msg_no_item")))
+        if (item.price <= 0) return done(state, ActionResult(false, L10n.t("msg_unsellable")))
         val offer = stateViewOffer(state, now)
         val price = if (offer.item.id == defId) offer.price else item.price
         val decision = authority.grantPurchase(
@@ -404,7 +623,7 @@ class GameService(
                 ownedAt = ownedAt,
                 ledger = state.ledger + LedgerEntry(newId(now), -price, "BUY", defId, now, idempotencyKey),
             ),
-            ActionResult(true, "${item.name}을 샀어요"),
+            ActionResult(true, L10n.fmt("msg_bought", L10n.item(item.id))),
         )
     }
 
@@ -415,7 +634,7 @@ class GameService(
         fromPending: Boolean,
         instanceId: String?,
     ): Mutate {
-        val def = Catalog.byId(defId) ?: return done(state, ActionResult(false, "선물을 찾지 못했어요"))
+        val def = Catalog.byId(defId) ?: return done(state, ActionResult(false, L10n.t("msg_gift_missing")))
         val price = resellAmount(def)
         val coins = state.coins + price
         val pet = if (fromPending) state.pet.copy(pendingGiftDefId = null, pendingGiftAt = null) else state.pet
@@ -432,7 +651,7 @@ class GameService(
                 pendingSparkle = if (fromPending) false else state.pendingSparkle,
                 ledger = state.ledger + LedgerEntry(newId(now), price, "SELL", defId, now, instanceId ?: "pending:$defId:$now"),
             ),
-            ActionResult(true, "${def.name}을 ${price}코인에 팔았어요"),
+            ActionResult(true, L10n.fmt("msg_sold", L10n.item(def.id), price)),
         )
     }
 
@@ -456,10 +675,10 @@ class GameService(
             if (returned) {
                 val key = (resolved.pet.pendingGiftDefId ?: resolved.pendingDropKind) + ":" + (resolved.pet.pendingGiftAt ?: now)
                 if (raw.notifiedGiftKey != key) {
-                    val giftName = Catalog.byId(resolved.pet.pendingGiftDefId)?.name
-                        ?: if (resolved.pendingDropKind == "COINS") "${resolved.pendingDropCoins}코인" else "선물"
+                    val giftName = resolved.pet.pendingGiftDefId?.let { L10n.item(it) }
+                        ?: if (resolved.pendingDropKind == "COINS") L10n.fmt("msg_coins_got", resolved.pendingDropCoins) else L10n.t("gift")
                     val rarity = GiftDrops.label(resolved.pendingDropKind)
-                    immediate = "선물이 도착했어요" to "${Korean.subject(resolved.pet.name)} $giftName${Korean.eulReul(giftName)} 가져왔어요. $rarity"
+                    immediate = L10n.t("msg_gift_here") to L10n.fmt("msg_brought_gift", if (AppLocale.code() == "ko") Korean.subject(resolved.pet.name) else resolved.pet.name, giftName, rarity)
                     working = resolved.copy(notifiedGiftKey = key)
                 }
             }
@@ -476,7 +695,8 @@ class GameService(
             reload = fp != lastFingerprint
             lastFingerprint = fp
             val notices = buildNotices(stamped, now)
-            if (notices != lastNotices) {
+            if (forceNotices || notices != lastNotices) {
+                forceNotices = false
                 lastNotices = notices
                 sync = notices
             }
@@ -489,24 +709,103 @@ class GameService(
     }
 
     private fun buildNotices(state: PersistedState, now: Long): List<ScheduledNotice> {
-        val open = state.schedules.filter { !it.done }
-        val overdue = open.filter { it.timeMillis <= now }.minByOrNull { it.timeMillis }
-        val future = open.filter { it.timeMillis > now }.sortedBy { it.timeMillis }.take(12)
         val notices = mutableListOf<ScheduledNotice>()
-        if (overdue != null) {
-            notices += notice(state, overdue, now + 2_000)
+        state.schedules.filter { !it.done }.forEach { row ->
+            val moment = row.timeMillis
+            val leads = if (row.snoozedFrom != 0L) listOf(0) else row.leadsMinutes.ifEmpty { listOf(0) }
+            val tz = row.tz.ifBlank { zone.id }
+            val triggers = NoticePlan.triggers(
+                moment,
+                leads,
+                now,
+                state.settings.quietStartMinute,
+                state.settings.quietEndMinute,
+                tz,
+            )
+            if (triggers.isEmpty() && moment <= now) {
+                notices += notice(state, row, now + 2_000, 0)
+            } else {
+                triggers.forEach { trigger ->
+                    val lead = ((moment - trigger) / 60_000L).toInt().coerceAtLeast(0)
+                    notices += notice(state, row, trigger, lead)
+                }
+            }
         }
-        future.forEach { notices += notice(state, it, it.timeMillis) }
-        return notices
+        return notices.take(24)
     }
 
-    private fun notice(state: PersistedState, row: ScheduleRecord, trigger: Long) = ScheduledNotice(
-        id = "sched-" + row.id,
-        scheduleId = row.id,
-        title = state.pet.name,
-        body = Korean.reminder(state.pet.name, state.pet.stage, row.title),
-        triggerAtMillis = trigger,
-    )
+    private fun notice(state: PersistedState, row: ScheduleRecord, trigger: Long, lead: Int): ScheduledNotice {
+        val tz = ScheduleRules.zoneOrUtc(row.tz.ifBlank { zone.id })
+        val clock = L10n.clock(row.timeMillis, tz)
+        return ScheduledNotice(
+            id = "sched-${row.id}-$lead-$trigger",
+            scheduleId = row.id,
+            title = L10n.calling(state.pet.name),
+            body = L10n.noticeBody(clock, row.title),
+            triggerAtMillis = trigger,
+            alert = row.alert.name,
+            fullScreen = row.alert == AlertStyle.SOUND,
+            leadMinutes = lead,
+        )
+    }
+
+    private fun insertDraft(state: PersistedState, draft: ScheduleDraft, now: Long): Mutate {
+        val trimmed = draft.title.trim()
+        if (trimmed.isEmpty()) return done(state, ActionResult(false, L10n.t("msg_need_task")))
+        if (trimmed.length > 40) return done(state, ActionResult(false, L10n.t("msg_title_len")))
+        if (state.schedules.count { !it.done } >= balance.maxSchedules) {
+            return done(state, ActionResult(false, L10n.fmt("msg_too_many", balance.maxSchedules)))
+        }
+        val row = fromDraft(draft.copy(title = trimmed), now)
+        return done(state.copy(schedules = state.schedules + row), ActionResult(true, L10n.fmt("msg_will_remind", trimmed)))
+    }
+
+    private fun fromDraft(draft: ScheduleDraft, createdAt: Long): ScheduleRecord {
+        val leads = draft.leadsMinutes.ifEmpty { listOf(0) }.distinct().sorted()
+        return ScheduleRecord(
+            id = newId(createdAt),
+            title = draft.title.trim(),
+            timeMillis = draft.timeMillis,
+            repeat = draft.repeat,
+            done = false,
+            createdAt = createdAt,
+            completedAt = null,
+            tz = zone.id,
+            leadsMinutes = leads,
+            alert = draft.alert,
+            category = draft.category.ifBlank { "task" },
+            weekdays = draft.weekdays,
+            interval = draft.interval.coerceAtLeast(1),
+            monthOrdinal = draft.monthOrdinal,
+            endKind = draft.endKind,
+            endAt = draft.endAt,
+            endCount = draft.endCount,
+            anchorMillis = draft.timeMillis,
+        )
+    }
+
+    private fun finishOccurrence(row: ScheduleRecord, consumed: Long, now: Long): ScheduleRecord {
+        val marked = row.copy(doneDates = addMillis(row.doneDates, consumed), completedAt = now, snoozedFrom = 0)
+        if (row.repeat == RepeatRule.NONE) return marked.copy(done = true)
+        val spec = marked.spec()
+        val next = Recurrence.nextOpen(consumed, spec, now, closedOf(marked))
+        return if (next == null) {
+            marked.copy(done = true)
+        } else {
+            marked.copy(done = false, timeMillis = next, anchorMillis = spec.anchorMillis)
+        }
+    }
+
+    private fun locate(state: PersistedState, rawId: String): Pair<ScheduleRecord, Long>? {
+        val id = rawId.substringBefore('@')
+        val row = state.schedules.find { it.id == id } ?: return null
+        val specified = rawId.substringAfter('@', "").toLongOrNull()
+        val at = specified ?: if (row.snoozedFrom != 0L) row.snoozedFrom else row.timeMillis
+        return row to at
+    }
+
+    private fun closedOf(row: ScheduleRecord): Set<Long> =
+        parseMillis(row.doneDates) + parseMillis(row.skipDates) + parseMillis(row.exdates)
 }
 
 private fun applySlot(preset: RoomPreset, slot: DecorSlot, defId: String?): RoomPreset = when (slot) {
@@ -521,7 +820,8 @@ fun createGameService(
     driver: app.cash.sqldelight.db.SqlDriver,
     time: TimeProvider = SystemTime,
     zone: TimeZone = TimeZone.currentSystemDefault(),
+    billing: app.mongle.logic.BillingGateway = app.mongle.logic.FakeBilling(),
 ): GameService {
     val db = app.mongle.db.MongleDatabase(driver)
-    return GameService(app.mongle.data.SqlGameStore(db), time, zone)
+    return GameService(app.mongle.data.SqlGameStore(db), time, zone, billing = billing)
 }

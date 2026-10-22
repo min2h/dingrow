@@ -34,7 +34,7 @@ object Seed {
     fun create(now: Long, balance: GameBalance = GameBalance()): PersistedState {
         val pet = PetRecord(
             id = "pet-" + newId(now),
-            name = "몽이",
+            name = app.mongle.l10n.L10n.t("pet_default_name"),
             stage = Stage.EGG,
             xp = 0,
             hunger = 80,
@@ -103,6 +103,10 @@ fun parseRepeat(raw: String): RepeatRule = when (raw) {
     "DAILY" -> RepeatRule.DAILY
     "WEEKLY" -> RepeatRule.WEEKLY
     "WEEKDAYS" -> RepeatRule.WEEKDAYS
+    "WEEKENDS" -> RepeatRule.WEEKENDS
+    "MONTHLY" -> RepeatRule.MONTHLY
+    "YEARLY" -> RepeatRule.YEARLY
+    "EVERY_N_DAYS" -> RepeatRule.EVERY_N_DAYS
     else -> RepeatRule.NONE
 }
 

@@ -56,7 +56,7 @@ class LocalEconomyAuthority(
             return GrantDecision.Deny("이미 가지고 있어요")
         }
         if (request.coins < request.price) {
-            return GrantDecision.Deny("코인이 부족해요. 일정을 완수하면 몽이가 외출해서 선물을 가져오고, 그 선물을 팔아 코인을 모을 수 있어요")
+            return GrantDecision.Deny(app.mongle.l10n.L10n.t("msg_deny_coins"))
         }
         return GrantDecision.Allow(xp = 0, coins = request.price, happiness = 0)
     }

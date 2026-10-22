@@ -5,19 +5,13 @@ import ComposeApp
 
 final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
     func registerCategories() {
-        let complete = UNNotificationAction(
-            identifier: "COMPLETE",
-            title: "완료",
-            options: [.foreground]
-        )
-        let snooze = UNNotificationAction(
-            identifier: "SNOOZE",
-            title: "10분 뒤",
-            options: []
-        )
+        let lang = MongleKit.snapshot().language
+        let ack = UNNotificationAction(identifier: "ACK", title: DingrowStrings.text("action_ack", language: lang), options: [])
+        let snooze = UNNotificationAction(identifier: "SNOOZE", title: DingrowStrings.text("action_snooze", language: lang), options: [])
+        let complete = UNNotificationAction(identifier: "COMPLETE", title: DingrowStrings.text("action_done", language: lang), options: [])
         let category = UNNotificationCategory(
             identifier: "DINGROW_SCHEDULE",
-            actions: [complete, snooze],
+            actions: [ack, snooze, complete],
             intentIdentifiers: [],
             options: []
         )
@@ -33,10 +27,12 @@ final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
         let scheduleId = (info["scheduleId"] as? String) ?? ""
         if !scheduleId.isEmpty {
             switch response.actionIdentifier {
-            case "COMPLETE":
-                MongleKit.completeSchedule(id: scheduleId)
+            case "ACK":
+                MongleKit.acknowledge(id: scheduleId)
             case "SNOOZE":
                 MongleKit.snooze(id: scheduleId)
+            case "COMPLETE":
+                MongleKit.completeSchedule(id: scheduleId)
             default:
                 break
             }

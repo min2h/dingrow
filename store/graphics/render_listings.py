@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 from pathlib import Path
 
@@ -25,6 +26,24 @@ MINT_DEEP = (143, 203, 182)
 BUTTER = (255, 243, 201)
 WHITE = (255, 252, 248)
 FRAME = (255, 252, 248)
+COPY: dict[str, str] = {}
+
+
+def load_copy(lang: str) -> dict[str, str]:
+    folder = "values-ko" if lang == "ko" else "values"
+    raw = (ROOT / f"shared/src/commonMain/resources/l10n/{folder}/strings.xml").read_text(encoding="utf-8")
+    found = {}
+    for key, value in re.findall(r'<string name="([^"]+)">([^<]*)</string>', raw):
+        found[key] = value.replace("\\'", "'").replace('\\"', '"').replace("&amp;", "&")
+    return found
+
+
+def t(key: str) -> str:
+    return COPY[key]
+
+
+def other_brand() -> str:
+    return "Dingrow" if t("app_name") == "딩그로" else "딩그로"
 
 SPECIES = [
     "cat", "rabbit", "bear", "frog", "chick", "mandu", "strawberry", "greentea", "peach", "cloud",
@@ -172,20 +191,26 @@ def feature() -> Image.Image:
     icon.putalpha(icon_mask)
     canvas.paste(icon, (64, 56), icon)
     draw = ImageDraw.Draw(canvas)
-    draw_text(draw, "딩그로", 152, 58, font(40), INK)
-    draw_text(draw, "Dingrow", 152, 108, font(24), INK_SOFT)
+    draw_text(draw, t("app_name"), 152, 58, font(40), INK)
+    draw_text(draw, other_brand(), 152, 108, font(24), INK_SOFT)
 
-    title = fit_font("할 일을 끝내면", 520, 64)
-    draw_text(draw, "할 일을 끝내면", 64, 188, title, INK)
-    second = fit_font("함께 자라요", 520, 64)
-    draw_text(draw, "함께 자라요", 64, 268, second, INK)
+    line1 = t("listing_feature_line1")
+    title = fit_font(line1, 520, 64)
+    draw_text(draw, line1, 64, 188, title, INK)
+    line2 = t("listing_feature_line2")
+    second = fit_font(line2, 520, 64)
+    draw_text(draw, line2, 64, 268, second, INK)
     sub = font(26)
-    draw_text(draw, "일정 알림 · 방 꾸미기 · 친구 도감", 64, 368, sub, INK_SOFT)
+    draw_text(draw, t("listing_feature_sub"), 64, 368, sub, INK_SOFT)
     return canvas.convert("RGB")
 
 
-def shot(name: str) -> Image.Image:
+def shot(name: str, lang: str = "ko") -> Image.Image:
     path = HIRES / name
+    if lang == "en":
+        prefixed = ARTIFACTS / f"en-{name}"
+        if prefixed.exists():
+            path = prefixed
     if not path.exists():
         path = ARTIFACTS / name
     image = Image.open(path).convert("RGBA")
@@ -232,8 +257,8 @@ def eyebrow(canvas: Image.Image, y: int) -> int:
     draw = ImageDraw.Draw(canvas)
     face = font(max(22, canvas.width // 38))
     under_face = font(max(16, canvas.width // 52))
-    label = "딩그로"
-    under = "Dingrow"
+    label = t("app_name")
+    under = other_brand()
     gap = 10
     icon = fit(load_art("base_idle"), face.size + 8, face.size + 8)
     text_w = max(text_width(label, face), text_width(under, under_face))
@@ -300,15 +325,16 @@ def alarm_card(canvas: Image.Image, y: int) -> int:
     pen = ImageDraw.Draw(card)
     name_face = font(max(20, int(card_h * 0.16)))
     time_face = font(max(16, int(card_h * 0.12)))
-    body_face = fit_font('알 속의 보리: "물 마시기" 할 시간이에요', int(card_w * 0.9), max(18, int(card_h * 0.13)))
-    draw_text(pen, "보리", int(card_w * 0.04) + icon.width + 14, int(card_h * 0.12), name_face, INK)
-    when = "지금"
+    body = t("listing_alarm_body")
+    body_face = fit_font(body, int(card_w * 0.9), max(18, int(card_h * 0.13)))
+    draw_text(pen, t("listing_bori"), int(card_w * 0.04) + icon.width + 14, int(card_h * 0.12), name_face, INK)
+    when = t("listing_now")
     draw_text(pen, when, card_w - int(card_w * 0.05) - text_width(when, time_face), int(card_h * 0.14), time_face, INK_SOFT)
-    draw_text(pen, '알 속의 보리: "물 마시기" 할 시간이에요', int(card_w * 0.05), int(card_h * 0.42), body_face, INK)
+    draw_text(pen, body, int(card_w * 0.05), int(card_h * 0.42), body_face, INK)
     button_w = int(card_w * 0.42)
     button_h = int(card_h * 0.24)
     button_y = int(card_h * 0.66)
-    for label, color, bx in (("완료", PEACH, int(card_w * 0.05)), ("10분 뒤", MINT, int(card_w * 0.53))):
+    for label, color, bx in ((t("action_done"), PEACH, int(card_w * 0.05)), (t("action_snooze"), MINT, int(card_w * 0.53))):
         ImageDraw.Draw(card).rounded_rectangle(
             (bx, button_y, bx + button_w, button_y + button_h),
             radius=button_h // 2,
@@ -351,9 +377,10 @@ def build_launcher() -> Image.Image:
     date = font(40)
     y = 120
     y += draw_center(draw, "9:41", y, clock, INK, w) + 8
-    y += draw_center(draw, "10월 21일 수요일", y, date, INK_SOFT, w) + 36
+    y += draw_center(draw, t("listing_date_sample"), y, date, INK_SOFT, w) + 36
 
-    large = shot("widget-large.png")
+    large_name = "widget-large-ko.png" if t("app_name") == "딩그로" else "widget-large.png"
+    large = shot(large_name)
     lw = w - 96
     lh = int(lw * large.height / large.width)
     large = large.resize((lw, lh), Image.Resampling.LANCZOS)
@@ -364,7 +391,8 @@ def build_launcher() -> Image.Image:
     canvas.alpha_composite(large, (lx, y))
     y += lh + 28
 
-    small = shot("widget-small.png")
+    small_name = "widget-small-ko.png" if t("app_name") == "딩그로" else "widget-small.png"
+    small = shot(small_name)
     sw = int((lw - 28) * 0.56)
     sh = int(sw * small.height / small.width)
     max_small = h - y - 48
@@ -388,10 +416,12 @@ def build_launcher() -> Image.Image:
     block = icon.height + 8 + name_h + under_h
     iy = y + max(0, (sh - block) // 2)
     canvas.paste(icon, (ix, iy), icon)
-    name_w = text_width("딩그로", label)
-    under_w = text_width("Dingrow", under)
-    draw_text(draw, "딩그로", ix + (icon.width - name_w) // 2, iy + icon.height + 8, label, INK)
-    draw_text(draw, "Dingrow", ix + (icon.width - under_w) // 2, iy + icon.height + 8 + name_h, under, INK_SOFT)
+    brand = t("app_name")
+    other = other_brand()
+    name_w = text_width(brand, label)
+    under_w = text_width(other, under)
+    draw_text(draw, brand, ix + (icon.width - name_w) // 2, iy + icon.height + 8, label, INK)
+    draw_text(draw, other, ix + (icon.width - under_w) // 2, iy + icon.height + 8 + name_h, under, INK_SOFT)
     return canvas
 
 
@@ -404,9 +434,9 @@ def render_scene(w: int, h: int, title: str, subtitle: str, screen: Image.Image,
             canvas,
             y,
             [
-                ("seashell", "조개껍데기", "100코인"),
-                ("clover", "네잎클로버", "150코인"),
-                ("star_piece", "별조각", "300코인"),
+                ("seashell", t("item_seashell"), t("coins_amount") % 100),
+                ("clover", t("item_clover"), t("coins_amount") % 150),
+                ("star_piece", t("item_star_piece"), t("coins_amount") % 300),
             ],
         )
         y += int(h * 0.018)
@@ -421,39 +451,41 @@ def render_scene(w: int, h: int, title: str, subtitle: str, screen: Image.Image,
     return canvas.convert("RGB")
 
 
-SCENES = [
-    ("01-home", "할 일을 끝내면 자라요", "밥 주고, 산책하고, 같이 지내요", "home.png", "home"),
-    ("02-schedule", "제시간에 알려 줄게요", "완료하거나 10분 뒤로 미뤄요", "schedule.png", "alarm"),
-    ("03-room", "밤하늘 방을 꾸며요", "가구와 옷으로 방을 바꿔요", "room.png", "room"),
-    ("04-shop", "선물을 팔아 코인을 모아요", "모은 코인으로 가구와 옷을 사요", "shop.png", "gifts"),
-    ("05-dex", "친구 50종을 모아 봐요", "도감에서 데려오거나 산책에서 만나요", "dex.png", "dex"),
-    ("06-widgets", "홈 화면에서도 함께", "위젯으로 밥 주고 일정을 완료해요", "widgets", "widgets"),
-]
+def scenes():
+    return [
+        ("01-home", t("listing_home_title"), t("listing_home_sub"), "home.png", "home"),
+        ("02-schedule", t("listing_schedule_title"), t("listing_schedule_sub"), "schedule.png", "alarm"),
+        ("03-room", t("listing_room_title"), t("listing_room_sub"), "room.png", "room"),
+        ("04-shop", t("listing_shop_title"), t("listing_shop_sub"), "shop.png", "gifts"),
+        ("05-dex", t("listing_dex_title"), t("listing_dex_sub"), "dex.png", "dex"),
+        ("06-widgets", t("listing_widgets_title"), t("listing_widgets_sub"), "widgets", "widgets"),
+    ]
 
 
 def main() -> None:
+    global COPY
     missing = [name for name in SPECIES if not (ART / f"{name}.webp").exists()]
     if missing:
         raise SystemExit(f"missing species art: {missing}")
     OUT.mkdir(parents=True, exist_ok=True)
     made = []
-
-    feature_path = OUT / "play-feature-1024x500.png"
-    feature().save(feature_path, "PNG", optimize=True)
-    made.append(feature_path)
-
-    screens = {name: shot(name) for name in ("home.png", "schedule.png", "room.png", "shop.png", "dex.png")}
-    screens["widgets"] = build_launcher()
-
-    for slug, title, subtitle, source, band in SCENES:
-        screen = screens[source]
-        play = render_scene(1080, 1920, title, subtitle, screen, band)
-        ios = render_scene(1290, 2796, title, subtitle, screen, band)
-        play_path = OUT / f"play-phone-{slug}-1080x1920.png"
-        ios_path = OUT / f"ios-67-{slug}-1290x2796.png"
-        play.save(play_path, "PNG", optimize=True)
-        ios.save(ios_path, "PNG", optimize=True)
-        made.extend([play_path, ios_path])
+    for lang in ("ko", "en"):
+        COPY = load_copy(lang)
+        suffix = "" if lang == "ko" else "-en"
+        feature_path = OUT / f"play-feature-1024x500{suffix}.png"
+        feature().save(feature_path, "PNG", optimize=True)
+        made.append(feature_path)
+        screens = {name: shot(name, lang) for name in ("home.png", "schedule.png", "room.png", "shop.png", "dex.png")}
+        screens["widgets"] = build_launcher()
+        for slug, title, subtitle, source, band in scenes():
+            screen = screens[source]
+            play = render_scene(1080, 1920, title, subtitle, screen, band)
+            ios = render_scene(1290, 2796, title, subtitle, screen, band)
+            play_path = OUT / f"play-phone-{slug}-1080x1920{suffix}.png"
+            ios_path = OUT / f"ios-67-{slug}-1290x2796{suffix}.png"
+            play.save(play_path, "PNG", optimize=True)
+            ios.save(ios_path, "PNG", optimize=True)
+            made.extend([play_path, ios_path])
 
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     for path in made:

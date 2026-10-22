@@ -5,6 +5,11 @@ import app.mongle.platform.AndroidHooks
 import app.mongle.platform.createAndroidDriver
 import app.mongle.service.GameService
 import app.mongle.service.createGameService
+import app.mongle.billing.PlayBillingGateway
+import app.mongle.logic.BillingGateway
+import app.mongle.logic.FakeBilling
+import android.os.Build
+import app.dingrow.BuildConfig
 import app.mongle.alarm.AlarmScheduler
 import androidx.glance.appwidget.updateAll
 import app.mongle.widget.LargePetWidget
@@ -42,6 +47,10 @@ object AppGraph {
         }
     }
 
+    fun launch(block: suspend () -> Unit) {
+        scope.launch { block() }
+    }
+
     fun ensure(context: Context) {
         if (ready) return
         synchronized(lock) {
@@ -58,9 +67,14 @@ object AppGraph {
                     }
                 }
             }
-            service = createGameService(createAndroidDriver(app))
+            service = createGameService(createAndroidDriver(app), billing = gateway(app))
             ready = true
             scope.launch { service.refresh() }
         }
+    }
+
+    private fun gateway(context: Context): BillingGateway {
+        val robot = Build.FINGERPRINT.orEmpty().contains("robolectric")
+        return if (BuildConfig.DEBUG || robot) FakeBilling() else PlayBillingGateway(context)
     }
 }

@@ -2,7 +2,11 @@ package app.mongle.model
 
 enum class Stage { EGG, BABY, CHILD, ADULT }
 
-enum class RepeatRule { NONE, DAILY, WEEKLY, WEEKDAYS }
+enum class RepeatRule { NONE, DAILY, WEEKLY, WEEKDAYS, WEEKENDS, MONTHLY, YEARLY, EVERY_N_DAYS }
+
+enum class EndKind { NEVER, UNTIL, COUNT }
+
+enum class EditScope { ONE, FOLLOWING, ALL }
 
 enum class AlertStyle { SILENT, SOUND, VIBRATE }
 
@@ -111,6 +115,17 @@ data class ScheduleRecord(
     val alert: AlertStyle = AlertStyle.SOUND,
     val category: String = "task",
     val weekdays: Int = 0,
+    val interval: Int = 1,
+    val monthOrdinal: Int = 0,
+    val endKind: EndKind = EndKind.NEVER,
+    val endAt: Long = 0,
+    val endCount: Int = 0,
+    val anchorMillis: Long = 0,
+    val seriesId: String = "",
+    val exdates: String = "",
+    val doneDates: String = "",
+    val skipDates: String = "",
+    val snoozedFrom: Long = 0,
 )
 
 data class CompletionRecord(
@@ -161,6 +176,7 @@ data class AppSettings(
     val soundEnabled: Boolean = true,
     val vibrateEnabled: Boolean = true,
     val alarmSound: AlarmSound = AlarmSound.SOFT,
+    val language: String = "system",
 )
 
 data class Placement(
@@ -230,6 +246,16 @@ data class ScheduleView(
     val alert: AlertStyle = AlertStyle.SOUND,
     val category: String = "task",
     val weekdays: Int = 0,
+    val anchorMillis: Long = 0,
+    val interval: Int = 1,
+    val monthOrdinal: Int = 0,
+    val endKind: EndKind = EndKind.NEVER,
+    val endAt: Long = 0,
+    val endCount: Int = 0,
+    val exdates: String = "",
+    val doneDates: String = "",
+    val skipDates: String = "",
+    val seriesId: String = "",
 )
 
 data class GiftView(
@@ -309,6 +335,7 @@ data class GameState(
     val revealKind: String = "",
     val revealLabel: String = "",
     val revealSparkle: Boolean = false,
+    val reactionBody: String = "",
 ) {
     val activeRoom: RoomPreset get() = presets[activePreset.coerceIn(0, presets.lastIndex.coerceAtLeast(0))]
 }

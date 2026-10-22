@@ -1,6 +1,6 @@
 # 딩그로 (Dingrow)
 
-홈 화면에 사는 작은 펫이 일정을 알려 주고, 할 일을 마치면 함께 자라는 앱입니다. 화면 문구는 한국어입니다. 런처와 위젯, 배경화면에 보이는 앱 이름은 한국어 로케일에서 딩그로, 영어와 기본 로케일에서 Dingrow입니다. 종 이름 몽글과 처음 펫 이름 몽이는 앱 이름이 아닙니다. 펫은 배고파도 죽지 않고, 포만감과 행복, 경험치로 알 → 아기 → 어린이 → 어른이 됩니다. 가끔 외출했다가 선물을 가져오고, 선물을 팔아 코인을 모은 뒤 옷과 가구로 방을 바꿉니다.
+홈 화면에 사는 작은 펫이 일정을 알려 주고, 할 일을 마치면 함께 자라는 앱입니다. 화면 문구는 기기 언어가 한국어이면 한국어, 그 외에는 영어입니다. 설정에서 System / 한국어 / English를 고르면 바로 바뀌고 저장됩니다. 런처와 위젯, 배경화면에 보이는 앱 이름은 한국어 로케일에서 딩그로, 영어와 기본 로케일에서 Dingrow입니다. 종 이름 몽글과 처음 펫 이름 몽이는 앱 이름이 아닙니다. 펫은 배고파도 죽지 않고, 포만감과 행복, 경험치로 알 → 아기 → 어린이 → 어른이 됩니다. 가끔 외출했다가 선물을 가져오고, 선물을 팔아 코인을 모은 뒤 옷과 가구로 방을 바꿉니다.
 
 패키지 이름은 `app.dingrow`, 버전은 0.1.0 (versionCode 1)입니다. 스토어 제출 전에 남은 사람 일은 `RELEASE.md`에 있습니다. 개인정보 처리방침과 스토어 문구는 `store/`에 있습니다. 한국어 스토어 제목은 `딩그로(Dingrow)`이고, 부제와 짧은 설명은 `할 일 하면 자라는 위젯 친구`로 시작합니다. 영어 제목은 `Dingrow - Tasks help you grow`입니다.
 
@@ -22,7 +22,7 @@
 ## 지금 되는 것
 
 - 로컬 저장. 펫, 일정, 먹이, 선물, 코인, 장부, 방 프리셋은 SQLDelight(`dingrow.db`)에 있습니다. 같은 폴더에 `mongle.db`만 있으면 처음 열 때 `dingrow.db`로 복사합니다. 계정과 서버는 없습니다. Android 패키지가 바뀌면 이전 앱 샌드박스는 열 수 없습니다. iOS는 새 App Group만 권한에 있고, 예전 그룹 컨테이너가 이미 열려 있을 때만 복사합니다. 예전 종·아이템 id는 불러올 때 `LegacyIds`로 바꿉니다.
-- 일정 추가, 완료, 10분 미루기, 삭제. 완료하면 경험치와 코인, 행복이 오릅니다. 만든 지 2분 안 된 일정, 10분보다 일찍 완료한 일정, 하루 8번을 넘긴 완료는 보상이 줄어듭니다. 같은 반복 일정을 15초 안에 다시 완료하면 무시합니다.
+- 일정 추가, 완료, 5분 미루기, 건너뛰기, 삭제. 한 번짜리와 반복(매일, 평일, 주말, 매주 요일, 격주, 매월, 매년, N일마다)을 만들고, 끝은 없음·날짜까지·N회입니다. 반복은 다음 발생을 같은 시각으로 당깁니다. 완료하면 경험치와 코인, 행복이 오릅니다. 만든 지 2분 안 된 일정, 10분보다 일찍 완료한 일정, 하루 8번을 넘긴 완료는 보상이 줄어듭니다. 같은 반복 일정을 15초 안에 다시 완료하면 무시합니다. 알람을 확인하면 일정을 끝내지 않고 몽이에게 밥을 줍니다.
 - 알은 일정 3번을 마치면 부화합니다. 아기에서 어린이는 경험치 50, 어린이에서 어른은 경험치 160입니다. 날짜 게이트 기본값은 0이라 데모에서 바로 자랍니다.
 - 포만감은 시간당 4, 행복은 시간당 2씩 줄고, 포만감이 30 미만이면 행복이 시간당 5 줄습니다. 집에 있으면 기력은 시간당 10 회복합니다. 72시간을 넘긴 공백은 72시간만 계산하고, 알은 수치가 줄지 않습니다. 앱을 열 때와 15분마다 게으르게 반영합니다.
 - 어린이 이상, 포만감 35 이상, 기력 30 이상, 마지막 외출 후 90분이 지나면 외출할 수 있습니다. 20분 뒤 돌아오고 기력 35를 씁니다. 선물은 떠날 때 정해지고, 돌아올 때 공개됩니다.
@@ -30,13 +30,13 @@
 - 화면은 홈, 일정, 방 꾸미기, 마이(도감)입니다. 글꼴은 Pretendard Medium이고 SIL Open Font License입니다.
 - 상점의 오늘 상품은 날짜마다 바뀌고, 이미 가진 단일 아이템은 건너뜁니다. 위젯에서 사면 45초 안에 한 번 더 눌러 확정합니다. 앱 안에서는 한 번에 삽니다.
 - Android 작은 위젯(오늘의 기분, 다음 일정, 완료)과 큰 위젯(아늑한 방, 밥주기, 선물 팔기, 오늘의 상품, 꾸미기). 위젯 이름은 한국어에서 딩그로, 딩그로의 방이고 영어에서 Dingrow, Dingrow room입니다. 일정 추가는 `dingrow://schedule/add`로 앱의 작성 화면을 엽니다. 예전 `mongle://schedule/add`도 같은 화면을 엽니다.
-- 일정 시각 알림. Android 12 이상에서 정확한 알람을 허용하면 `setExactAndAllowWhileIdle`, 아니면 15분 창입니다. 알림 액션은 완료와 10분 뒤입니다. 재부팅과 앱 업데이트 뒤 다시 등록합니다.
+- 일정 시각 알림. Android 12 이상에서 정확한 알람을 허용하면 `setExactAndAllowWhileIdle`, 아니면 15분 창입니다. 알림 액션은 확인, 5분 뒤, 완료입니다. 확인은 밥을 주고, 반복 일정은 다음 발생으로 알람을 다시 겁니다. 재부팅, 앱 업데이트, 시간대 변경 뒤에도 다시 등록합니다.
 - 앱 안에서 펫이 방 그림 위에 올라가고, 숨쉬듯 늘어났다 줄었다가 하며 가끔 눈을 깜빡입니다. 밥을 주면 먹는 그림, 밤이나 기력이 낮으면 잠, 밖에 나가면 기울며 걷습니다. Android 라이브 배경화면도 같은 그림과 움직임입니다. 위젯은 상태와 시간에 맞는 정지 장면입니다. Compose 화면은 WebP를 그대로 쓰고, Glance 위젯과 배경화면은 `androidMain/assets/mongle`의 PNG를 줄여 그립니다. iOS 위젯은 `PetWidget/Art`의 WebP를 읽습니다.
 - 온라인 세계, 채팅, 유저 간 거래는 인터페이스만 있습니다. `EconomyAuthority`와 `CommunityRepository`를 나중에 서버 구현으로 바꾸면 됩니다. 지금은 `LocalEconomyAuthority`와 `UnavailableCommunityRepository`입니다.
 
 ## 아직 없는 것
 
-- 계정, 결제, 클라우드 저장, 실제 커뮤니티 월드와 채팅, 유저 간 거래.
+- 계정, 클라우드 저장, 실제 커뮤니티 월드와 채팅, 유저 간 거래. 코인 상점은 디버그에서 가짜 결제, 출시 빌드에서 Play Billing입니다. 상품 ID는 `RELEASE.md`에 있습니다.
 - iOS 빌드 확인, 위젯 갤러리에서 추가한 뒤의 동작, 알림 액션이 앱이 꺼진 상태에서 깨워지는지.
 - 스토어 계정과 업로드 키. 릴리스 빌드 설정과 체크리스트는 `RELEASE.md`에 있습니다. 런처 아이콘은 일러스트 `app_icon`이고, Android는 적응형 아이콘과 밀도별 mipmap입니다. iOS 앱 아이콘은 1024입니다. Play용 512는 `store/icon-512.png`입니다. 글꼴 Pretendard Medium은 SIL Open Font License입니다.
 - 위젯의 연속 애니메이션. 홈 화면 위젯은 정지 화면이고, 움직임은 앱과 Android 배경화면에서만 있습니다.
@@ -77,9 +77,9 @@ JDK 17 이상, Android SDK(compileSdk 36, 플랫폼 android-36)가 필요합니�
 adb install -r composeApp/build/outputs/apk/debug/composeApp-debug.apk
 ```
 
-UI 테스트는 에뮬레이터 없이 Robolectric(API 34, `graphicsMode=NATIVE`)으로 Compose 화면을 누르고, Roborazzi(`roborazzi.test.record=true`)로 PNG를 남깁니다. 위젯은 `GlanceRemoteViews`로 그린 뒤 버튼 콜백을 직접 호출합니다. 알람은 Robolectric `ShadowAlarmManager`와 `ReminderReceiver`로 1분 뒤 트리거, 완료, 10분 뒤, 알림 닫힘을 확인합니다. 배경화면은 `WallpaperPainter`가 두 시각에 그린 프레임이 다른지로 확인합니다.
+UI 테스트는 에뮬레이터 없이 Robolectric(API 34, `graphicsMode=NATIVE`)으로 Compose 화면을 누르고, Roborazzi(`roborazzi.test.record=true`)로 PNG를 남깁니다. 위젯은 `GlanceRemoteViews`로 그린 뒤 버튼 콜백을 직접 호출합니다. 알람은 Robolectric `ShadowAlarmManager`와 `ReminderReceiver`로 1분 뒤 트리거, 확인, 5분 뒤, 완료, 알림 닫힘을 확인합니다. 배경화면은 `WallpaperPainter`가 두 시각에 그린 프레임이 다른지로 확인합니다.
 
-일정 작성 화면의 분은 10분 단위입니다. 정확히 60초 뒤 알람은 서비스 API로 겁니다.
+일정 작성 화면은 스크롤 시·분 휠입니다. 정확히 60초 뒤 알람은 서비스 API로 겁니다.
 
 처음 켜면 이름을 정합니다. 알림을 허용하고, Android 12 이상이면 방 화면의 링크나 시스템 설정에서 알람 및 리마인더(정확한 알람)를 켜야 제시간에 울립니다. Android 13 이상은 알림 권한도 필요합니다.
 
@@ -94,7 +94,7 @@ Mac, Xcode 16 전후, iOS 17 이상 시뮬레이터 또는 기기가 필요합�
 3. 앱 타깃의 빌드 스크립트가 `./gradlew :composeApp:embedAndSignAppleFrameworkForXcode`를 실행하고 `ComposeApp.framework`(shared를 export한 정적 프레임워크)를 링크합니다. 위젯 타깃은 `./gradlew :shared:embedAndSignAppleFrameworkForXcode`로 `Shared.framework`만 링크합니다. 위젯 소스는 `WIDGET` 컴파일 조건으로 `Shared`를 import합니다.
 4. 서명 팀이 비어 있으면 빌드가 실패합니다. 사용자 스크립트 샌드박스는 프로젝트에서 꺼 두었습니다. Gradle이 저장소 루트에 프레임워크를 써야 하기 때문입니다.
 5. 홈 화면에 위젯 **딩그로**(영어 Dingrow)를 추가합니다. 작은 위젯은 오늘의 기분과 완료, 큰 위젯은 밥주기, 선물 팔기, 오늘의 상품(한 번 누르면 확인, 다시 누르면 구매), 꾸미기, `dingrow://schedule/add` 일정 추가입니다. 버튼은 iOS 17 App Intents입니다.
-6. 일정 알림은 `UNUserNotificationCenter`이고 카테고리 `DINGROW_SCHEDULE`에 완료, 10분 뒤 액션이 있습니다. Swift `NotificationRouter`가 카테고리를 다시 등록하므로, Kotlin 쪽 UserNotifications 시그니처가 한 단계 어긋나도 액션 문구는 남길 수 있습니다. 그 경우 `shared/src/iosMain`의 컴파일 오류를 그 버전의 cinterop에 맞게 고치면 됩니다.
+6. 일정 알림은 `UNUserNotificationCenter`이고 카테고리 `DINGROW_SCHEDULE`에 확인, 5분 뒤, 완료 액션이 있습니다. Swift `NotificationRouter`가 카테고리를 다시 등록하므로, Kotlin 쪽 UserNotifications 시그니처가 한 단계 어긋나도 액션 문구는 남길 수 있습니다. 그 경우 `shared/src/iosMain`의 컴파일 오류를 그 버전의 cinterop에 맞게 고치면 됩니다. 코인 결제는 `StoreKitBilling`이 StoreKit 2 상품 ID를 읽어 두는 뼈대이고, 앱 화면의 결제는 아직 Android Play Billing과 디버그 가짜 결제입니다.
 
 iOS에서 처음 깨질 수 있는 곳:
 

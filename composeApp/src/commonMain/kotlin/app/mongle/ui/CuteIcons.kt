@@ -23,6 +23,11 @@ enum class Mark {
     Person,
     House,
     Hanger,
+    Sport,
+    Meal,
+    Study,
+    Pill,
+    More,
 }
 
 @Composable
@@ -144,6 +149,31 @@ fun MarkIcon(mark: Mark, modifier: Modifier = Modifier, tint: Color = Ink) {
                     close()
                 }
                 drawPath(path, tint)
+            }
+            Mark.Sport -> {
+                drawCircle(tint, w * 0.16f, Offset(w * 0.22f, h * 0.50f))
+                drawCircle(tint, w * 0.16f, Offset(w * 0.78f, h * 0.50f))
+                drawLine(tint, Offset(w * 0.34f, h * 0.50f), Offset(w * 0.66f, h * 0.50f), strokeWidth = w * 0.1f)
+            }
+            Mark.Meal -> {
+                drawCircle(tint, w * 0.34f, center)
+                drawCircle(CardWhite, w * 0.18f, center)
+                drawLine(tint, Offset(w * 0.50f, h * 0.18f), Offset(w * 0.42f, h * 0.02f), strokeWidth = w * 0.05f)
+                drawLine(tint, Offset(w * 0.62f, h * 0.22f), Offset(w * 0.72f, h * 0.04f), strokeWidth = w * 0.05f)
+            }
+            Mark.Study -> {
+                drawRoundRect(tint, Offset(w * 0.16f, h * 0.22f), Size(w * 0.68f, h * 0.56f), CornerRadius(8f, 8f))
+                drawLine(PeachSoft, Offset(w * 0.28f, h * 0.40f), Offset(w * 0.72f, h * 0.40f), strokeWidth = w * 0.06f)
+                drawLine(PeachSoft, Offset(w * 0.28f, h * 0.54f), Offset(w * 0.64f, h * 0.54f), strokeWidth = w * 0.06f)
+            }
+            Mark.Pill -> {
+                drawRoundRect(tint, Offset(w * 0.18f, h * 0.34f), Size(w * 0.64f, h * 0.32f), CornerRadius(w * 0.16f, w * 0.16f))
+                drawRect(PeachSoft, Offset(w * 0.50f, h * 0.34f), Size(w * 0.32f, h * 0.32f))
+            }
+            Mark.More -> {
+                drawCircle(tint, w * 0.08f, Offset(w * 0.22f, h * 0.50f))
+                drawCircle(tint, w * 0.08f, Offset(w * 0.50f, h * 0.50f))
+                drawCircle(tint, w * 0.08f, Offset(w * 0.78f, h * 0.50f))
             }
         }
     }

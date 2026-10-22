@@ -9,7 +9,13 @@ import app.mongle.logic.GiftDrops
 import app.mongle.logic.GiftRoller
 import app.mongle.logic.Korean
 import app.mongle.logic.PetRules
+import app.mongle.model.EditScope
+import app.mongle.logic.RecurSpec
+import app.mongle.logic.Recurrence
+import app.mongle.logic.ScheduleDraft
 import app.mongle.logic.ScheduleRules
+import app.mongle.logic.ScheduleTemplates
+import app.mongle.model.EndKind
 import app.mongle.logic.ShopRotation
 import app.mongle.logic.resellAmount
 import app.mongle.model.Catalog
@@ -39,6 +45,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 
 class MongleRulesTest {
     private val zone = TimeZone.of("Asia/Seoul")
@@ -325,7 +332,7 @@ class MongleRulesTest {
         service.addSchedule("즉시", clock.now + 60_000, RepeatRule.NONE)
         val instant = service.completeSchedule(service.state.value.schedules.first { it.title == "즉시" }.id)
         assertTrue(instant.ok)
-        assertTrue(instant.message.contains("경험치"))
+        assertTrue(instant.message.contains("경험치") || instant.message.contains("XP"))
     }
 
     @Test
@@ -406,7 +413,139 @@ class MongleRulesTest {
         val service = service(clock, balance)
         val result = service.startOuting()
         assertFalse(result.ok)
-        assertTrue(result.message.contains("어린이"))
+        assertTrue(result.message.contains("어린이") || result.message.contains("child"))
+    }
+
+    @Test
+    fun recurrenceMonthEndLeapYearZonesAndEdits() = runBlocking {
+        val seoul = TimeZone.of("Asia/Seoul")
+        val daily = RecurSpec(RepeatRule.DAILY, anchorMillis = atZone(seoul, 2026, 10, 21, 9, 30), tz = seoul.id)
+        val nextSeoul = Recurrence.stepFrom(daily.anchorMillis, daily)
+        assertEquals(24 * 60 * 60 * 1000L, nextSeoul - daily.anchorMillis)
+        assertEquals(9, InstantOf(nextSeoul, seoul).hour)
+        assertEquals(30, InstantOf(nextSeoul, seoul).minute)
+
+        val ny = TimeZone.of("America/New_York")
+        val spring = RecurSpec(RepeatRule.DAILY, anchorMillis = atZone(ny, 2026, 3, 7, 9, 30), tz = ny.id)
+        val afterSpring = Recurrence.stepFrom(spring.anchorMillis, spring)
+        val springLocal = InstantOf(afterSpring, ny)
+        assertEquals(8, springLocal.dayOfMonth)
+        assertEquals(9, springLocal.hour)
+        assertEquals(30, springLocal.minute)
+        assertEquals(23 * 60 * 60 * 1000L, afterSpring - spring.anchorMillis)
+        val fall = RecurSpec(RepeatRule.DAILY, anchorMillis = atZone(ny, 2026, 10, 31, 9, 30), tz = ny.id)
+        val afterFall = Recurrence.stepFrom(fall.anchorMillis, fall)
+        val fallLocal = InstantOf(afterFall, ny)
+        assertEquals(1, fallLocal.dayOfMonth)
+        assertEquals(11, fallLocal.monthNumber)
+        assertEquals(9, fallLocal.hour)
+        assertEquals(25 * 60 * 60 * 1000L, afterFall - fall.anchorMillis)
+
+        val jan31 = atZone(seoul, 2026, 1, 31, 9, 30)
+        val monthly = RecurSpec(RepeatRule.MONTHLY, anchorMillis = jan31, tz = seoul.id)
+        val february = Recurrence.stepFrom(jan31, monthly)
+        assertEquals(28, InstantOf(february, seoul).dayOfMonth)
+        assertEquals(2, InstantOf(february, seoul).monthNumber)
+        val march = Recurrence.stepFrom(february, monthly)
+        assertEquals(31, InstantOf(march, seoul).dayOfMonth)
+        assertEquals(3, InstantOf(march, seoul).monthNumber)
+
+        val leap = atZone(seoul, 2024, 2, 29, 8, 0)
+        val yearly = RecurSpec(RepeatRule.YEARLY, anchorMillis = leap, tz = seoul.id)
+        val y2025 = Recurrence.stepFrom(leap, yearly)
+        assertEquals(2025, InstantOf(y2025, seoul).year)
+        assertEquals(28, InstantOf(y2025, seoul).dayOfMonth)
+        val y2027 = atZone(seoul, 2027, 2, 28, 8, 0)
+        val y2028 = Recurrence.stepFrom(y2027, yearly)
+        assertEquals(2028, InstantOf(y2028, seoul).year)
+        assertEquals(29, InstantOf(y2028, seoul).dayOfMonth)
+
+        val monday = atZone(seoul, 2026, 10, 19, 9, 0)
+        val wedBit = 1 shl 3
+        val weekly = RecurSpec(RepeatRule.WEEKLY, weekdays = (1 shl 1) or wedBit, anchorMillis = monday, tz = seoul.id)
+        val wednesday = Recurrence.stepFrom(monday, weekly)
+        assertEquals(21, InstantOf(wednesday, seoul).dayOfMonth)
+        val fortnight = RecurSpec(RepeatRule.WEEKLY, interval = 2, anchorMillis = monday, tz = seoul.id)
+        assertEquals(atZone(seoul, 2026, 11, 2, 9, 0), Recurrence.stepFrom(monday, fortnight))
+        val everyThree = RecurSpec(RepeatRule.EVERY_N_DAYS, interval = 3, anchorMillis = monday, tz = seoul.id)
+        assertEquals(atZone(seoul, 2026, 10, 22, 9, 0), Recurrence.stepFrom(monday, everyThree))
+
+        val secondWed = RecurSpec(
+            RepeatRule.MONTHLY,
+            monthOrdinal = 2,
+            weekdays = wedBit,
+            anchorMillis = atZone(seoul, 2026, 3, 1, 9, 0),
+            tz = seoul.id,
+        )
+        val hit = Recurrence.stepFrom(atZone(seoul, 2026, 3, 1, 9, 0), secondWed)
+        val hitLocal = InstantOf(hit, seoul)
+        assertEquals(3, hitLocal.monthNumber)
+        assertTrue(hitLocal.dayOfMonth in 8..14)
+        assertEquals(kotlinx.datetime.DayOfWeek.WEDNESDAY, hitLocal.dayOfWeek)
+
+        val counted = RecurSpec(RepeatRule.DAILY, anchorMillis = monday, endKind = EndKind.COUNT, endCount = 3, tz = seoul.id)
+        val second = Recurrence.stepFrom(monday, counted)
+        val third = Recurrence.stepFrom(second, counted)
+        assertEquals(3, Recurrence.indexOf(third, counted))
+        assertNull(Recurrence.nextOpen(third, counted, third, emptySet()))
+
+        val legacy = ScheduleRules.advance(monday, RepeatRule.DAILY, seoul.id, atZone(seoul, 2026, 10, 21, 11, 0))
+        val modern = Recurrence.nextOpen(
+            monday,
+            RecurSpec(RepeatRule.DAILY, anchorMillis = monday, tz = seoul.id),
+            atZone(seoul, 2026, 10, 21, 11, 0),
+        )
+        assertEquals(legacy, modern)
+
+        assertTrue(ScheduleTemplates.all.any { it.title == "아침 물 마시기" && it.repeat == RepeatRule.DAILY })
+        assertTrue(ScheduleTemplates.all.any { it.title == "분리수거" && it.repeat == RepeatRule.WEEKLY })
+
+        val clock = MutableClock(atZone(seoul, 2026, 10, 21, 8, 0))
+        val service = service(clock, balance)
+        val whenAt = atZone(seoul, 2026, 10, 21, 9, 0)
+        assertTrue(service.addSchedule("물", whenAt, RepeatRule.DAILY).ok)
+        val id = service.state.value.schedules.single().id
+        assertTrue(service.editSchedule(id, EditScope.ONE, ScheduleDraft("바뀐 물", whenAt, RepeatRule.NONE)).ok)
+        val rows = service.state.value.schedules
+        assertEquals(2, rows.size)
+        assertEquals(atZone(seoul, 2026, 10, 22, 9, 0), rows.first { it.title == "물" }.timeMillis)
+        assertTrue(rows.any { it.title == "바뀐 물" && it.repeat == RepeatRule.NONE })
+
+        val fresh = service(MutableClock(clock.now), balance)
+        assertTrue(fresh.addSchedule("운동", whenAt, RepeatRule.DAILY).ok)
+        val freshId = fresh.state.value.schedules.single().id
+        assertTrue(fresh.skipSchedule(freshId).ok)
+        assertEquals(atZone(seoul, 2026, 10, 22, 9, 0), fresh.state.value.schedules.single().timeMillis)
+        val before = fresh.state.value.hunger
+        val foods = fresh.state.value.foods.sumOf { it.quantity }
+        assertTrue(fresh.acknowledge(freshId).ok)
+        assertTrue(fresh.state.value.hunger > before)
+        assertEquals(foods, fresh.state.value.foods.sumOf { it.quantity })
+        assertFalse(fresh.state.value.schedules.single().done)
+        assertTrue(
+            fresh.state.value.statusMessage.contains("밥을 먹었어요") || fresh.state.value.statusMessage.contains("ate"),
+        )
+
+        val all = service(MutableClock(clock.now), balance)
+        assertTrue(all.addSchedule("약", whenAt, RepeatRule.DAILY).ok)
+        val allId = all.state.value.schedules.single().id
+        assertTrue(all.editSchedule(allId, EditScope.ALL, ScheduleDraft("전체 약", whenAt, RepeatRule.WEEKLY)).ok)
+        assertEquals(1, all.state.value.schedules.size)
+        assertEquals(RepeatRule.WEEKLY, all.state.value.schedules.single().repeat)
+
+        val follow = service(MutableClock(clock.now), balance)
+        assertTrue(follow.addSchedule("분리", whenAt, RepeatRule.DAILY).ok)
+        val followId = follow.state.value.schedules.single().id
+        assertTrue(follow.editSchedule(followId, EditScope.FOLLOWING, ScheduleDraft("이후", whenAt, RepeatRule.WEEKDAYS)).ok)
+        assertTrue(follow.state.value.schedules.any { it.title == "이후" && it.repeat == RepeatRule.WEEKDAYS })
+        assertTrue(follow.state.value.schedules.any { it.endKind == EndKind.UNTIL || it.done })
+    }
+
+    private fun InstantOf(millis: Long, zone: TimeZone) =
+        kotlinx.datetime.Instant.fromEpochMilliseconds(millis).toLocalDateTime(zone)
+
+    private fun atZone(zone: TimeZone, year: Int, month: Int, day: Int, hour: Int, minute: Int): Long {
+        return LocalDateTime(year, month, day, hour, minute).toInstant(zone).toEpochMilliseconds()
     }
 
     private fun service(clock: MutableClock, rules: GameBalance): GameService {

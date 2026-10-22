@@ -2,8 +2,8 @@ import AppIntents
 import WidgetKit
 
 struct FeedPetIntent: AppIntent {
-    static var title: LocalizedStringResource = "먹이 주기"
-    static var description = IntentDescription("펫에게 먹이를 줍니다.")
+    static var title: LocalizedStringResource = "intent_feed"
+    static var description = IntentDescription("intent_feed_desc")
 
     func perform() async throws -> some IntentResult {
         _ = MongleKit.feed()
@@ -13,8 +13,8 @@ struct FeedPetIntent: AppIntent {
 }
 
 struct CompleteNextIntent: AppIntent {
-    static var title: LocalizedStringResource = "다음 일정 완료"
-    static var description = IntentDescription("가장 가까운 일정을 완료합니다.")
+    static var title: LocalizedStringResource = "intent_complete"
+    static var description = IntentDescription("intent_complete_desc")
 
     func perform() async throws -> some IntentResult {
         _ = MongleKit.completeNext()
@@ -24,8 +24,8 @@ struct CompleteNextIntent: AppIntent {
 }
 
 struct SellGiftIntent: AppIntent {
-    static var title: LocalizedStringResource = "선물 팔기"
-    static var description = IntentDescription("도착한 선물이나 최근 선물을 팝니다.")
+    static var title: LocalizedStringResource = "intent_sell"
+    static var description = IntentDescription("intent_sell_desc")
 
     func perform() async throws -> some IntentResult {
         _ = MongleKit.sellLatestGift()
@@ -35,8 +35,8 @@ struct SellGiftIntent: AppIntent {
 }
 
 struct BeginBuyIntent: AppIntent {
-    static var title: LocalizedStringResource = "오늘의 물건 사기"
-    static var description = IntentDescription("오늘의 상점 물건을 살지 확인합니다.")
+    static var title: LocalizedStringResource = "intent_buy"
+    static var description = IntentDescription("intent_buy_desc")
 
     func perform() async throws -> some IntentResult {
         _ = MongleKit.beginBuy()
@@ -46,8 +46,8 @@ struct BeginBuyIntent: AppIntent {
 }
 
 struct ConfirmBuyIntent: AppIntent {
-    static var title: LocalizedStringResource = "구매 확정"
-    static var description = IntentDescription("방금 고른 물건을 삽니다.")
+    static var title: LocalizedStringResource = "intent_confirm"
+    static var description = IntentDescription("intent_confirm_desc")
 
     func perform() async throws -> some IntentResult {
         _ = MongleKit.confirmBuy()
@@ -57,8 +57,8 @@ struct ConfirmBuyIntent: AppIntent {
 }
 
 struct CancelBuyIntent: AppIntent {
-    static var title: LocalizedStringResource = "구매 취소"
-    static var description = IntentDescription("구매 확인을 취소합니다.")
+    static var title: LocalizedStringResource = "intent_cancel"
+    static var description = IntentDescription("intent_cancel_desc")
 
     func perform() async throws -> some IntentResult {
         _ = MongleKit.cancelBuy()
@@ -68,8 +68,8 @@ struct CancelBuyIntent: AppIntent {
 }
 
 struct CyclePresetIntent: AppIntent {
-    static var title: LocalizedStringResource = "방 바꾸기"
-    static var description = IntentDescription("다음 방 프리셋으로 바꿉니다.")
+    static var title: LocalizedStringResource = "intent_preset"
+    static var description = IntentDescription("intent_preset_desc")
 
     func perform() async throws -> some IntentResult {
         _ = MongleKit.cyclePreset()

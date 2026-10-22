@@ -11,17 +11,31 @@ enum class PetAct { EGG, IDLE, BLINK, HAPPY, EAT, SLEEP, WALK }
 
 fun petAct(stage: Stage, pose: Pose, energy: Int, status: String): PetAct {
     if (stage == Stage.EGG || pose == Pose.EGG) return PetAct.EGG
-    if ("먹였" in status) return PetAct.EAT
+    if ("먹였" in status || "Fed" in status) return PetAct.EAT
     if (pose == Pose.SLEEP || energy <= 15) return PetAct.SLEEP
     if (pose == Pose.WALK || pose == Pose.OUT) return PetAct.WALK
-    if (pose == Pose.HAPPY || "완료" in status || "자랐" in status) return PetAct.HAPPY
+    if (pose == Pose.HAPPY || "완료" in status || "자랐" in status || "Done" in status || "Grew" in status) return PetAct.HAPPY
     return PetAct.IDLE
 }
 
 fun petAssetId(speciesId: String, stage: Stage, act: PetAct): String {
     if (stage == Stage.EGG || act == PetAct.EGG) return "egg"
-    val base = speciesId == "base" || speciesId == "sp_peach"
-    if (!base) return speciesId
+    val species = speciesId.takeUnless { it.isBlank() || it == "base" || it == "sp_peach" }
+    if (species != null) {
+        val pose = when (act) {
+            PetAct.SLEEP -> "sleep"
+            PetAct.HAPPY -> "happy"
+            PetAct.EAT -> "eat"
+            PetAct.WALK -> "walk_left"
+            PetAct.BLINK -> "blink"
+            PetAct.EGG, PetAct.IDLE -> null
+        }
+        if (pose != null) {
+            val framed = "${species}_$pose"
+            if (SpeciesPoses.has(framed)) return framed
+        }
+        return species
+    }
     return when (act) {
         PetAct.SLEEP -> "base_sleep"
         PetAct.HAPPY -> "base_happy"
@@ -49,7 +63,7 @@ fun roomAssetFor(wallpaperId: String?, night: Boolean, square: Boolean): String 
 
 object Art {
     fun known(id: String): Boolean = id in ids
-    fun drawable(id: String): DrawableResource = when (id) {
+    fun drawable(id: String): DrawableResource = SpeciesPoses.drawable(id) ?: when (id) {
         "acorn" -> Res.drawable.acorn
         "app_icon" -> Res.drawable.app_icon
         "babydragon" -> Res.drawable.babydragon

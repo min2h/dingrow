@@ -26,7 +26,7 @@ Feed it, watch fullness and happiness, and send it on a walk once it is a child.
 
 What you can do
 
-- Add, complete, snooze for 10 minutes, or delete a task. Repeat once, daily, or weekly
+- Add, complete, snooze for 5 minutes, skip, or delete a task. Repeat once, every day, on weekdays or weekends, weekly, every other week, monthly, yearly, or every N days
 - Grow from an egg to a baby, a child, and an adult
 - A small widget (today's mood, the next task, complete) and a large widget (feed, gifts, shop, room)
 - Sleeps at night, and the live wallpaper shows the same room

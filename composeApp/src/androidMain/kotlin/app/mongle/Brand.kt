@@ -1,6 +1,5 @@
 package app.mongle
 
-import java.util.Locale
+import app.mongle.l10n.L10n
 
-actual fun appBrandName(): String =
-    if (Locale.getDefault().language == "ko") "딩그로" else "Dingrow"
+actual fun appBrandName(): String = L10n.t("app_name")

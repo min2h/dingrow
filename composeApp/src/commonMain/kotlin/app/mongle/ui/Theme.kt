@@ -69,6 +69,7 @@ data class PermissionSnapshot(
     val exactAlarmsOn: Boolean = true,
     val supportsExactAlarm: Boolean = false,
     val supportsWallpaper: Boolean = false,
+    val canPinWidget: Boolean = false,
 )
 
 object PermissionCenter {

@@ -70,21 +70,27 @@ struct PetWidgetView: View {
                 MongleArtImage(name: MongleArt.pet(speciesId: snap.speciesId, pose: snap.pose, stageLabel: snap.stageLabel))
                     .frame(width: 56, height: 56)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("오늘의 기분").font(.caption2).foregroundStyle(muted)
+                    Text(DingrowStrings.text("widget_mood", language: snap.language)).font(.caption2).foregroundStyle(muted)
                     Text(snap.moodLabel).font(.headline).foregroundStyle(ink)
                 }
             }
-            Text(snap.nextTime.isEmpty ? "다음 일정" : snap.nextTime)
+            if !snap.speech.isEmpty {
+                Text(snap.speech)
+                    .font(.caption2)
+                    .foregroundStyle(ink)
+                    .lineLimit(1)
+            }
+            Text(snap.nextTime.isEmpty ? DingrowStrings.text("widget_next", language: snap.language) : snap.nextTime)
                 .font(.caption2)
                 .foregroundStyle(muted)
                 .lineLimit(1)
-            Text(snap.nextTitle.isEmpty ? "일정 없음" : snap.nextTitle)
+            Text(snap.nextTitle.isEmpty ? DingrowStrings.text("widget_none", language: snap.language) : snap.nextTitle)
                 .font(.caption)
                 .foregroundStyle(ink)
                 .lineLimit(1)
             Spacer(minLength: 0)
             Button(intent: CompleteNextIntent()) {
-                Text("완료").frame(maxWidth: .infinity)
+                Text(DingrowStrings.text("widget_done", language: snap.language)).frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .tint(Color(hex: "#F6C1B0"))
@@ -99,16 +105,30 @@ struct PetWidgetView: View {
             ZStack(alignment: .bottom) {
                 MongleArtImage(name: MongleArt.room(wallHex: snap.wallHex, timeOfDay: snap.timeOfDay, dark: snap.darkRoom), fill: false)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                MongleArtImage(name: MongleArt.pet(speciesId: snap.speciesId, pose: snap.pose, stageLabel: snap.stageLabel))
+                MongleArtImage(name: MongleArt.pet(
+                    speciesId: snap.speciesId,
+                    pose: snap.nextTitle.isEmpty ? snap.pose : "idle",
+                    stageLabel: snap.stageLabel
+                ))
                     .frame(width: 64, height: 64)
                     .padding(.bottom, 6)
+                if !snap.speech.isEmpty {
+                    Text(snap.speech)
+                        .font(.caption2)
+                        .foregroundStyle(ink)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.white.opacity(0.9), in: Capsule())
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                        .padding(8)
+                }
             }
             .frame(maxWidth: .infinity)
             .frame(height: 150)
             .background(Color(hex: "#FFF6EE"))
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             HStack {
-                Text("\(snap.petName)의 아늑한 방")
+                Text(DingrowStrings.format("widget_room", language: snap.language, [snap.petName]))
                     .font(.headline)
                     .foregroundStyle(ink)
                 Spacer()
@@ -125,39 +145,39 @@ struct PetWidgetView: View {
                     .foregroundStyle(ink)
                     .lineLimit(2)
                 HStack {
-                    Button(intent: ConfirmBuyIntent()) { Text("확인") }
-                    Button(intent: CancelBuyIntent()) { Text("취소") }
+                    Button(intent: ConfirmBuyIntent()) { Text(DingrowStrings.text("widget_confirm", language: snap.language)) }
+                    Button(intent: CancelBuyIntent()) { Text(DingrowStrings.text("widget_cancel", language: snap.language)) }
                 }
                 .font(.caption)
                 .buttonStyle(.bordered)
             } else {
-                Text(snap.nextTitle.isEmpty ? "예정된 일정 없음" : "\(snap.nextTime)  \(snap.nextTitle)")
+                Text(snap.nextTitle.isEmpty ? DingrowStrings.text("widget_none_large", language: snap.language) : "\(snap.nextTime)  \(snap.nextTitle)")
                     .font(.caption)
                     .foregroundStyle(ink)
                     .lineLimit(1)
                 if !snap.pendingGiftName.isEmpty {
-                    Text("선물 \(snap.pendingGiftName) · \(snap.pendingGiftPrice)코인")
+                    Text(DingrowStrings.format("widget_gift_line", language: snap.language, [snap.pendingGiftName, snap.pendingGiftPrice]))
                         .font(.caption2)
                         .foregroundStyle(muted)
                 }
                 HStack(spacing: 6) {
-                    Button(intent: FeedPetIntent()) { Text("밥주기").frame(maxWidth: .infinity) }
+                    Button(intent: FeedPetIntent()) { Text(DingrowStrings.text("widget_feed", language: snap.language)).frame(maxWidth: .infinity) }
                         .tint(Color(hex: "#FFE3D6"))
-                    Button(intent: SellGiftIntent()) { Text("선물 팔기").frame(maxWidth: .infinity) }
+                    Button(intent: SellGiftIntent()) { Text(DingrowStrings.text("widget_sell", language: snap.language)).frame(maxWidth: .infinity) }
                         .tint(Color(hex: "#DDF3EA"))
                 }
                 .font(.caption2)
                 .buttonStyle(.bordered)
                 HStack(spacing: 6) {
-                    Button(intent: BeginBuyIntent()) { Text("오늘의 상품").frame(maxWidth: .infinity) }
+                    Button(intent: BeginBuyIntent()) { Text(DingrowStrings.text("widget_today", language: snap.language)).frame(maxWidth: .infinity) }
                         .tint(Color(hex: "#FFF3C9"))
-                    Button(intent: CyclePresetIntent()) { Text("꾸미기").frame(maxWidth: .infinity) }
+                    Button(intent: CyclePresetIntent()) { Text(DingrowStrings.text("widget_decorate", language: snap.language)).frame(maxWidth: .infinity) }
                         .tint(Color(hex: "#FFE3D6"))
                 }
                 .font(.caption2)
                 .buttonStyle(.bordered)
                 Link(destination: URL(string: "dingrow://schedule/add")!) {
-                    Text("일정 추가")
+                    Text(DingrowStrings.text("widget_add", language: snap.language))
                         .font(.caption2)
                         .foregroundStyle(Color(hex: "#8A6A55"))
                 }
@@ -175,14 +195,23 @@ struct PetWidgetView: View {
 
 enum MongleArt {
     static func pet(speciesId: String, pose: String, stageLabel: String) -> String {
-        if stageLabel == "알" || pose == "egg" { return "egg" }
+        if stageLabel == "알" || stageLabel == "Egg" || pose == "egg" { return "egg" }
         let base = speciesId == "base" || speciesId == "sp_peach" || speciesId.isEmpty
-        if !base { return speciesId }
+        if base {
+            switch pose {
+            case "sleep": return "base_sleep"
+            case "happy": return "base_happy"
+            case "walk", "out": return "base_walk_left"
+            case "eat": return "base_eat"
+            default: return "base_idle"
+            }
+        }
         switch pose {
-        case "sleep": return "base_sleep"
-        case "happy": return "base_happy"
-        case "walk", "out": return "base_walk_left"
-        default: return "base_idle"
+        case "sleep": return "\(speciesId)_sleep"
+        case "happy": return "\(speciesId)_happy"
+        case "walk", "out": return "\(speciesId)_walk_left"
+        case "eat": return "\(speciesId)_eat"
+        default: return speciesId
         }
     }
 
@@ -200,12 +229,21 @@ enum MongleArt {
     }
 
     static func image(_ name: String) -> UIImage? {
+        load(name) ?? load("base_idle")
+    }
+
+    private static func load(_ name: String) -> UIImage? {
         let bundle = Bundle.main
-        if let url = bundle.url(forResource: name, withExtension: "webp", subdirectory: "Art") {
-            return UIImage(contentsOfFile: url.path)
-        }
-        if let url = bundle.url(forResource: name, withExtension: "webp") {
-            return UIImage(contentsOfFile: url.path)
+        let folders = ["Art", "characters", nil as String?]
+        for folder in folders {
+            let url = if let folder {
+                bundle.url(forResource: name, withExtension: "webp", subdirectory: folder)
+            } else {
+                bundle.url(forResource: name, withExtension: "webp")
+            }
+            if let url, let image = UIImage(contentsOfFile: url.path) {
+                return image
+            }
         }
         return nil
     }

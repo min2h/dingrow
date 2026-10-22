@@ -2,6 +2,8 @@ package app.mongle
 
 import android.Manifest
 import android.app.AlarmManager
+import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -22,6 +24,8 @@ import app.mongle.ui.MongleTheme
 import app.mongle.ui.PermissionCenter
 import app.mongle.ui.PermissionSnapshot
 import app.mongle.wallpaper.PetWallpaperService
+import app.mongle.widget.LargeWidgetReceiver
+import app.mongle.widget.SmallWidgetReceiver
 
 class MainActivity : ComponentActivity() {
     private val notificationPermission = registerForActivityResult(
@@ -31,6 +35,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppGraph.ensure(this)
+        app.mongle.billing.BillingHost.activity = this
         updatePermissions()
         handleIntent(intent)
         setContent {
@@ -42,6 +47,7 @@ class MainActivity : ComponentActivity() {
                     onRequestNotifications = { requestNotifications() },
                     onOpenExactAlarm = { openExactAlarmSettings() },
                     onOpenWallpaper = { openWallpaper() },
+                    onPinWidget = { large -> pinWidget(large) },
                 )
             }
         }
@@ -62,9 +68,24 @@ class MainActivity : ComponentActivity() {
         val route = intent?.getStringExtra("route")
         val data = intent?.data
         val scheme = data?.scheme
+        val alarmId = intent?.getStringExtra("alarmScheduleId")
+        if (!alarmId.isNullOrBlank()) NavigationBus.request("alarm:$alarmId")
         if (route == "add-schedule" || ((scheme == "dingrow" || scheme == "mongle") && data?.host == "schedule")) {
             NavigationBus.request("add-schedule")
         }
+    }
+
+    private fun pinWidget(large: Boolean) {
+        val manager = AppWidgetManager.getInstance(this)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !manager.isRequestPinAppWidgetSupported) return
+        val type = if (large) LargeWidgetReceiver::class.java else SmallWidgetReceiver::class.java
+        val callback = PendingIntent.getActivity(
+            this,
+            71,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        manager.requestPinAppWidget(ComponentName(this, type), null, callback)
     }
 
     private fun requestNotifications() {
@@ -106,11 +127,14 @@ class MainActivity : ComponentActivity() {
         } else {
             true
         }
+        val canPin = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            AppWidgetManager.getInstance(this).isRequestPinAppWidgetSupported
         PermissionCenter.snapshot.value = PermissionSnapshot(
             notificationsOn = notificationsOn,
             exactAlarmsOn = exact,
             supportsExactAlarm = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
             supportsWallpaper = true,
+            canPinWidget = canPin,
         )
     }
 }

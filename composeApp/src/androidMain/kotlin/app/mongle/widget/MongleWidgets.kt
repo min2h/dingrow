@@ -2,11 +2,13 @@ package app.mongle.widget
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
+import androidx.glance.LocalContext
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
@@ -37,11 +39,15 @@ import androidx.glance.Button
 import androidx.glance.ButtonDefaults
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.action.ActionParameters
+import app.dingrow.R
 import app.mongle.AppGraph
+import app.mongle.l10n.AppLocale
+import java.util.Locale
 import app.mongle.appBrandName
 import app.mongle.MainActivity
-import androidx.glance.LocalContext
+import app.mongle.logic.PetGesture
 import app.mongle.model.GameState
+import app.mongle.model.Pose
 import app.mongle.model.TimeOfDay
 import app.mongle.ui.ArtBitmaps
 import app.mongle.ui.petAct
@@ -82,27 +88,32 @@ internal fun SmallBody(state: GameState? = currentState()) {
         modifier = GlanceModifier
             .fillMaxSize()
             .background(cream)
-            .padding(12.dp)
-            .clickable(actionRunCallback<OpenAppAction>()),
+            .padding(12.dp),
     ) {
         if (state == null) {
             Text(appBrandName(), style = TextStyle(color = ink, fontWeight = FontWeight.Bold))
             return@Column
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            PetImage(state, 64)
+            PetImage(state, 64, react = true)
             Spacer(GlanceModifier.width(8.dp))
-            Column(modifier = GlanceModifier.defaultWeight()) {
-                Text("오늘의 기분", style = TextStyle(color = ink, fontSize = 11.sp), maxLines = 1)
+            Column(
+                modifier = GlanceModifier.defaultWeight().clickable(actionRunCallback<OpenAppAction>()),
+            ) {
+                Text(s(R.string.widget_mood), style = TextStyle(color = ink, fontSize = 11.sp), maxLines = 1)
                 Text(state.moodLabel, style = TextStyle(color = ink, fontWeight = FontWeight.Bold, fontSize = 14.sp), maxLines = 1)
             }
         }
+        if (state.speech.isNotBlank()) {
+            Spacer(GlanceModifier.height(4.dp))
+            Text(state.speech, style = TextStyle(color = ink, fontSize = 12.sp), maxLines = 1)
+        }
         Spacer(GlanceModifier.height(6.dp))
-        Text(state.nextSchedule?.timeLabel ?: "다음 일정", style = TextStyle(color = ink, fontSize = 11.sp), maxLines = 1)
-        Text(state.nextSchedule?.title ?: "일정 없음", style = TextStyle(color = ink, fontWeight = FontWeight.Bold, fontSize = 13.sp), maxLines = 1)
+        Text(state.nextSchedule?.timeLabel ?: s(R.string.widget_next), style = TextStyle(color = ink, fontSize = 11.sp), maxLines = 1)
+        Text(state.nextSchedule?.title ?: s(R.string.widget_none), style = TextStyle(color = ink, fontWeight = FontWeight.Bold, fontSize = 13.sp), maxLines = 1)
         Spacer(GlanceModifier.defaultWeight())
         Button(
-            "완료",
+            s(R.string.widget_done),
             actionRunCallback<CompleteAction>(),
             modifier = GlanceModifier.fillMaxWidth().cornerRadius(16.dp),
             colors = ButtonDefaults.buttonColors(backgroundColor = peach, contentColor = ink),
@@ -121,7 +132,7 @@ internal fun LargeBody(state: GameState? = currentState()) {
         }
         Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "${state.petName}의 아늑한 방",
+                sf(R.string.widget_room, state.petName),
                 style = TextStyle(color = ink, fontWeight = FontWeight.Bold, fontSize = 14.sp),
                 maxLines = 1,
                 modifier = GlanceModifier.defaultWeight(),
@@ -142,7 +153,7 @@ internal fun LargeBody(state: GameState? = currentState()) {
         ) {
             Image(
                 ImageProvider(room),
-                "방",
+                s(R.string.widget_room_cd),
                 GlanceModifier.fillMaxSize(),
                 contentScale = ContentScale.Fit,
             )
@@ -150,39 +161,80 @@ internal fun LargeBody(state: GameState? = currentState()) {
                 modifier = GlanceModifier.fillMaxSize(),
                 contentAlignment = Alignment.BottomCenter,
             ) {
-                PetImage(state, 64)
+                PetImage(state, 64, awake = state.nextSchedule != null, react = true)
+            }
+            if (state.speech.isNotBlank() || state.nextSchedule != null) {
+                Text(
+                    state.speech.ifBlank { state.nextSchedule?.title.orEmpty() },
+                    style = TextStyle(color = ink, fontSize = 12.sp),
+                    maxLines = 2,
+                )
             }
         }
         Spacer(GlanceModifier.height(6.dp))
         if (state.confirmText.isNotBlank()) {
             Text(state.confirmText, style = TextStyle(color = ink, fontSize = 12.sp), maxLines = 2)
             Row(modifier = GlanceModifier.fillMaxWidth()) {
-                Button("확인", actionRunCallback<ConfirmBuyAction>(), modifier = GlanceModifier.defaultWeight(), colors = ButtonDefaults.buttonColors(backgroundColor = peach, contentColor = ink))
+                Button(s(R.string.widget_confirm), actionRunCallback<ConfirmBuyAction>(), modifier = GlanceModifier.defaultWeight(), colors = ButtonDefaults.buttonColors(backgroundColor = peach, contentColor = ink))
                 Spacer(GlanceModifier.width(4.dp))
-                Button("취소", actionRunCallback<CancelBuyAction>(), modifier = GlanceModifier.defaultWeight(), colors = ButtonDefaults.buttonColors(backgroundColor = mint, contentColor = ink))
+                Button(s(R.string.widget_cancel), actionRunCallback<CancelBuyAction>(), modifier = GlanceModifier.defaultWeight(), colors = ButtonDefaults.buttonColors(backgroundColor = mint, contentColor = ink))
             }
         } else {
             Row(modifier = GlanceModifier.fillMaxWidth()) {
-                Button("밥주기", actionRunCallback<FeedAction>(), modifier = GlanceModifier.defaultWeight().cornerRadius(16.dp), colors = ButtonDefaults.buttonColors(backgroundColor = peach, contentColor = ink))
+                Button(s(R.string.widget_feed), actionRunCallback<FeedAction>(), modifier = GlanceModifier.defaultWeight().cornerRadius(16.dp), colors = ButtonDefaults.buttonColors(backgroundColor = peach, contentColor = ink))
                 Spacer(GlanceModifier.width(6.dp))
-                Button("선물 팔기", actionRunCallback<SellAction>(), modifier = GlanceModifier.defaultWeight().cornerRadius(16.dp), colors = ButtonDefaults.buttonColors(backgroundColor = mint, contentColor = ink))
+                Button(s(R.string.widget_sell), actionRunCallback<SellAction>(), modifier = GlanceModifier.defaultWeight().cornerRadius(16.dp), colors = ButtonDefaults.buttonColors(backgroundColor = mint, contentColor = ink))
             }
             Spacer(GlanceModifier.height(6.dp))
             Row(modifier = GlanceModifier.fillMaxWidth()) {
-                Button("오늘의 상품", actionRunCallback<BeginBuyAction>(), modifier = GlanceModifier.defaultWeight().cornerRadius(16.dp), colors = ButtonDefaults.buttonColors(backgroundColor = butter, contentColor = ink))
+                Button(s(R.string.widget_today), actionRunCallback<BeginBuyAction>(), modifier = GlanceModifier.defaultWeight().cornerRadius(16.dp), colors = ButtonDefaults.buttonColors(backgroundColor = butter, contentColor = ink))
                 Spacer(GlanceModifier.width(6.dp))
-                Button("꾸미기", actionRunCallback<PresetAction>(), modifier = GlanceModifier.defaultWeight().cornerRadius(16.dp), colors = ButtonDefaults.buttonColors(backgroundColor = peach, contentColor = ink))
+                Button(s(R.string.widget_decorate), actionRunCallback<PresetAction>(), modifier = GlanceModifier.defaultWeight().cornerRadius(16.dp), colors = ButtonDefaults.buttonColors(backgroundColor = peach, contentColor = ink))
             }
         }
     }
 }
 
 @Composable
-private fun PetImage(state: GameState, size: Int) {
+private fun PetImage(state: GameState, size: Int, awake: Boolean = false, react: Boolean = false) {
     val context = LocalContext.current
-    val act = petAct(state.stage, state.pose, state.energy, state.statusMessage)
+    val pose = if (awake && state.pose == Pose.SLEEP) Pose.IDLE else state.pose
+    val energy = if (awake) 80 else state.energy
+    val act = petAct(state.stage, pose, energy, if (awake) "" else state.statusMessage)
     val bitmap = ArtBitmaps.decode(context, petAssetId(state.speciesId, state.stage, act), size * 2)
-    Image(ImageProvider(bitmap), state.petName, GlanceModifier.size(size.dp))
+    val modifier = if (react) {
+        GlanceModifier.size(size.dp).clickable(actionRunCallback<ReactAction>())
+    } else {
+        GlanceModifier.size(size.dp)
+    }
+    Image(ImageProvider(bitmap), state.petName, modifier)
+}
+
+@Composable
+private fun localizedContext(): Context {
+    val base = LocalContext.current
+    val locale = if (AppLocale.code() == "ko") Locale.KOREAN else Locale.ENGLISH
+    val config = Configuration(base.resources.configuration)
+    config.setLocale(locale)
+    return base.createConfigurationContext(config)
+}
+
+@Composable
+private fun s(id: Int): String = localizedContext().getString(id)
+
+@Composable
+private fun sf(id: Int, vararg args: Any): String {
+    var index = 0
+    return Regex("%[sd]").replace(localizedContext().getString(id)) {
+        args.getOrNull(index++)?.toString().orEmpty()
+    }
+}
+
+class ReactAction : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        AppGraph.ensure(context)
+        AppGraph.service.react(PetGesture.TAP)
+    }
 }
 
 class FeedAction : ActionCallback {
