@@ -60,3 +60,37 @@ internal fun GiftCarrier(state: GameState, onOpen: () -> Unit) {
         }
     }
 }
+
+/** '선물이 더 좋아져요!' — shown once per new level, with the new gift odds. */
+@Composable
+internal fun LevelUpDialog(state: GameState, onDone: () -> Unit) {
+    val w = app.mongle.model.EconomyConfig.weightsFor(state.level)
+    val total = w.sum().toFloat()
+    fun pct(v: Int) = ((v / total * 1000).toInt() / 10f).toString() + "%"
+    val coins = app.mongle.model.EconomyConfig.coinRange(state.level)
+    val pop = remember { Animatable(0.6f) }
+    LaunchedEffect(Unit) { pop.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = 300f)) }
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDone) {
+        Column(
+            Modifier.graphicsLayer { scaleX = pop.value; scaleY = pop.value }.clip(RoundedCornerShape(28.dp)).background(CardWhite).padding(24.dp).testTag("levelup"),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(Modifier.size(110.dp)) {
+                PetFigure(state.speciesId, state.stage, PetAct.HAPPY, state.outfitId, Modifier.fillMaxSize(), animate = false, breath = 0.35f, walk = 0.2f)
+                GiftBox(Modifier.size(44.dp).align(Alignment.BottomEnd), sparkle = true)
+            }
+            Spacer(Modifier.height(12.dp))
+            Text(tf("levelup_title", state.level), color = Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(4.dp))
+            Text(t("levelup_body"), color = PeachDeep, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Text(tf("levelup_detail", pct(w[2]), pct(w[3]), coins.first, coins.last), color = InkSoft, fontSize = 12.sp)
+            Spacer(Modifier.height(16.dp))
+            Text(
+                t("levelup_ok"),
+                Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(24.dp)).background(PeachDeep).clickable(onClick = onDone).testTag("levelup-ok").padding(vertical = 14.dp),
+                color = Color.White, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+        }
+    }
+}

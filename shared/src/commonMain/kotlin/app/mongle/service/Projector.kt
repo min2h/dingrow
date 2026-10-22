@@ -160,6 +160,7 @@ fun project(raw: PersistedState, now: Long, zone: TimeZone, balance: GameBalance
             Stage.CHILD -> 3
             Stage.ADULT -> 4
         },
+        levelSeen = state.extras["level.seen"]?.toIntOrNull() ?: 1,
         settings = state.settings,
         placements = state.placements,
         premium = state.premium,

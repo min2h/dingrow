@@ -357,6 +357,11 @@ class GameService(
         return mutate { _, _ -> done(restored, ActionResult(true, L10n.t("msg_backup_restored"))) }
     }
 
+    /** Marks the level-up popup as seen. */
+    suspend fun ackLevelUp(level: Int): ActionResult = mutate { state, _ ->
+        done(state.copy(extras = state.extras + ("level.seen" to level.toString())), ActionResult(true, ""))
+    }
+
     suspend fun resetAll(): ActionResult = mutate { state, now ->
         done(Seed.create(now, balance).copy(settings = state.settings, onboarded = false), ActionResult(true, L10n.t("msg_reset_done")))
     }
@@ -365,6 +370,9 @@ class GameService(
     /** Test/debug only: jump the pet to a stage. */
     /** Debug/test only: adds coins with a ledger entry. */
     suspend fun debugAddCoins(n: Int): ActionResult = mutate { state, now -> done(state.copy(coins = state.coins + n, ledger = state.ledger + LedgerEntry(newId(now), n, "DEBUG", null, now, null)), ActionResult(true, "")) }
+
+    /** Debug/test only: owns an item (e.g. a gift-only unique). */
+    suspend fun debugGrantItem(id: String): ActionResult = mutate { state, now -> done(state.copy(owned = state.owned + id, ownedAt = state.ownedAt + (id to now)), ActionResult(true, "")) }
 
     suspend fun debugSetStage(stage: app.mongle.model.Stage): ActionResult = mutate { state, _ -> done(state.copy(pet = state.pet.copy(stage = stage, hunger = 90, energy = 90)), ActionResult(true, "")) }
 

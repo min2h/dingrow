@@ -50,6 +50,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
@@ -94,6 +97,11 @@ internal object GiftOpen {
     var opened by mutableStateOf<String?>(null)
     var openNext by mutableStateOf(false)
 }
+
+/** Dex silhouette: the item's shape filled with one flat color. */
+internal fun Modifier.silhouette(color: Color): Modifier = this
+    .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+    .drawWithContent { drawContent(); drawRect(color, blendMode = androidx.compose.ui.graphics.BlendMode.SrcIn) }
 
 private enum class RoomPane { Furniture, Outfit }
 
@@ -326,7 +334,7 @@ fun MongleAppScreen(
                     onDecorateScreen = { overlayState.value = "decorate" },
                     onEarn = { tabState.value = Tab.Schedule },
                 )
-                Tab.My -> DexScreen(state, scope, service)
+                Tab.My -> DexScreen(state, scope, service, onResell = { resellId = it })
             }
         }
     }
@@ -364,6 +372,7 @@ fun MongleAppScreen(
             }
         }
     }
+    if (state.level > state.levelSeen) LevelUpDialog(state) { scope.launch { service.ackLevelUp(state.level) } }
     if (state.statusMessage.isNotBlank() && !showComposer && overlay == "none") {
         Text(
             state.statusMessage,
@@ -776,6 +785,7 @@ private fun DexScreen(
     state: GameState,
     scope: kotlinx.coroutines.CoroutineScope,
     service: GameService,
+    onResell: (String) -> Unit = {},
 ) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -822,18 +832,52 @@ private fun DexScreen(
             ArtImage("empty_gifts", Modifier.fillMaxWidth().height(140.dp).clip(RoundedCornerShape(20.dp)), t("empty_gifts_cd"))
             Spacer(Modifier.height(8.dp))
         }
+        // Gift-only items: silhouettes until owned.
+        val found = Catalog.uniques.count { it.id in state.owned }
         Row(verticalAlignment = Alignment.CenterVertically) {
             MarkIcon(Mark.Gift, Modifier.size(18.dp), PeachDeep)
             Spacer(Modifier.width(6.dp))
-            Text(t("collection"), style = MaterialTheme.typography.titleMedium)
+            Text(t("dex_unique_title"), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text(tf("dex_unique_count", found, Catalog.uniques.size), color = InkSoft, fontSize = 12.sp)
         }
-        Catalog.goods.filter { it.kind != ItemKind.FOOD }.take(24).forEach { item ->
-            val owned = item.id in state.owned || item.kind == ItemKind.GIFT && state.gifts.any { it.defId == item.id }
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(t("dex_hint_gift"), color = InkSoft, fontSize = 12.sp)
+        Spacer(Modifier.height(8.dp))
+        Catalog.uniques.chunked(4).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { item ->
+                    val has = item.id in state.owned
+                    Column(
+                        Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).background(if (has) CardWhite else Line.copy(alpha = 0.5f))
+                            .then(if (has) Modifier.clickable { onResell(item.id) } else Modifier)
+                            .testTag(if (has) "dex-owned-${item.id}" else "dex-locked-${item.id}").padding(6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Box(Modifier.size(52.dp).then(if (has) Modifier else Modifier.silhouette(InkSoft.copy(alpha = 0.55f)))) {
+                            ArtImage(item.id, Modifier.fillMaxSize(), if (has) L10n.item(item.id) else t("dex_unknown"))
+                        }
+                        Text(if (has) L10n.item(item.id) else t("dex_unknown"), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Ink)
+                        Text(L10n.t("rarity_${item.rarity.name.lowercase()}"), fontSize = 9.sp, color = if (item.rarity == Rarity.EPIC) PeachDeep else InkSoft)
+                    }
+                }
+                repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+        Spacer(Modifier.height(8.dp))
+        // 보유 아이템 (resellable, confirm sheet).
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            MarkIcon(Mark.Heart, Modifier.size(18.dp), PeachDeep)
+            Spacer(Modifier.width(6.dp))
+            Text(t("dex_owned_title"), style = MaterialTheme.typography.titleMedium)
+        }
+        val mine = Catalog.all.filter { it.id in state.owned && it.kind != ItemKind.FOOD && it.kind != ItemKind.COMPANION } +
+            state.gifts.mapNotNull { g -> Catalog.byId(g.defId) }.distinctBy { it.id }.filter { it.id !in state.owned }
+        mine.forEach { item ->
+            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                 ArtImage(item.id, Modifier.size(36.dp), L10n.item(item.id))
                 Spacer(Modifier.width(8.dp))
-                Text(L10n.item(item.id), modifier = Modifier.weight(1f))
-                Text(if (owned) t("owned_short") else if (item.price > 0) "${item.price}" else "${item.sellPrice}", color = InkSoft, fontSize = 12.sp)
+                Text(L10n.item(item.id), modifier = Modifier.weight(1f), color = Ink)
+                TextButton(onClick = { onResell(item.id) }, modifier = Modifier.testTag("dex-sell-${item.id}")) { Text(t("dex_sell") + " · " + app.mongle.logic.resellAmount(item)) }
             }
         }
         Spacer(Modifier.height(20.dp))

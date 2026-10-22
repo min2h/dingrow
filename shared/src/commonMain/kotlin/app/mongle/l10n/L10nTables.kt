@@ -1061,6 +1061,16 @@ internal val En: Map<String, String> = buildMap {
     put("iap_coins_100_blurb", "100 coins")
     put("iap_coins_1000", "1,000 coins")
     put("iap_coins_1000_blurb", "1,000 coins · best value")
+    put("levelup_title", "Level %d!")
+    put("levelup_body", "Gifts get better!")
+    put("levelup_detail", "Rare %s · Legendary %s · Coins %d–%d")
+    put("levelup_ok", "Yay")
+    put("dex_unique_title", "Gift-only items")
+    put("dex_unique_count", "%d / %d found")
+    put("dex_unknown", "???")
+    put("dex_owned_title", "My items")
+    put("dex_hint_gift", "Mongi may bring one when you finish schedules")
+    put("dex_sell", "Sell")
 }
 
 internal val Ko: Map<String, String> = buildMap {
@@ -2123,4 +2133,14 @@ internal val Ko: Map<String, String> = buildMap {
     put("iap_coins_100_blurb", "코인 100개")
     put("iap_coins_1000", "코인 1,000")
     put("iap_coins_1000_blurb", "코인 1,000개 · 가장 알뜰해요")
+    put("levelup_title", "레벨 %d이 되었어요!")
+    put("levelup_body", "선물이 더 좋아져요!")
+    put("levelup_detail", "희귀 %s · 전설 %s · 코인 %d–%d")
+    put("levelup_ok", "좋아요")
+    put("dex_unique_title", "선물로만 얻는 아이템")
+    put("dex_unique_count", "%d / %d 발견")
+    put("dex_unknown", "???")
+    put("dex_owned_title", "보유 아이템")
+    put("dex_hint_gift", "일정을 완료하면 몽이가 가져올지도 몰라요")
+    put("dex_sell", "팔기")
 }

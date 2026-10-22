@@ -167,4 +167,22 @@ class StudioUiTest {
         app.mongle.platform.NavigationBus.request("gift"); settle()
         tag("gift-opened").fetchSemanticsNode()
     }
+
+    @Test fun levelUpPopupOnceAndDexSilhouettes() {
+        val first = app.mongle.model.Catalog.uniques.first().id
+        val second = app.mongle.model.Catalog.uniques[1].id
+        val s = app(coins = 0) { debugGrantItem(first); debugSetStage(app.mongle.model.Stage.BABY) }
+        tag("levelup").fetchSemanticsNode()
+        rule.onNodeWithText("선물이 더 좋아져요!").fetchSemanticsNode()
+        rule.onNodeWithText("레벨 2이 되었어요!").fetchSemanticsNode()
+        rule.onRoot().captureRoboImage(artifact("levelup.png"))
+        clickNoScroll("levelup-ok")
+        assertTrue(rule.onAllNodesWithTag("levelup").fetchSemanticsNodes().isEmpty())
+        assertEquals(2, s.state.value.levelSeen)
+        rule.onNodeWithTag("tab-My").performClick(); settle()
+        rule.mainClock.autoAdvance = true; rule.onNodeWithTag("dex-locked-$second").performScrollTo(); rule.mainClock.autoAdvance = false; settle()
+        rule.onRoot().captureRoboImage(artifact("dex-silhouettes.png"))
+        rule.onNodeWithTag("dex-owned-$first").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick); settle()
+        rule.onNodeWithText("판매하기").fetchSemanticsNode() // resell confirm sheet
+    }
 }

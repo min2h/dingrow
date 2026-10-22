@@ -1058,4 +1058,14 @@
     <string name="iap_coins_100_blurb">100 coins</string>
     <string name="iap_coins_1000">1,000 coins</string>
     <string name="iap_coins_1000_blurb">1,000 coins · best value</string>
+    <string name="levelup_title">Level %d!</string>
+    <string name="levelup_body">Gifts get better!</string>
+    <string name="levelup_detail">Rare %s · Legendary %s · Coins %d–%d</string>
+    <string name="levelup_ok">Yay</string>
+    <string name="dex_unique_title">Gift-only items</string>
+    <string name="dex_unique_count">%d / %d found</string>
+    <string name="dex_unknown">???</string>
+    <string name="dex_owned_title">My items</string>
+    <string name="dex_hint_gift">Mongi may bring one when you finish schedules</string>
+    <string name="dex_sell">Sell</string>
 </resources>

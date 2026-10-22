@@ -388,6 +388,8 @@ data class GameState(
     val darkRoom: Boolean,
     val speciesId: String = "base",
     val level: Int = 1,
+    /** Highest level whose '선물이 더 좋아져요!' popup was shown. */
+    val levelSeen: Int = 1,
     val settings: AppSettings = AppSettings(),
     val placements: List<Placement> = emptyList(),
     val premium: Boolean = false,
