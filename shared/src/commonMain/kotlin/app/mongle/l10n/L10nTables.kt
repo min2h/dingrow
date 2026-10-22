@@ -990,6 +990,7 @@ internal val En: Map<String, String> = buildMap {
     put("widget_upcoming", "Upcoming")
     put("widget_medium_name", "Mongi and upcoming")
     put("widget_medium_desc", "Mongi with your next two schedules, fullness and condition.")
+    put("wp_date", "%d/%d")
 }
 
 internal val Ko: Map<String, String> = buildMap {
@@ -1981,4 +1982,5 @@ internal val Ko: Map<String, String> = buildMap {
     put("widget_upcoming", "다가오는 일정")
     put("widget_medium_name", "몽이와 다가오는 일정")
     put("widget_medium_desc", "몽이와 다음 일정 2개, 배부름과 컨디션.")
+    put("wp_date", "%d월 %d일")
 }

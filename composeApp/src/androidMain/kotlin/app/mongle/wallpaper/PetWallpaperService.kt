@@ -23,6 +23,9 @@ import app.mongle.ui.SpeciesPoses
 import app.mongle.ui.petAct
 import app.mongle.ui.petAssetId
 import app.mongle.ui.roomAssetFor
+import app.mongle.widget.WidgetScene
+import androidx.compose.ui.graphics.toArgb
+import kotlinx.datetime.toLocalDateTime
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -91,7 +94,7 @@ internal object WallpaperPainter {
     private var lastBody = ""
 
     fun draw(canvas: Canvas, state: GameState?, nowMillis: Long, context: Context) {
-        val night = state?.timeOfDay == TimeOfDay.NIGHT
+        val night = if (state != null) state.phase == app.mongle.logic.DayPhase.NIGHT else false
         val wallpaper = state?.activeRoom?.wallpaperId
         val stage = state?.stage ?: Stage.BABY
         val pose = state?.pose ?: Pose.IDLE
@@ -127,21 +130,27 @@ internal object WallpaperPainter {
         val eased = blend * blend * (3f - 2f * blend)
         val squash = sin(eased * PI).toFloat()
         canvas.drawColor(if (night) Color.parseColor("#2C3A5A") else Color.parseColor("#FFF6EE"))
-        val room = ArtBitmaps.decode(context, roomAssetFor(wallpaper, night, square = false), 720)
+        val room = ArtBitmaps.decode(context, roomAssetFor(wallpaper, night, square = false), 1080)
         val placed = drawContain(canvas, room)
+        if (state != null) {
+            // Same time-of-day / weather grade as the app (dawn blue, dusk amber, night navy, grey rain).
+            val grade = app.mongle.ui.gradeFor(state.phase, state.weather?.kind)
+            if (grade.alpha > 0f) canvas.drawRect(placed, Paint().apply { color = grade.toArgb() })
+        }
         val walking = act == PetAct.WALK
         val phase = (nowMillis % 3200) / 3200f
         val wave = sin(phase * 2 * PI).toFloat()
         val stride = if (SpeciesPoses.weakWalk(species)) 0.35f else 1f
-        val imgW = placed.width().coerceAtLeast(1).toFloat()
+        val imgW = canvas.width.coerceAtLeast(1).toFloat()
         val petEdge = (imgW * 0.28f).toInt().coerceIn(48, 420)
         val unit = petEdge / 110f // engine works in dp for a ~110dp pet
         val cx = placed.exactCenterX() + motion.translationXdp * unit * stride + if (walking) 0f else wave * 2f
-        val cy = placed.bottom - petEdge * 0.28f + motion.translationYdp * unit
+        val groundY = minOf(placed.bottom.toFloat(), canvas.height * 0.84f)
+        val cy = groundY - petEdge * 0.28f + motion.translationYdp * unit
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         paint.color = Color.parseColor("#33000000")
         val shadowW = petEdge * 0.46f * motion.shadowScale
-        val floorY = placed.bottom - petEdge * 0.28f
+        val floorY = groundY - petEdge * 0.28f
         paint.alpha = (255 * (motion.shadowAlpha / 0.2f) * 0.2f).toInt().coerceIn(10, 90)
         canvas.drawOval(cx - shadowW, floorY + petEdge * 0.28f, cx + shadowW, floorY + petEdge * 0.38f, paint)
         paint.alpha = 255
@@ -161,19 +170,48 @@ internal object WallpaperPainter {
         drawPet(canvas, context, species, stage, act, petEdge, dest, paint, eased, mirror, phase)
         canvas.restore()
         if (act == PetAct.SLEEP) drawSleepMarks(canvas, dest, phase)
-        val speech = state?.speech.orEmpty().take(24)
-        if (speech.isNotBlank()) {
-            val bubble = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.WHITE
-                textSize = (canvas.width * 0.04f).coerceIn(28f, 48f)
-            }
-            val width = bubble.measureText(speech) + 36f
-            val left = (cx - width / 2f).coerceAtLeast(12f)
-            val top = dest.top - 64f
-            canvas.drawRoundRect(left, top, left + width, top + 48f, 24f, 24f, bubble)
-            bubble.color = Color.parseColor("#5C4636")
-            canvas.drawText(speech, left + 18f, top + 32f, bubble)
+        val density = context.resources.displayMetrics.density
+        if (state != null) {
+            WidgetScene.drawConditionFx(canvas, state, dest.left.toFloat(), dest.top.toFloat(), dest.width(), density * (petEdge / (110f * density)).coerceIn(0.6f, 2f), (nowMillis % 4000) / 4000f)
+            if (state.weather != null) precipLayer(canvas, state, density, nowMillis)
+            drawClockChip(canvas, state, nowMillis, density)
         }
+        val speech = state?.speech.orEmpty()
+        if (state != null && speech.isNotBlank()) {
+            // Bubble anchored on 몽이's head; schedule details in bold accent.
+            WidgetScene.drawBubble(canvas, speech, dest.exactCenterX(), dest.top + dest.height() * 0.12f, canvas.width.toFloat(), density, 96 * density, 15f, maxFrac = 0.8f, maxLines = 3)
+        }
+    }
+
+    private var fxBitmap: Bitmap? = null
+
+    private fun precipLayer(canvas: Canvas, state: GameState, density: Float, nowMillis: Long) {
+        val kind = state.weather?.kind ?: return
+        if (kind != app.mongle.logic.WeatherKind.RAIN && kind != app.mongle.logic.WeatherKind.SNOW && kind != app.mongle.logic.WeatherKind.STORM) return
+        val bmp = fxBitmap?.takeIf { it.width == canvas.width && it.height == canvas.height }
+            ?: Bitmap.createBitmap(canvas.width.coerceAtLeast(1), canvas.height.coerceAtLeast(1), Bitmap.Config.ARGB_8888).also { fxBitmap = it }
+        bmp.eraseColor(Color.TRANSPARENT)
+        WidgetScene.drawWeatherFx(bmp, state, density, (nowMillis % 60_000) / 1000f)
+        canvas.drawBitmap(bmp, 0f, 0f, null)
+    }
+
+    /** Big clock + date, plus "11° 맑음" only when weather is on (location permission). */
+    private fun drawClockChip(canvas: Canvas, state: GameState, nowMillis: Long, density: Float) {
+        val zone = kotlinx.datetime.TimeZone.currentSystemDefault()
+        val dt = kotlinx.datetime.Instant.fromEpochMilliseconds(nowMillis).toLocalDateTime(zone)
+        val clock = app.mongle.ui.clockOf(nowMillis, state.settings.use24h)
+        val night = state.phase == app.mongle.logic.DayPhase.NIGHT
+        val ink = if (night) Color.WHITE else Color.parseColor("#5C4636")
+        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ink; textAlign = Paint.Align.CENTER; typeface = android.graphics.Typeface.DEFAULT_BOLD; textSize = 44 * density; setShadowLayer(4 * density, 0f, 1 * density, if (night) 0x66000000 else 0x33FFFFFF) }
+        val cx = canvas.width / 2f
+        canvas.drawText(clock, cx, 64 * density, p)
+        p.textSize = 14 * density; p.typeface = android.graphics.Typeface.DEFAULT
+        var sub = app.mongle.l10n.L10n.fmt("wp_date", dt.monthNumber, dt.dayOfMonth)
+        state.weather?.let { w ->
+            val temp = if (state.settings.fahrenheit) "${(w.tempC * 9 / 5 + 32).toInt()}°F" else "${w.tempC.toInt()}°"
+            sub += "  ·  $temp " + app.mongle.l10n.L10n.t("wx_" + w.kind.name.lowercase())
+        }
+        canvas.drawText(sub, cx, 86 * density, p)
     }
 
     private fun drawPet(
@@ -250,7 +288,7 @@ internal object WallpaperPainter {
         val viewH = canvas.height.toFloat().coerceAtLeast(1f)
         val bw = bitmap.width.coerceAtLeast(1).toFloat()
         val bh = bitmap.height.coerceAtLeast(1).toFloat()
-        val scale = minOf(viewW / bw, viewH / bh)
+        val scale = maxOf(viewW / bw, viewH / bh) // cover: no letterbox bands on tall phones
         val dw = bw * scale
         val dh = bh * scale
         val left = (viewW - dw) / 2f

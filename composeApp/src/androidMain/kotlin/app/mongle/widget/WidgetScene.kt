@@ -104,33 +104,50 @@ object WidgetScene {
             c.drawRoundRect(r, 10 * density, 10 * density, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xF2FFFFFF.toInt() })
             c.drawText(label, r.left + 8 * density, r.centerY() + tp.textSize * 0.35f, tp)
         }
-        var bubbleRect: RectF? = null
-        val speech = state.speech
-        if (showBubble && speech.isNotBlank()) {
-            val tp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = bubbleTextDp * density; color = 0xFF5C4636.toInt() }
-            val text = emphasisSpans(speech)
-            val maxW = (wPx * 0.72f - 20 * density).toInt().coerceAtLeast(40)
-            val natural = StaticLayout.getDesiredWidth(text, tp).toInt() + 1
-            val layoutW = min(natural, maxW)
-            val layout = StaticLayout.Builder.obtain(text, 0, text.length, tp, layoutW).setAlignment(Layout.Alignment.ALIGN_NORMAL).setMaxLines(2).setEllipsize(android.text.TextUtils.TruncateAt.END).build()
-            val padH = 10 * density; val padV = 6 * density; val tail = 6 * density
-            val bw = layout.width + padH * 2; val bh = layout.height + padV * 2
-            val headX = left + pet / 2f; val headY = top + pet * 0.14f
-            val p = placeBubble(headX, headY, bw, bh + tail, wPx.toFloat(), 6 * density, minTop = if (levelPill) 30 * density else 4 * density)
-            val r = RectF(p.left, p.top, p.left + bw, p.top + bh)
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); setShadowLayer(3 * density, 0f, 1 * density, 0x26000000) }
-            c.drawRoundRect(r, 12 * density, 12 * density, paint)
-            val tx = p.left + p.tailX.coerceIn(14 * density, bw - 14 * density)
-            val path = Path().apply {
-                if (!p.below) { moveTo(tx - 6 * density, r.bottom - 1); lineTo(tx, r.bottom + tail); lineTo(tx + 6 * density, r.bottom - 1) }
-                else { moveTo(tx - 6 * density, r.top + 1); lineTo(tx, r.top - tail); lineTo(tx + 6 * density, r.top + 1) }
-                close()
-            }
-            c.drawPath(path, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
-            c.save(); c.translate(r.left + padH, r.top + padV); layout.draw(c); c.restore()
-            bubbleRect = RectF(r.left, r.top, r.right, r.bottom + tail)
-        }
+        val bubbleRect = if (showBubble && state.speech.isNotBlank()) drawBubble(
+            c, state.speech, left + pet / 2f, top + pet * 0.14f, wPx.toFloat(), density,
+            if (levelPill) 30 * density else 4 * density, bubbleTextDp, maxFrac = 0.72f,
+        ) else null
         return Result(bmp, bubbleRect, petRect)
+    }
+
+    /** Anchored speech bubble (tail on the head, clamped in [0, areaW], emphasis spans). Returns its bounds incl. tail. */
+    fun drawBubble(c: Canvas, speech: String, headX: Float, headY: Float, areaW: Float, density: Float, minTop: Float, textDp: Float, maxFrac: Float = 0.72f, maxLines: Int = 2): RectF {
+        val tp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = textDp * density; color = 0xFF5C4636.toInt() }
+        val text = emphasisSpans(speech)
+        val maxW = (areaW * maxFrac - 20 * density).toInt().coerceAtLeast(40)
+        val natural = StaticLayout.getDesiredWidth(text, tp).toInt() + 1
+        val layout = StaticLayout.Builder.obtain(text, 0, text.length, tp, min(natural, maxW)).setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setMaxLines(maxLines).setEllipsize(android.text.TextUtils.TruncateAt.END).build()
+        val padH = 10 * density; val padV = 6 * density; val tail = 6 * density
+        val bw = layout.width + padH * 2; val bh = layout.height + padV * 2
+        val p = placeBubble(headX, headY, bw, bh + tail, areaW, 6 * density, minTop = minTop)
+        val r = RectF(p.left, p.top, p.left + bw, p.top + bh)
+        c.drawRoundRect(r, 12 * density, 12 * density, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); setShadowLayer(3 * density, 0f, 1 * density, 0x26000000) })
+        val tx = p.left + p.tailX.coerceIn(14 * density, bw - 14 * density)
+        val path = Path().apply {
+            if (!p.below) { moveTo(tx - 6 * density, r.bottom - 1); lineTo(tx, r.bottom + tail); lineTo(tx + 6 * density, r.bottom - 1) }
+            else { moveTo(tx - 6 * density, r.top + 1); lineTo(tx, r.top - tail); lineTo(tx + 6 * density, r.top + 1) }
+            close()
+        }
+        c.drawPath(path, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
+        c.save(); c.translate(r.left + padH, r.top + padV); layout.draw(c); c.restore()
+        return if (p.below) RectF(r.left, r.top - tail, r.right, r.bottom) else RectF(r.left, r.top, r.right, r.bottom + tail)
+    }
+
+    /** Time/weather grade + rain/snow over [bmpCanvas] (needs the backing bitmap for Compose drawing). */
+    fun drawWeatherFx(bmp: Bitmap, state: GameState, density: Float, tSec: Float) {
+        val kind = state.weather?.kind
+        if (kind == WeatherKind.RAIN || kind == WeatherKind.SNOW || kind == WeatherKind.STORM) {
+            CanvasDrawScope().draw(Density(density), LayoutDirection.Ltr, androidx.compose.ui.graphics.Canvas(bmp.asImageBitmap()), Size(bmp.width.toFloat(), bmp.height.toFloat())) { drawPrecip(kind, tSec, density) }
+        }
+    }
+
+    /** Condition FX (cold puffs, sweat, ice pack, hearts…) drawn around a pet of [pet] px at (left, top). */
+    fun drawConditionFx(c: Canvas, state: GameState, left: Float, top: Float, pet: Int, density: Float, t: Float) {
+        val fx = Bitmap.createBitmap(pet.coerceAtLeast(1), pet.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+        CanvasDrawScope().draw(Density(density), LayoutDirection.Ltr, androidx.compose.ui.graphics.Canvas(fx.asImageBitmap()), Size(pet.toFloat(), pet.toFloat())) { drawCondition(state.condition, t, density) }
+        c.drawBitmap(fx, left, top, null)
     }
 
     /** Small fullness ring (sheet 4): track + mint arc. */
