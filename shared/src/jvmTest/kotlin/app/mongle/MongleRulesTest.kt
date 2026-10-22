@@ -373,13 +373,54 @@ class MongleRulesTest {
     }
 
     @Test
+    fun economyFinalPriceDecision() {
+        // Existing items stay 150–200; cheap 50/100 (8–12 items); new pretty 300–600 (~30).
+        assertTrue((Catalog.foods() + Catalog.outfits + Catalog.furniture).all { it.price in 150..200 })
+        assertTrue(Catalog.cheap.size in 8..12 && Catalog.cheap.all { it.price == 50 || it.price == 100 })
+        assertTrue(Catalog.pretty.size in 26..32 && Catalog.pretty.all { it.price in 300..600 })
+        // Common resell 70%.
+        Catalog.cheap.forEach { assertEquals(it.price * 70 / 100, resellAmount(it)) }
+        Catalog.pretty.forEach { assertEquals(it.price * 70 / 100, resellAmount(it)) }
+        // ~20 gift-only: not in the shop, rare 100–500, legendary 300–800.
+        assertTrue(Catalog.uniques.size >= 20)
+        val shopIds = Catalog.shop.map { it.id }.toSet()
+        assertTrue(Catalog.uniques.none { it.id in shopIds || it.price > 0 })
+        Catalog.uniques.filter { it.rarity == app.mongle.model.Rarity.RARE }.forEach { assertTrue(resellAmount(it) in 100..500) }
+        Catalog.uniques.filter { it.rarity == app.mongle.model.Rarity.EPIC }.forEach { assertTrue(resellAmount(it) in 300..800) }
+        // Drop pool membership: every unique can drop, and drops come only from uniques for rare/legendary.
+        val dropped = (0 until 60_000).map { GiftDrops.roll(it.toLong(), 4, EconomyConfig.pityDryGifts) }
+        assertTrue(dropped.all { it.defId in Catalog.uniqueIds })
+        assertEquals(Catalog.uniqueIds, dropped.mapNotNull { it.defId }.toSet())
+        assertEquals(50, app.mongle.logic.ConditionRules.MEDICINE_PRICE)
+        // Every new item has art.
+        (Catalog.cheap + Catalog.pretty + Catalog.uniques).forEach { assertTrue(java.io.File("../composeApp/src/commonMain/composeResources/drawable/${it.pictureId()}.webp").exists(), it.id) }
+    }
+
+    @Test
+    fun levelScaledGifts() {
+        assertEquals(10..50, EconomyConfig.coinRange(1))
+        assertTrue(EconomyConfig.coinRange(4).first >= 30 && EconomyConfig.coinRange(4).last >= 150)
+        for (l in 1..10) {
+            val w = EconomyConfig.weightsFor(l)
+            assertEquals(EconomyConfig.weightTotal, w.sum())
+            assertTrue(w[3] <= 15) // legendary ≤ 1.5%
+        }
+        assertTrue(EconomyConfig.weightsFor(4)[2] > EconomyConfig.weightsFor(1)[2])
+        assertTrue(EconomyConfig.weightsFor(4)[3] > EconomyConfig.weightsFor(1)[3])
+        val low = (0 until 20_000).count { GiftDrops.roll(it.toLong(), 1, 0).kind == DropKind.LEGENDARY }
+        val high = (0 until 20_000).count { GiftDrops.roll(it.toLong(), 4, 0).kind == DropKind.LEGENDARY }
+        assertTrue(high > low, "$low < $high")
+        assertTrue(high < 20_000 * 0.02)
+    }
+
+    @Test
     fun giftDropTablePityAndShopPrices() {
         val shop = Catalog.foods() + Catalog.outfits + Catalog.furniture
         assertTrue(shop.all { it.price in EconomyConfig.shopPriceMin..EconomyConfig.shopPriceMax })
         assertEquals(70, EconomyConfig.commonResellPercent)
         assertEquals(EconomyConfig.shopPrice("sprout_hat") * 70 / 100, resellAmount(Catalog.byId("sprout_hat")!!))
-        assertTrue(EconomyConfig.rareResell.values.all { it in 300..600 })
-        assertTrue(EconomyConfig.legendaryResell.values.all { it in 700..3000 })
+        assertTrue(EconomyConfig.rareResell.values.all { it in 100..500 })
+        assertTrue(EconomyConfig.legendaryResell.values.all { it in 300..800 })
         assertTrue(EconomyConfig.legendaryResell.getValue("comet_shard") > EconomyConfig.legendaryResell.getValue("dawn_feather"))
         assertEquals(EconomyConfig.rareResell.getValue("moon_bell"), resellAmount(Catalog.byId("moon_bell")!!))
         assertEquals(EconomyConfig.legendaryResell.getValue("comet_shard"), resellAmount(Catalog.byId("comet_shard")!!))

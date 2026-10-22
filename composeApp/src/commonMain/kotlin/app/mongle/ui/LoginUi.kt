@@ -118,7 +118,7 @@ fun LoginScreen(auth: AuthService, onGuest: () -> Unit) {
         }
         AnimatedVisibility(notice != null, enter = fadeIn() + slideInVertically { -it }, exit = fadeOut(), modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp, start = 30.dp, end = 30.dp)) {
             Column(
-                Modifier.fillMaxWidth().shadow(10.dp, RoundedCornerShape(20.dp)).background(Color(0xFF5C4636), RoundedCornerShape(20.dp)).padding(horizontal = 20.dp, vertical = 14.dp).testTag("login-notice"),
+                Modifier.fillMaxWidth().shadow(10.dp, RoundedCornerShape(20.dp)).background(Ink, RoundedCornerShape(20.dp)).padding(horizontal = 20.dp, vertical = 14.dp).testTag("login-notice"),
             ) {
                 Text(t(notice ?: "login_google_unavailable"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 Text(t("login_fallback_sub"), color = Color(0xFFF0E1D6), fontSize = 11.sp, modifier = Modifier.padding(top = 3.dp))

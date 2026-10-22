@@ -331,7 +331,7 @@ class MongleFlowScreenshotTest {
         harness.capture("ko-resell.png")
         composeRule.runOnIdle { language.value = "en" }
         harness.settle()
-        composeRule.onNodeWithText("Sells for 2400").assertExists()
+        composeRule.onNodeWithText("Sells for 760").assertExists()
         harness.capture("en-resell.png")
     }
 

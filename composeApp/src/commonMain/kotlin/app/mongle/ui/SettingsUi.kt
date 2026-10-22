@@ -211,7 +211,7 @@ private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) 
 }
 
 @Composable
-private fun Divider() = Box(Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(1.dp).background(Color(0xFFF2EAE4)))
+private fun Divider() = Box(Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(1.dp).background(Line))
 
 @Composable
 private fun RowShell(label: String, tag: String, last: Boolean, enabled: Boolean = true, onClick: (() -> Unit)? = null, trailing: @Composable () -> Unit) {
@@ -254,12 +254,12 @@ private fun ButtonRow(label: String, button: String, color: Color, tag: String, 
 @Composable
 private fun <T> SegRow(label: String, options: List<Pair<T, String>>, selected: T, last: Boolean = false, onPick: (T) -> Unit) {
     RowShell(label, "seg-$label", last) {
-        Row(Modifier.clip(RoundedCornerShape(13.dp)).background(Color(0xFFF6EEE8)).padding(3.dp)) {
+        Row(Modifier.clip(RoundedCornerShape(13.dp)).background(Line).padding(3.dp)) {
             options.forEach { (v, l) ->
                 val sel = v == selected
                 Text(
                     l, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (sel) Ink else InkSoft,
-                    modifier = Modifier.then(if (sel) Modifier.shadow(2.dp, RoundedCornerShape(10.dp)).background(Color.White, RoundedCornerShape(10.dp)) else Modifier)
+                    modifier = Modifier.then(if (sel) Modifier.shadow(2.dp, RoundedCornerShape(10.dp)).background(CardWhite, RoundedCornerShape(10.dp)) else Modifier)
                         .clip(RoundedCornerShape(10.dp)).clickable { onPick(v) }.padding(horizontal = 8.dp, vertical = 3.dp).testTag("seg-opt-$l"),
                 )
             }
@@ -271,7 +271,7 @@ private fun <T> SegRow(label: String, options: List<Pair<T, String>>, selected: 
 private fun BoxScope.Sheet(onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     Box(Modifier.fillMaxSize().background(Color(0x6E28201A)).clickable(onClick = onDismiss))
     Column(
-        Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Color.White, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).clickable(enabled = false) {}.padding(horizontal = 22.dp, vertical = 12.dp),
+        Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(CardWhite, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).clickable(enabled = false) {}.padding(horizontal = 22.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally, content = {
             Box(Modifier.size(width = 40.dp, height = 5.dp).background(Color(0xFFDCD6D0), RoundedCornerShape(3.dp)))
             Spacer(Modifier.height(18.dp))
@@ -308,7 +308,7 @@ private fun BoxScope.ConfirmSheet(message: String, yes: String, onYes: () -> Uni
         Text(message, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Ink, textAlign = TextAlign.Center)
         Spacer(Modifier.height(16.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xFFF6EEE8)).clickable(onClick = onNo), contentAlignment = Alignment.Center) { Text(t("cancel"), color = Ink, fontWeight = FontWeight.Bold) }
+            Box(Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(24.dp)).background(Line).clickable(onClick = onNo), contentAlignment = Alignment.Center) { Text(t("cancel"), color = Ink, fontWeight = FontWeight.Bold) }
             Box(Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xFFDC5A5A)).clickable(onClick = onYes).testTag("confirm-yes"), contentAlignment = Alignment.Center) { Text(yes, color = Color.White, fontWeight = FontWeight.Bold) }
         }
     }

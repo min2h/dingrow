@@ -107,7 +107,7 @@ fun project(raw: PersistedState, now: Long, zone: TimeZone, balance: GameBalance
         ""
     }
     return GameState(
-        petName = pet.name,
+        petName = if (pet.name == "Mongi" || pet.name == "몽이") L10n.t("pet_default_name") else pet.name,
         stage = pet.stage,
         stageLabel = L10n.stage(pet.stage),
         xp = pet.xp,

@@ -192,7 +192,7 @@ fun LiveRoom(
         if (toast != null) {
             Text(
                 toast, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp).background(Color(0xFF5C4636), RoundedCornerShape(14.dp)).padding(horizontal = 14.dp, vertical = 6.dp),
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp).background(Ink, RoundedCornerShape(14.dp)).padding(horizontal = 14.dp, vertical = 6.dp),
             )
         }
         // Anchored bubble.
@@ -345,10 +345,10 @@ fun StatBarChip(label: String, value: String, bg: Color, bar: Color, frac: Float
 
 fun conditionColors(c: Condition, sick: Boolean): Pair<Color, Color> = when {
     sick || c == Condition.SICK -> Color(0xFFFFE4E4) to Color(0xFFE07070)
-    c == Condition.COLD -> Color(0xFFE8F0FF) to Color(0xFF78A0E6)
+    c == Condition.COLD -> (if (ThemeState.dark) Color(0xFF243048) else Color(0xFFE8F0FF)) to Color(0xFF78A0E6)
     c == Condition.HOT -> Color(0xFFFFEEDC) to Color(0xFFE6A050)
     c == Condition.HUNGRY -> Color(0xFFFFF3D6) to Color(0xFFDCAA5A)
-    else -> Color(0xFFE8F0FF) to Color(0xFF6EBE96)
+    else -> (if (ThemeState.dark) Color(0xFF243048) else Color(0xFFE8F0FF)) to Color(0xFF6EBE96)
 }
 
 fun conditionFrac(state: GameState): Float = when {
@@ -424,7 +424,7 @@ private fun NextCard(state: GameState, onComplete: (String) -> Unit, onAdd: () -
 @Composable
 fun RoomActionButton(mark: Mark, label: String, tag: String, onClick: () -> Unit) {
     Box(
-        Modifier.size(38.dp).shadow(4.dp, CircleShape).background(Color.White.copy(alpha = 0.92f), CircleShape).clip(CircleShape).clickable(onClick = onClick).testTag(tag),
+        Modifier.size(38.dp).shadow(4.dp, CircleShape).background(CardWhite.copy(alpha = 0.92f), CircleShape).clip(CircleShape).clickable(onClick = onClick).testTag(tag),
         contentAlignment = Alignment.Center,
     ) { MarkIcon(mark, Modifier.size(18.dp), PeachDeep) }
 }
@@ -484,6 +484,6 @@ fun OutingCard(returnAt: Long, startedAt: Long, nowProvider: () -> Long = { kotl
             Box(Modifier.fillMaxWidth(anim).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(Color(0xFF6EBE96)))
         }
         Spacer(Modifier.height(4.dp))
-        Text(t("outing_hint"), color = Color(0xFF8A6A55), fontSize = 11.sp)
+        Text(t("outing_hint"), color = InkSoft, fontSize = 11.sp)
     }
 }

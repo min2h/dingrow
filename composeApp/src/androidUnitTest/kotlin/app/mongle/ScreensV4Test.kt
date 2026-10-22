@@ -6,6 +6,8 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import app.mongle.data.MemoryGameStore
@@ -42,6 +44,7 @@ class ScreensV4Test {
     private fun app(lang: String = "ko", block: suspend GameService.() -> Unit = {}): GameService {
         java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Seoul"))
         primeComposeResources()
+        app.mongle.ui.LocationBridge.request = null
         AndroidHooks.sync = {}; AndroidHooks.notifyNow = { _, _ -> }; AndroidHooks.reloadWidgets = {}
         val s = GameService(MemoryGameStore(), MutableClock(System.currentTimeMillis()), zone)
         runBlocking { s.completeOnboarding("몽이"); s.updateSettings(s.state.value.settings.copy(language = lang, newScheduleConfirm = false)); s.block() }
@@ -143,5 +146,25 @@ class ScreensV4Test {
         }
         runBlocking { s.debugSetCondition(ConditionState(checkedAt = System.currentTimeMillis())) }; settle()
         assertEquals(0, rule.onAllNodesWithTag("medicine-card").fetchSemanticsNodes().size)
+    }
+
+    @Test fun darkThemeAppliesInstantlyAndPersists() {
+        val s = app { seedDay("ko") }
+        rule.onRoot().captureRoboImage(artifact("light-home.png"))
+        runBlocking { s.updateSettings(s.state.value.settings.copy(theme = "dark")) }
+        settle()
+        assertTrue(app.mongle.ui.ThemeState.dark)
+        assertEquals("dark", s.state.value.settings.theme)
+        rule.onRoot().captureRoboImage(artifact("dark-home.png"))
+        val bmp = javax.imageio.ImageIO.read(artifact("dark-home.png"))
+        val p = bmp.getRGB(3, bmp.height - 3 - bmp.height / 3)
+        assertTrue("background should be dark: ${Integer.toHexString(p)}", ((p shr 16) and 0xFF) < 90)
+        rule.onNodeWithTag("tab-Schedule").performClick(); settle()
+        rule.onRoot().captureRoboImage(artifact("dark-schedule.png"))
+        rule.onNodeWithTag("open-settings").performClick(); settle()
+        rule.onRoot().captureRoboImage(artifact("dark-settings.png"))
+        runBlocking { s.updateSettings(s.state.value.settings.copy(theme = "light")) }
+        settle()
+        assertFalse(app.mongle.ui.ThemeState.dark)
     }
 }

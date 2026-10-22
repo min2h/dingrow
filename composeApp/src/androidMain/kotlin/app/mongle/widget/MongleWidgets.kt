@@ -97,12 +97,12 @@ class LargePetWidget : GlanceAppWidget() {
 
 private fun currentState(): GameState? = if (AppGraph.ready) AppGraph.service.state.value else null
 
-private val ink = ColorProvider(Color(0xFF5C4636))
-private val inkSoft = ColorProvider(Color(0xFF8A6A55))
+private val ink = androidx.glance.color.ColorProvider(day = Color(0xFF5C4636), night = Color(0xFFF4E8DE))
+private val inkSoft = androidx.glance.color.ColorProvider(day = Color(0xFF8A6A55), night = Color(0xFFC8B3A5))
 private val accent = ColorProvider(Color(0xFFD9604F))
-private val card = ColorProvider(Color(0xFFFFFCF8))
-private val rowBg = ColorProvider(Color(0xFFFFF4EE))
-private val rowNext = ColorProvider(Color(0xFFFFE6DC))
+private val card = androidx.glance.color.ColorProvider(day = Color(0xFFFFFCF8), night = Color(0xFF2A2430))
+private val rowBg = androidx.glance.color.ColorProvider(day = Color(0xFFFFF4EE), night = Color(0xFF352D3B))
+private val rowNext = androidx.glance.color.ColorProvider(day = Color(0xFFFFE6DC), night = Color(0xFF4A3238))
 private val peachDeep = ColorProvider(Color(0xFFF08A7A))
 private val mintDone = ColorProvider(Color(0xFF4FA683))
 private val cream = ColorProvider(Color(0xFFFFF6EE))

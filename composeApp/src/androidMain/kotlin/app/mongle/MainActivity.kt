@@ -49,8 +49,15 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
         app.mongle.ui.LocationBridge.request = { locationPermission.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION) }
         app.mongle.auth.AndroidAuth.activity = java.lang.ref.WeakReference(this)
+        app.mongle.ui.ThemeState.mode = AppGraph.service.state.value.settings.theme
         setContent {
             val permissions by PermissionCenter.snapshot.collectAsState()
+            val dark = app.mongle.ui.ThemeState.dark
+            androidx.compose.runtime.LaunchedEffect(dark) {
+                val style = if (dark) androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                else androidx.activity.SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+            }
             MongleTheme {
                 app.mongle.ui.AuthGate(app.mongle.auth.AndroidAuth.get(this)) {
                 MongleAppScreen(

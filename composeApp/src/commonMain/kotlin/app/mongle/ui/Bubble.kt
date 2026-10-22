@@ -67,7 +67,7 @@ fun SpeechBubble(
     ) {
         Text(
             emphasized(text),
-            color = Ink,
+            color = BubbleInk,
             fontSize = fontSize.sp,
             lineHeight = (fontSize + 5).sp,
             fontWeight = FontWeight.Medium,
@@ -94,3 +94,6 @@ fun placeBubble(headX: Float, headY: Float, bubbleW: Float, bubbleH: Float, area
     if (below) top = headY + gap
     return BubblePlacement(left, top, (headX - left).coerceIn(18f, w - 18f), below)
 }
+
+/** Bubble text stays dark: the bubble is always white, in light and dark themes. */
+val BubbleInk = Color(0xFF5C4636)

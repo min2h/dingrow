@@ -104,6 +104,7 @@ fun MongleAppScreen(
     onPinWidget: (Boolean) -> Unit = {},
 ) {
     val state by service.state.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(state.settings.theme) { ThemeState.mode = state.settings.theme }
     val scope = rememberCoroutineScope()
     val tabState = remember { mutableStateOf(Tab.Home) }
     val tab = tabState.value
@@ -351,7 +352,7 @@ fun MongleAppScreen(
                 .padding(bottom = 92.dp)
                 .testTag("status-toast")
                 .clip(Pill)
-                .background(Ink)
+                .background(BubbleInk)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             color = Color.White,
             fontSize = 13.sp,
@@ -934,7 +935,7 @@ private fun CoinPill(coins: Int) {
             drawCircle(Color(0xFFD6A032), size.minDimension * 0.22f, style = androidx.compose.ui.graphics.drawscope.Stroke(1.2.dp.toPx()))
         }
         Spacer(Modifier.weight(1f, fill = false).widthIn(min = 8.dp))
-        Text(coinsLabel(coins), color = Ink, fontSize = 14.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+        Text(coinsLabel(coins), color = BubbleInk, fontSize = 14.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
     }
 }
 
