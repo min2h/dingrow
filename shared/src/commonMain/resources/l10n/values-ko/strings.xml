@@ -1085,4 +1085,9 @@
     <string name="end_time_30">30분</string>
     <string name="end_time_60">1시간</string>
     <string name="end_time_120">2시간</string>
+    <string name="notif_explain_title">알림을 켜 주세요</string>
+    <string name="notif_explain_body">몽이가 일정 시간과 미리 알림, 선물 소식을 알려드리려면 알림 권한이 필요해요.</string>
+    <string name="notif_explain_yes">허용하기</string>
+    <string name="notif_explain_later">나중에</string>
+    <string name="notif_denied_hint">알림이 꺼져 있어요. 눌러서 설정에서 켜 주세요</string>
 </resources>

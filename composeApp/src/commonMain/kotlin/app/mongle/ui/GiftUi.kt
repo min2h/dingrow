@@ -94,3 +94,16 @@ internal fun LevelUpDialog(state: GameState, onDone: () -> Unit) {
         }
     }
 }
+
+/** Explains why before the OS POST_NOTIFICATIONS dialog. */
+@Composable
+internal fun NotifExplainDialog(onAllow: () -> Unit, onLater: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onLater,
+        modifier = Modifier.testTag("notif-explain"),
+        title = { Text(t("notif_explain_title")) },
+        text = { Text(t("notif_explain_body")) },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = onAllow, modifier = Modifier.testTag("notif-allow")) { Text(t("notif_explain_yes")) } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onLater, modifier = Modifier.testTag("notif-later")) { Text(t("notif_explain_later")) } },
+    )
+}

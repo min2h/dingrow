@@ -126,6 +126,15 @@ class MainActivity : ComponentActivity() {
 
     private fun requestNotifications() {
         if (Build.VERSION.SDK_INT >= 33) {
+            val prefs = getSharedPreferences("dingrow_perm", MODE_PRIVATE)
+            val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            val askedBefore = prefs.getBoolean("notif_asked", false)
+            if (!granted && askedBefore && !shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+                // Denied for good: the OS won't show the dialog again, so open the app's notification settings.
+                startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+                return
+            }
+            prefs.edit().putBoolean("notif_asked", true).apply()
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
             updatePermissions()

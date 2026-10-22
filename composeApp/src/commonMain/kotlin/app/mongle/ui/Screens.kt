@@ -93,6 +93,8 @@ private enum class Tab(val labelKey: String) {
 }
 
 /** Which waiting gift was tapped open (in-app only; the gift itself persists in the service until kept/sold). */
+internal object NotifExplain { var show by mutableStateOf(false) }
+
 internal object GiftOpen {
     var opened by mutableStateOf<String?>(null)
     var openNext by mutableStateOf(false)
@@ -178,7 +180,7 @@ fun MongleAppScreen(
             onStart = {
                 scope.launch {
                     service.completeOnboarding(name)
-                    onRequestNotifications()
+                    if (!permissions.notificationsOn) NotifExplain.show = true
                 }
             },
             onPinWidget = { onPinWidget(false) },
@@ -219,6 +221,7 @@ fun MongleAppScreen(
                 overlayState.value = "shop"
             },
             onClose = { overlayState.value = "none" },
+            onRequestNotifications = onRequestNotifications,
             onExport = { scope.launch { val json = service.exportBackup(); BackupBridge.export?.invoke(json) } },
             onRestore = { BackupBridge.pickRestore?.invoke { text -> scope.launch { service.importBackup(text) } } },
         )
@@ -372,7 +375,8 @@ fun MongleAppScreen(
             }
         }
     }
-    if (state.level > state.levelSeen) LevelUpDialog(state) { scope.launch { service.ackLevelUp(state.level) } }
+    if (NotifExplain.show) NotifExplainDialog(onAllow = { NotifExplain.show = false; onRequestNotifications() }, onLater = { NotifExplain.show = false })
+    if (state.level > state.levelSeen && !NotifExplain.show) LevelUpDialog(state) { scope.launch { service.ackLevelUp(state.level) } }
     if (state.statusMessage.isNotBlank() && !showComposer && overlay == "none") {
         Text(
             state.statusMessage,

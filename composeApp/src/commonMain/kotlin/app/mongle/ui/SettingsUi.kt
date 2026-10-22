@@ -42,6 +42,7 @@ fun SettingsV2(
     onReset: () -> Unit,
     onClose: () -> Unit,
     onExport: () -> Unit = {},
+    onRequestNotifications: () -> Unit = {},
     onRestore: () -> Unit = {},
     version: String = "0.2.0 (2)",
     startPage: String = "home",
@@ -89,7 +90,7 @@ fun SettingsV2(
                             ValueRow(t("add_widget"), "", "row-widget", onClick = onPin)
                             ValueRow(t("set_wallpaper"), "", "row-wallpaper", onClick = onWallpaper)
                             ValueRow(t("coin_shop"), "", "row-shop", onClick = onShop)
-                            ValueRow(t("perm_notifications"), if (permissions.notificationsOn) t("perm_on") else t("perm_off"), "row-perm")
+                            ValueRow(t("perm_notifications"), if (permissions.notificationsOn) t("perm_on") else t("perm_off"), "row-perm", onClick = if (permissions.notificationsOn) null else onRequestNotifications)
                             ValueRow(t("perm_exact"), if (permissions.exactAlarmsOn) t("exact_on") else t("exact_off"), "row-exact", last = true)
                         }
                     }

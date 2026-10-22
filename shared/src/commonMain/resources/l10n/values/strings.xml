@@ -1085,4 +1085,9 @@
     <string name="end_time_30">30 min</string>
     <string name="end_time_60">1 hr</string>
     <string name="end_time_120">2 hr</string>
+    <string name="notif_explain_title">Turn on notifications</string>
+    <string name="notif_explain_body">Mongi needs notification permission to remind you of schedules and gifts.</string>
+    <string name="notif_explain_yes">Allow</string>
+    <string name="notif_explain_later">Later</string>
+    <string name="notif_denied_hint">Notifications are off. Tap to turn them on in Settings</string>
 </resources>

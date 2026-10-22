@@ -1088,6 +1088,11 @@ internal val En: Map<String, String> = buildMap {
     put("end_time_30", "30 min")
     put("end_time_60", "1 hr")
     put("end_time_120", "2 hr")
+    put("notif_explain_title", "Turn on notifications")
+    put("notif_explain_body", "Mongi needs notification permission to remind you of schedules and gifts.")
+    put("notif_explain_yes", "Allow")
+    put("notif_explain_later", "Later")
+    put("notif_denied_hint", "Notifications are off. Tap to turn them on in Settings")
 }
 
 internal val Ko: Map<String, String> = buildMap {
@@ -2177,4 +2182,9 @@ internal val Ko: Map<String, String> = buildMap {
     put("end_time_30", "30분")
     put("end_time_60", "1시간")
     put("end_time_120", "2시간")
+    put("notif_explain_title", "알림을 켜 주세요")
+    put("notif_explain_body", "몽이가 일정 시간과 미리 알림, 선물 소식을 알려드리려면 알림 권한이 필요해요.")
+    put("notif_explain_yes", "허용하기")
+    put("notif_explain_later", "나중에")
+    put("notif_denied_hint", "알림이 꺼져 있어요. 눌러서 설정에서 켜 주세요")
 }

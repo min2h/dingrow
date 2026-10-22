@@ -392,6 +392,7 @@ class MongleFlowScreenshotTest {
         }
 
         fun show() {
+            app.mongle.ui.NotifExplain.show = false
             val permissions = PermissionSnapshot(
                 notificationsOn = true,
                 exactAlarmsOn = true,
