@@ -1,25 +1,29 @@
 package app.mongle.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import app.mongle.l10n.AppLocale
 import app.mongle.l10n.L10n
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Snapshot of the in-app language. [AppLocale.preference] is a plain field, so Compose would
- * otherwise skip text that does not take the language as a parameter (button labels stayed
- * in the previous language). Reading this state subscribes every string lookup.
+ * In-app language. Kept for callers that reset it in tests; string lookups read [LocalAppLanguage],
+ * a CompositionLocal, so a change reaches every Text even through skipped composables.
  */
 @PublishedApi
 internal val languageTick: MutableState<String> = mutableStateOf("system")
+
+val LocalAppLanguage = compositionLocalOf { "system" }
 
 private fun explicit(language: String): Boolean = language == "ko" || language == "en"
 
 @Composable
 fun t(key: String): String {
-    val language = languageTick.value
+    val language = LocalAppLanguage.current
     val loaded = stringResource(uiString(key))
     if (explicit(language)) return L10n.t(key, language)
     return loaded.ifBlank { L10n.t(key) }
@@ -27,7 +31,7 @@ fun t(key: String): String {
 
 @Composable
 fun tf(key: String, vararg args: Any): String {
-    val language = languageTick.value
+    val language = LocalAppLanguage.current
     val loaded = stringResource(uiString(key), *args)
     val fromTable = L10n.fmt(key, *args)
     if (explicit(language)) return fromTable
@@ -36,13 +40,13 @@ fun tf(key: String, vararg args: Any): String {
 }
 
 /**
- * Applies the saved language before the screen is drawn.
- * System keeps the device locale. Korean and English read the matching string table immediately.
- * Inline so existing `return`s inside the app screen still leave the screen function.
+ * Applies the saved language before the screen is drawn and rebuilds the subtree when it changes
+ * (key), so remembered strings and service-formatted labels are recomputed too.
  */
 @Composable
-inline fun LanguageProvider(language: String, content: @Composable () -> Unit) {
+fun LanguageProvider(language: String, content: @Composable () -> Unit) {
     AppLocale.preference = language
-    languageTick.value = language
-    content()
+    CompositionLocalProvider(LocalAppLanguage provides language) {
+        key(language) { content() }
+    }
 }

@@ -1,5 +1,9 @@
 package app.mongle.ui
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -133,6 +137,7 @@ fun MongleAppScreen(
 
     LanguageProvider(state.settings.language) {
     if (!state.onboarded) {
+        Box(Modifier.fillMaxSize().background(Cream).windowInsetsPadding(WindowInsets.safeDrawing)) {
         Onboarding(
             name = name,
             onName = { name = it },
@@ -145,10 +150,11 @@ fun MongleAppScreen(
             onPinWidget = { onPinWidget(false) },
             onWallpaper = onOpenWallpaper,
         )
-        return
+        }
+        return@LanguageProvider
     }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().background(Cream).windowInsetsPadding(WindowInsets.safeDrawing)) {
     if (showComposer) {
         ScheduleForm(
             editing = editingId != null,

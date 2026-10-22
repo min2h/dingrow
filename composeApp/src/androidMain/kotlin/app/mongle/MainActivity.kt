@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.app.WallpaperManager
 import androidx.activity.ComponentActivity
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.collectAsState
@@ -33,6 +34,7 @@ class MainActivity : ComponentActivity() {
     ) { updatePermissions() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         AppGraph.ensure(this)
         app.mongle.billing.BillingHost.activity = this

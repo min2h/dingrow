@@ -255,6 +255,7 @@ class MongleFlowScreenshotTest {
         harness.capture("en-settings.png")
         harness.clickTag("overlay-back")
         harness.settle()
+        File("/tmp/sem-back.txt").writeText(composeRule.onRoot().printToString())
         harness.clickTag("tab-Home")
         harness.settle()
         composeRule.onNodeWithText("Dingrow").assertExists()
@@ -287,6 +288,7 @@ class MongleFlowScreenshotTest {
         harness.capture("ko-schedule-form.png")
         composeRule.runOnIdle { language.value = "en" }
         harness.settle()
+        File("/tmp/sem-form.txt").writeText(composeRule.onRoot().printToString())
         composeRule.onNodeWithText("Add a task").assertExists()
         harness.capture("en-schedule-form.png")
     }
@@ -400,8 +402,11 @@ class MongleFlowScreenshotTest {
         }
 
         fun settle() {
-            composeRule.mainClock.advanceTimeBy(400)
-            composeRule.waitForIdle()
+            repeat(2) {
+                androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications()
+                composeRule.mainClock.advanceTimeBy(200)
+                composeRule.waitForIdle()
+            }
         }
 
         fun capture(name: String) {
@@ -606,7 +611,7 @@ private class MutableClock(var now: Long) : TimeProvider {
 }
 
 private fun artifact(name: String, publish: Boolean = true): File {
-    val dir = File(if (publish) "/opt/cursor/artifacts" else "/tmp/mongle-frames")
+    val dir = File(if (publish) System.getProperty("dingrow.shots") ?: "/workspace/dingrow-shots" else "/tmp/mongle-frames")
     dir.mkdirs()
     return File(dir, name)
 }

@@ -86,6 +86,7 @@ class GameService(
     private val mutex = Mutex()
     private var lastNotices: List<ScheduledNotice>? = null
     private var forceNotices = false
+    private var forceReload = false
     private var lastFingerprint: String? = null
 
     private val initial = run {
@@ -276,6 +277,10 @@ class GameService(
     }
 
     suspend fun updateSettings(next: AppSettings): ActionResult = mutate { state, _ ->
+        if (state.settings.language != next.language) {
+            forceNotices = true
+            forceReload = true
+        }
         AppLocale.preference = next.language
         done(state.copy(settings = next), ActionResult(true, L10n.t("msg_settings_saved")))
     }
@@ -692,7 +697,8 @@ class GameService(
             val view = project(stamped, now, zone, balance)
             _state.value = view
             val fp = view.fingerprint()
-            reload = fp != lastFingerprint
+            reload = fp != lastFingerprint || forceReload
+            forceReload = false
             lastFingerprint = fp
             val notices = buildNotices(stamped, now)
             if (forceNotices || notices != lastNotices) {
