@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val pending = goAsync()
+        val pending: PendingResult? = goAsync()
         val app = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -49,7 +49,7 @@ class ReminderReceiver : BroadcastReceiver() {
                     }
                 }
             } finally {
-                pending.finish()
+                pending?.finish()
             }
         }
     }
@@ -57,14 +57,14 @@ class ReminderReceiver : BroadcastReceiver() {
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val pending = goAsync()
+        val pending: PendingResult? = goAsync()
         val app = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 AppGraph.ensure(app)
                 AppGraph.service.refreshAlarms()
             } finally {
-                pending.finish()
+                pending?.finish()
             }
         }
     }
