@@ -1,0 +1,17 @@
+{
+  "identifier" : "D1A9C0DE-0001-4000-8000-DINGROW00001",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    { "displayPrice" : "1.99", "familyShareable" : false, "internalID" : "6700000001", "localizations" : [
+        { "description" : "100 coins for Dingrow", "displayName" : "100 Coins", "locale" : "en_US" },
+        { "description" : "딩그로 코인 100개", "displayName" : "코인 100개", "locale" : "ko_KR" } ],
+      "productID" : "coins_100", "referenceName" : "Coins 100", "type" : "Consumable" },
+    { "displayPrice" : "16.99", "familyShareable" : false, "internalID" : "6700000002", "localizations" : [
+        { "description" : "1,000 coins for Dingrow", "displayName" : "1,000 Coins", "locale" : "en_US" },
+        { "description" : "딩그로 코인 1,000개", "displayName" : "코인 1,000개", "locale" : "ko_KR" } ],
+      "productID" : "coins_1000", "referenceName" : "Coins 1000", "type" : "Consumable" }
+  ],
+  "settings" : { "_locale" : "ko_KR", "_storefront" : "KOR" },
+  "subscriptionGroups" : [],
+  "version" : { "major" : 3, "minor" : 0 }
+}

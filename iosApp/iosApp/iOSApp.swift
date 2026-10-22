@@ -143,6 +143,8 @@ final class CoinStore {
 
     func start() {
         updates = Task { for await result in Transaction.updates { await self.handle(result) } }
+        // Consumables not yet finished (app killed mid-purchase, Ask to Buy approved later): grant (idempotent by transaction id) + finish.
+        Task { for await result in Transaction.unfinished { await self.handle(result) } }
         Task {
             products = (try? await Product.products(for: MongleKit.productIds())) ?? []
             MongleKit.updatePrices(Dictionary(uniqueKeysWithValues: products.map { ($0.id, $0.displayPrice) }))
@@ -157,6 +159,7 @@ final class CoinStore {
         do {
             switch try await product.purchase() {
             case .success(let result): return await handle(result)
+            case .pending: return MongleKit.text("msg_billing_pending")   // Ask to Buy / SCA: granted later via Transaction.updates
             default: return ""
             }
         } catch { return error.localizedDescription }

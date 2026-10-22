@@ -192,6 +192,8 @@ object MongleBridge {
 
     /** Product ids to load with `Product.products(for:)`. */
     fun productIds(): List<String> = app.mongle.logic.StoreProducts.all.map { it.id }
+    /** Localized app string for Swift (e.g. billing messages). */
+    fun text(key: String): String = app.mongle.l10n.L10n.t(key)
     /** StoreKit localized prices (Product.displayPrice) shown in the coin shop. */
     fun updatePrices(prices: Map<String, String>) = app.mongle.logic.StorePrices.update(prices)
 
