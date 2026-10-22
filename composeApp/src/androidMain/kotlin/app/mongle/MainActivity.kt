@@ -40,9 +40,11 @@ class MainActivity : ComponentActivity() {
         app.mongle.billing.BillingHost.activity = this
         updatePermissions()
         handleIntent(intent)
+        app.mongle.auth.AndroidAuth.activity = java.lang.ref.WeakReference(this)
         setContent {
             val permissions by PermissionCenter.snapshot.collectAsState()
             MongleTheme {
+                app.mongle.ui.AuthGate(app.mongle.auth.AndroidAuth.get(this)) {
                 MongleAppScreen(
                     service = AppGraph.service,
                     permissions = permissions,
@@ -51,6 +53,7 @@ class MainActivity : ComponentActivity() {
                     onOpenWallpaper = { openWallpaper() },
                     onPinWidget = { large -> pinWidget(large) },
                 )
+                }
             }
         }
     }

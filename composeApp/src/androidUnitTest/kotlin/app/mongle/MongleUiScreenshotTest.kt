@@ -598,7 +598,7 @@ class MongleWidgetAlarmWallpaperTest {
     }
 }
 
-private fun primeComposeResources() {
+internal fun primeComposeResources() {
     val provider = Class.forName("org.jetbrains.compose.resources.AndroidContextProvider")
     val companion = provider.getField("Companion").get(null)
     val setter = companion.javaClass.methods.first { it.name == "setANDROID_CONTEXT" }
@@ -612,7 +612,7 @@ private class MutableClock(var now: Long) : TimeProvider {
     override fun now(): Long = now
 }
 
-private fun artifact(name: String, publish: Boolean = true): File {
+internal fun artifact(name: String, publish: Boolean = true): File {
     val dir = File(if (publish) System.getProperty("dingrow.shots") ?: "/workspace/dingrow-shots" else "/tmp/mongle-frames")
     dir.mkdirs()
     return File(dir, name)

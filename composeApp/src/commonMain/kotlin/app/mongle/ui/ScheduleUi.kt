@@ -1,5 +1,11 @@
 package app.mongle.ui
 
+import kotlinx.coroutines.launch
+
+import androidx.compose.runtime.rememberCoroutineScope
+
+import androidx.compose.runtime.collectAsState
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -481,6 +487,12 @@ fun SettingsScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = PeachDeep),
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(t("coin_shop")) }
+            LocalAuth.current?.let { auth ->
+                val session by auth.session.collectAsState()
+                val scope = rememberCoroutineScope()
+                SettingRow(t("settings_account"), session?.let { t("provider_" + it.provider) + (if (it.email.isNotBlank()) " · " + it.email else "") }.orEmpty())
+                TextButton(onClick = { scope.launch { auth.signOut() } }, modifier = Modifier.testTag("sign-out")) { Text(t("settings_sign_out"), color = PeachDeep) }
+            }
             Spacer(Modifier.height(24.dp))
         }
     }

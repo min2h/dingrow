@@ -21,22 +21,17 @@ val LocalAppLanguage = compositionLocalOf { "system" }
 
 private fun explicit(language: String): Boolean = language == "ko" || language == "en"
 
+/** UI copy always comes from the shared L10n tables (the same tables widgets and notifications use). */
 @Composable
 fun t(key: String): String {
     val language = LocalAppLanguage.current
-    val loaded = stringResource(uiString(key))
-    if (explicit(language)) return L10n.t(key, language)
-    return loaded.ifBlank { L10n.t(key) }
+    return if (explicit(language)) L10n.t(key, language) else L10n.t(key)
 }
 
 @Composable
 fun tf(key: String, vararg args: Any): String {
-    val language = LocalAppLanguage.current
-    val loaded = stringResource(uiString(key), *args)
-    val fromTable = L10n.fmt(key, *args)
-    if (explicit(language)) return fromTable
-    val unfinished = loaded.isBlank() || loaded.contains("%s") || loaded.contains("%d")
-    return if (unfinished) fromTable else loaded
+    LocalAppLanguage.current
+    return L10n.fmt(key, *args)
 }
 
 /**
