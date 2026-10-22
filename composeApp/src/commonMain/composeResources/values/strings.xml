@@ -988,4 +988,6 @@
     <string name="widget_medium_name">Mongi and upcoming</string>
     <string name="widget_medium_desc">Mongi with your next two schedules, fullness and condition.</string>
     <string name="wp_date">%d/%d</string>
+    <string name="outing_title">Mongi is out for a walk</string>
+    <string name="outing_hint">Might bring back a gift</string>
 </resources>

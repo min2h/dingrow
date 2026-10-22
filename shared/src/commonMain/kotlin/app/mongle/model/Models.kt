@@ -308,6 +308,7 @@ data class FoodView(
 
 data class OutingView(
     val returnAt: Long,
+    val startedAt: Long = returnAt - 20 * 60_000L,
     val minutesLeft: Int,
     val label: String,
 )

@@ -95,7 +95,7 @@ fun project(raw: PersistedState, now: Long, zone: TimeZone, balance: GameBalance
     val condition = app.mongle.logic.ConditionRules.current(condState, weather, pet.outfitId, pet.hunger, pet.happiness)
     val outing = if (pet.isOut && pet.outingReturnAt != null) {
         val left = (((pet.outingReturnAt - now).coerceAtLeast(0)) / 60_000L).toInt()
-        OutingView(pet.outingReturnAt, left, if (left <= 0) L10n.t("outing_soon") else L10n.fmt("outing_later", left))
+        OutingView(pet.outingReturnAt, pet.outingStartedAt ?: (pet.outingReturnAt - 20 * 60_000L), left, if (left <= 0) L10n.t("outing_soon") else L10n.fmt("outing_later", left))
     } else {
         null
     }

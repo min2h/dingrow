@@ -90,6 +90,8 @@ class GameService(
     private val notifier: PlatformNotifier = PlatformNotifier(),
     private val billing: BillingGateway = FakeBilling(),
 ) {
+    /** Current time from the injected clock (UI timers use this so tests stay deterministic). */
+    fun nowMillis(): Long = time.now()
     private val mutex = Mutex()
     private var lastNotices: List<ScheduledNotice>? = null
     private var forceNotices = false
@@ -344,6 +346,9 @@ class GameService(
     }
 
     /** Test/debug hook: force a condition state (used by screenshot tests and the debug menu). */
+    /** Test/debug only: jump the pet to a stage. */
+    suspend fun debugSetStage(stage: app.mongle.model.Stage): ActionResult = mutate { state, _ -> done(state.copy(pet = state.pet.copy(stage = stage, hunger = 90, energy = 90)), ActionResult(true, "")) }
+
     suspend fun debugSetCondition(c: app.mongle.logic.ConditionState): ActionResult = mutate { state, _ ->
         done(state.copy(extras = ConditionRules.write(state.extras, c) - "line.text"), ActionResult(true, ""))
     }

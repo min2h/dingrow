@@ -1,5 +1,7 @@
 package app.mongle.ui
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -158,6 +160,7 @@ fun LiveRoom(
             engine.roamDp = if (state.settings.wander && !state.settings.reduceMotion) ((w - pet) / 2 - 10.dp).value.coerceAtLeast(0f) else 0f
             engine.shiver = state.condition == Condition.COLD
             engine.onRoamRest = onRoamRest
+            engine.wander.frequency = state.settings.bubbleFrequency
         }
         Image(painterResource(Art.room(theme, night, square = false)), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         val grade = gradeFor(state.phase, wx)
@@ -169,7 +172,13 @@ fun LiveRoom(
             }
         }
         // 몽이 (+ condition effects) in a box that follows the engine's free-roam offset.
-        Box(Modifier.align(Alignment.BottomCenter).padding(bottom = bottomPad).size(pet)) {
+        if (state.outing != null) {
+            // 몽이 is out: empty room with a little "산책 중" sign instead of the pet (and no bubble).
+            Text(
+                "🐾 " + t("outing_title"), color = Color(0xFF3F7F62), fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomPad + 20.dp).background(Color(0xF2FFFFFF), RoundedCornerShape(14.dp)).padding(horizontal = 14.dp, vertical = 6.dp).testTag("room-away"),
+            )
+        } else Box(Modifier.align(Alignment.BottomCenter).padding(bottom = bottomPad).size(pet)) {
             PetFigure(
                 speciesId = state.speciesId, stage = state.stage, act0 = petAct(state.stage, state.pose, state.energy, state.statusMessage),
                 outfitId = state.outfitId, modifier = Modifier.fillMaxSize(), animate = animate,
@@ -188,7 +197,7 @@ fun LiveRoom(
         }
         // Anchored bubble.
         val speech = state.speech
-        if (speech.isNotBlank()) {
+        if (speech.isNotBlank() && state.outing == null) {
             var bubbleSize by remember { mutableStateOf(IntSize.Zero) }
             val tailPx = remember { mutableFloatStateOf(0f) }
             val areaW = with(density) { w.toPx() }
@@ -444,5 +453,37 @@ fun MedicineCard(coins: Int, onBuy: () -> Unit) {
         Box(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(if (can) Color(0xFFF08A7A) else Color(0xFFE6D6D0)).clickable(enabled = can, onClick = onBuy).padding(horizontal = 12.dp).testTag("buy-medicine"), contentAlignment = Alignment.Center) {
             Text(tf("medicine_buy", app.mongle.logic.ConditionRules.MEDICINE_PRICE), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
+    }
+}
+
+
+/** Outing countdown (sheet 7 timer): live mm:ss, progress bar, return hint. Ticks once a second. */
+@Composable
+fun OutingCard(returnAt: Long, startedAt: Long, nowProvider: () -> Long = { kotlinx.datetime.Clock.System.now().toEpochMilliseconds() }) {
+    val now by produceState(nowProvider(), returnAt) {
+        while (true) { value = nowProvider(); kotlinx.coroutines.delay(1_000) }
+    }
+    val total = (returnAt - startedAt).coerceAtLeast(1L)
+    val left = (returnAt - now).coerceAtLeast(0L)
+    val frac = (1f - left.toFloat() / total).coerceIn(0f, 1f)
+    val anim by animateFloatAsState(frac, tween(900), label = "outing")
+    Column(
+        Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(18.dp)).background(Color(0xFFEFF8F3))
+            .padding(horizontal = 14.dp, vertical = 10.dp).testTag("outing-card"),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(t("outing_title"), color = Color(0xFF3F7F62), fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.weight(1f))
+            val mm = left / 60_000; val ss = (left / 1000) % 60
+            Text(
+                if (left == 0L) t("outing_soon") else "${mm.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}",
+                color = Accent, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, modifier = Modifier.testTag("outing-timer"),
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        Box(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFFD6EDE2))) {
+            Box(Modifier.fillMaxWidth(anim).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(Color(0xFF6EBE96)))
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(t("outing_hint"), color = Color(0xFF8A6A55), fontSize = 11.sp)
     }
 }

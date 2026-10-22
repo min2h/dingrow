@@ -92,8 +92,12 @@ class PetMotionEngine(seed: Int = 7) {
     var roamMoving = false; private set
     private var roamPauseUntil = 0f
     private var roamTarget = 0f
-    /** Called when a roam stroll ends (good moment for self-talk). */
+    /** Called at a roam stop when a self-talk line is due (once per 2–6 min, see [WanderTimer]). */
     var onRoamRest: (() -> Unit)? = null
+    /** Roam timing (pauses, window gazes, sit-downs, self-talk cadence). */
+    val wander = WanderTimer(seed)
+    /** Current roam stop kind while paused (null while walking or not roaming). */
+    var roamStop: RoamStop? = null; private set
 
     // Blink: randomized interval, sometimes a double blink.
     var blink = 0f; private set
@@ -237,7 +241,7 @@ class PetMotionEngine(seed: Int = 7) {
         stepPhase += dt * (4f + min(abs(v), 20f) * 0.25f)
     }
 
-    /** Stroll to a random spot, pause 3–7 s, repeat. Speed is eased by the walkX spring. */
+    /** Stroll to a random spot, stop (pause / look / sit per [wander]), repeat. Speed is eased by the walkX spring. */
     private fun stepRoam(dt: Float) {
         walkX.stiffness = 4f
         if (roamMoving) {
@@ -246,8 +250,11 @@ class PetMotionEngine(seed: Int = 7) {
             stepPhase += dt * (4f + min(abs(v), 20f) * 0.25f)
             if (abs(walkX.value - roamTarget) < 1.5f && abs(v) < 2f) {
                 roamMoving = false
-                roamPauseUntil = time + 3f + rng.nextFloat() * 4f
-                onRoamRest?.invoke()
+                val stop = wander.nextStop()
+                roamStop = stop
+                roamPauseUntil = time + wander.pauseSeconds(stop)
+                if (stop == RoamStop.LOOK) facing.target = if (walkX.value > 0) 1f else -1f
+                if (wander.talkDue(time)) onRoamRest?.invoke()
             }
         } else if (time >= roamPauseUntil && phase == MotionPhase.IDLE) {
             var next = (rng.nextFloat() * 2f - 1f) * roamDp
@@ -255,6 +262,7 @@ class PetMotionEngine(seed: Int = 7) {
             roamTarget = next
             walkX.target = next
             roamMoving = true
+            roamStop = null
         }
     }
 

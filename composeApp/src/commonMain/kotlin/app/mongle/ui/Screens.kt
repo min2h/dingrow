@@ -480,7 +480,7 @@ private fun HomeScreen(
             }
         },
         extra = {
-            state.outing?.let { Text(it.label, color = Mint, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)) }
+            state.outing?.let { OutingCard(it.returnAt, it.startedAt, service::nowMillis) }
         if (state.pendingGift != null || state.pendingDropKind == "COINS") {
                 Spacer(Modifier.height(8.dp))
                 SoftCard {

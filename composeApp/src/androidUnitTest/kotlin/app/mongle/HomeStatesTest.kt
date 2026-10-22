@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.text.font.FontWeight
 import app.mongle.data.MemoryGameStore
 import app.mongle.logic.ConditionState
@@ -104,6 +105,17 @@ class HomeStatesTest {
     @Test fun storm() { setup(17, 45) { setWeather(wx(it, 3, 9.0, wind = 52.0)) }; shot("home-storm.png") }
     @Test fun cold() { setup(10, 0) { setWeather(wx(it, 0, -4.0)) }; rule.onNodeWithTag("cond-cold").fetchSemanticsNode(); shot("home-cold.png") }
     @Test fun hot() { setup(14, 0) { setWeather(wx(it, 0, 31.0)) }; rule.onNodeWithTag("cond-hot").fetchSemanticsNode(); shot("home-hot.png") }
+
+    @Test fun outingTimerCountsDown() {
+        setup(13, 0) { debugSetStage(app.mongle.model.Stage.CHILD); val r = startOuting(); assertTrue(r.message, r.ok) }
+        rule.onNodeWithTag("outing-card").fetchSemanticsNode()
+        rule.onNodeWithTag("room-away").fetchSemanticsNode()
+        assertTrue(rule.onAllNodesWithTag("speech-bubble").fetchSemanticsNodes().isEmpty())
+        val txt = rule.onNodeWithTag("outing-timer").fetchSemanticsNode().config.getOrNull(SemanticsProperties.Text)?.joinToString { it.text }.orEmpty()
+        assertTrue(txt, Regex("""\d\d:\d\d""").matches(txt))
+        assertTrue(txt, txt.startsWith("19") || txt.startsWith("20"))
+        shot("home-outing.png")
+    }
 
     @Test fun sickShowsRecoveryAndMedicine() {
         val s = setup(11, 0) { debugSetCondition(ConditionState(sick = true, recovery = 20, discomfort = 0, checkedAt = it)) }
