@@ -24,7 +24,7 @@ class AlarmPlatformTest {
     private val am get() = shadowOf(ctx.getSystemService(AlarmManager::class.java))
     private fun notice(at: Long) = ScheduledNotice("n1", "s1", "몽이", "15:00 회의", at)
 
-    @After fun reset() { ShadowAlarmManager.setCanScheduleExactAlarms(true) }
+    @After fun reset() { ShadowAlarmManager.setCanScheduleExactAlarms(true); AppGraph.resetForTests() }
 
     @Test fun exactWhenAllowed() {
         ShadowAlarmManager.setCanScheduleExactAlarms(true)

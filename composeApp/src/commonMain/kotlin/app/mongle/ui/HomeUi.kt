@@ -412,21 +412,29 @@ private fun NextCard(state: GameState, onComplete: (String) -> Unit, onAdd: () -
             }
         }
         val label = if (next != null) t("done_short") else t("add_short")
+        // 48dp touch target around the 26dp pill (UI polish: touch targets).
         Box(
-            Modifier.height(26.dp).widthIn(min = 62.dp).clip(RoundedCornerShape(13.dp)).background(Peach)
-                .clickable { if (next != null) onComplete(next.id) else onAdd() }.padding(horizontal = 12.dp)
+            Modifier.height(48.dp).widthIn(min = 62.dp).clip(RoundedCornerShape(13.dp))
+                .clickable { if (next != null) onComplete(next.id) else onAdd() }
                 .testTag(if (next != null) "next-complete" else "next-add"),
             contentAlignment = Alignment.Center,
-        ) { Text(label, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+        ) {
+            Box(Modifier.height(26.dp).widthIn(min = 62.dp).clip(RoundedCornerShape(13.dp)).background(Peach).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+                Text(label, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
+        }
     }
 }
 
 @Composable
 fun RoomActionButton(mark: Mark, label: String, tag: String, onClick: () -> Unit) {
-    Box(
-        Modifier.size(38.dp).shadow(4.dp, CircleShape).background(CardWhite.copy(alpha = 0.92f), CircleShape).clip(CircleShape).clickable(onClick = onClick).testTag(tag),
-        contentAlignment = Alignment.Center,
-    ) { MarkIcon(mark, Modifier.size(18.dp), PeachDeep) }
+    // 48dp touch target, 38dp visual circle.
+    Box(Modifier.size(48.dp).clip(CircleShape).clickable(onClick = onClick).testTag(tag), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier.size(38.dp).shadow(4.dp, CircleShape).background(CardWhite.copy(alpha = 0.92f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) { MarkIcon(mark, Modifier.size(18.dp), PeachDeep) }
+    }
 }
 
 /** Shown in the shop only while 몽이 is sick (sheet 3): 50 coins, recovery +80%. */

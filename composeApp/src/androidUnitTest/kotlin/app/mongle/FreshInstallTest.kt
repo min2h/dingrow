@@ -19,7 +19,7 @@ class FreshInstallTest {
         androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().let { ctx ->
             ctx.getSharedPreferences("dingrow_auth", 0).edit().clear().commit()
         }
-        app.mongle.auth.AndroidAuth.resetForTests(); primeComposeResources()
+        app.mongle.auth.AndroidAuth.resetForTests(); AppGraph.resetForTests(); primeComposeResources()
     }
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
 

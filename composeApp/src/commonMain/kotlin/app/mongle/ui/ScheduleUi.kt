@@ -30,6 +30,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Switch
@@ -199,11 +200,11 @@ fun ScheduleForm(
             Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onClose, modifier = Modifier.testTag("overlay-back")) {
+            TextButton(onClick = onClose, modifier = Modifier.heightIn(min = 48.dp).testTag("overlay-back")) {
                 Text("‹", color = Ink, fontSize = 22.sp)
             }
             Text(t("add_schedule"), modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Ink)
-            TextButton(onClick = { save() }, enabled = canSave, modifier = Modifier.testTag("save-top")) {
+            TextButton(onClick = { save() }, enabled = canSave, modifier = Modifier.heightIn(min = 48.dp).testTag("save-top")) {
                 Text(t("save"), color = if (canSave) PeachDeep else InkSoft, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
         }
@@ -473,7 +474,7 @@ fun SettingsScreen(
     val settings = state.settings
     Column(Modifier.fillMaxSize().background(Cream)) {
         Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onClose, modifier = Modifier.testTag("overlay-back")) {
+            TextButton(onClick = onClose, modifier = Modifier.heightIn(min = 48.dp).testTag("overlay-back")) {
                 Text("‹", color = Ink, fontSize = 22.sp)
             }
             Text(t("settings"), modifier = Modifier.weight(1f), textAlign = TextAlign.Center, color = Ink, fontSize = 18.sp)
@@ -869,7 +870,7 @@ private fun FormField(value: String, onChange: (String) -> Unit, hint: String, t
         value = value, onValueChange = onChange, singleLine = true,
         textStyle = androidx.compose.ui.text.TextStyle(fontSize = if (big) 16.sp else 14.sp, fontWeight = if (big) FontWeight.Bold else FontWeight.Medium, color = Ink),
         cursorBrush = androidx.compose.ui.graphics.SolidColor(Peach),
-        modifier = Modifier.fillMaxWidth().height(if (big) 48.dp else 44.dp).shadow(if (big) 4.dp else 0.dp, RoundedCornerShape(16.dp), spotColor = Color(0x22000000))
+        modifier = Modifier.fillMaxWidth().height(48.dp).shadow(if (big) 4.dp else 0.dp, RoundedCornerShape(16.dp), spotColor = Color(0x22000000))
             .background(CardWhite, RoundedCornerShape(16.dp)).testTag(tag),
         decorationBox = { inner ->
             Box(Modifier.fillMaxSize().padding(horizontal = 18.dp), contentAlignment = Alignment.CenterStart) {

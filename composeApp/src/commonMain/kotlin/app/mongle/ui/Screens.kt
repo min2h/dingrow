@@ -409,9 +409,11 @@ private fun TopBar(title: String, coins: Int, weather: app.mongle.logic.WeatherS
         }
         CoinPill(coins)
         if (onSettings != null) {
-            Spacer(Modifier.width(8.dp))
-            Box(Modifier.size(32.dp).clip(CircleShape).background(CardWhite).clickable(onClick = onSettings).testTag("open-settings"), contentAlignment = Alignment.Center) {
-                MarkIcon(Mark.Gear, Modifier.size(16.dp), Ink)
+            Spacer(Modifier.width(0.dp))
+            Box(Modifier.size(48.dp).clip(CircleShape).clickable(onClick = onSettings).testTag("open-settings"), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(32.dp).clip(CircleShape).background(CardWhite), contentAlignment = Alignment.Center) {
+                    MarkIcon(Mark.Gear, Modifier.size(16.dp), Ink)
+                }
             }
         }
     }
@@ -508,7 +510,7 @@ private fun HomeScreen(
         onComplete = { id -> scope.launch { service.completeSchedule(id) } },
         onAdd = onAdd,
         actions = {
-            Column(Modifier.align(Alignment.BottomEnd).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.align(Alignment.BottomEnd).padding(5.dp), verticalArrangement = Arrangement.spacedBy((-2).dp)) {
                 RoomActionButton(Mark.Bowl, t("feed"), "feed") { scope.launch { service.feed() } }
                 RoomActionButton(Mark.Paw, t("outing"), "outing") { scope.launch { service.startOuting() } }
                 if (state.sick) RoomActionButton(Mark.Heart, t("medicine_take"), "medicine") { scope.launch { service.takeMedicine() } }
@@ -722,16 +724,21 @@ private fun RoomScreen(
             state.presets.forEach { preset ->
                 val selected = preset.index == state.activePreset
                 val locked = !app.mongle.logic.Shop.roomOwned(preset.wallpaperId, state.owned)
-                Text(
-                    L10n.preset(preset.wallpaperId) + if (locked) " 🔒 ${app.mongle.logic.Shop.roomPrice(preset.wallpaperId)}" else "",
-                    modifier = Modifier
-                        .clip(Pill)
-                        .background(if (selected) PeachDeep else CardWhite)
-                        .clickable { if (locked) roomAsk = preset.wallpaperId else scope.launch { service.selectPreset(preset.index) } }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    color = if (selected) Color.White else Ink,
-                    fontSize = 13.sp,
-                )
+                // 48dp touch target around the 32dp chip.
+                Box(
+                    Modifier.heightIn(min = 48.dp).clickable { if (locked) roomAsk = preset.wallpaperId else scope.launch { service.selectPreset(preset.index) } },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        L10n.preset(preset.wallpaperId) + if (locked) " 🔒 ${app.mongle.logic.Shop.roomPrice(preset.wallpaperId)}" else "",
+                        modifier = Modifier
+                            .clip(Pill)
+                            .background(if (selected) PeachDeep else CardWhite)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        color = if (selected) Color.White else Ink,
+                        fontSize = 13.sp,
+                    )
+                }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {

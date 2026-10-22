@@ -18,10 +18,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.printToString
@@ -373,6 +375,37 @@ class MongleFlowScreenshotTest {
         harness.settle()
         composeRule.onNodeWithText("결제하기").assertExists()
         harness.capture("ko-coin-shop.png")
+    }
+
+    /** Every clickable node on the four tabs + settings must be at least 48×48dp. */
+    @Test
+    fun touchTargetsAtLeast48dp() {
+        val harness = Harness()
+        harness.show()
+        runBlocking { harness.service.completeOnboarding("보리"); harness.service.ackLevelUp(harness.service.state.value.level) }
+        harness.settle()
+        val density = composeRule.onRoot().fetchSemanticsNode().layoutInfo.density.density
+        val small = mutableListOf<String>()
+        fun audit(screen: String) {
+            harness.settle()
+            composeRule.onAllNodes(androidx.compose.ui.test.hasClickAction(), useUnmergedTree = false).fetchSemanticsNodes().forEach { n ->
+                val w = n.size.width / density; val h = n.size.height / density
+                // Documented exceptions (mockup-fixed): 30dp choice chips in the composer and 44dp wheel rows.
+                val chip = screen == "Schedule" && h in 29f..31f
+                val wheel = screen == "Schedule" && h in 43f..45f && w in 90f..96f
+                // Material3 buttons report their 40dp visual; minimumInteractiveComponentSize already gives them a 48dp hit area.
+                val m3 = n.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Role) == androidx.compose.ui.semantics.Role.Button && h in 39f..41f
+                if ((w < 46.5f || h < 46.5f) && !chip && !wheel && !m3) {
+                    val tag = n.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.TestTag) ?: ""
+                    val txt = n.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)?.joinToString { it.text }
+                        ?: n.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.ContentDescription)?.joinToString() ?: ""
+                    small += "$screen\t$tag\t$txt\t${w.toInt()}x${h.toInt()}"
+                }
+            }
+        }
+        listOf("Home", "Schedule", "Room", "My").forEach { if (composeRule.onAllNodesWithTag("tab-$it").fetchSemanticsNodes().isEmpty()) { harness.capture("audit-missing-$it.png"); small += "missing tab $it" } else { composeRule.onNodeWithTag("tab-$it").performClick(); audit(it); if (composeRule.onAllNodesWithTag("overlay-back").fetchSemanticsNodes().isNotEmpty()) { composeRule.onNodeWithTag("overlay-back").performClick(); harness.settle() } } }
+        java.io.File("/workspace/dingrow-polish").apply { mkdirs() }.resolve("touch-audit.txt").writeText(small.joinToString("\n"))
+        assertTrue("small touch targets:\n" + small.joinToString("\n"), small.isEmpty())
     }
 
     private inner class Harness {

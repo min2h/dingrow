@@ -57,7 +57,7 @@ fun SettingsV2(
     Box(Modifier.fillMaxSize().background(Cream).testTag("settings-$page")) {
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(44.dp).clip(CircleShape).clickable { if (page == "home") onClose() else page = "home" }.testTag("overlay-back"), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(48.dp).clip(CircleShape).clickable { if (page == "home") onClose() else page = "home" }.testTag("overlay-back"), contentAlignment = Alignment.Center) {
                     Text("‹", color = Ink, fontSize = 26.sp)
                 }
                 Text(t("settings_title_$page"), modifier = Modifier.weight(1f), textAlign = TextAlign.Center, color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -130,7 +130,7 @@ fun SettingsV2(
                         }
                         Section(t("set_sec_sound")) {
                             ToggleRow(t("set_sfx"), s.sfxEnabled, "toggle-sfx") { onChange(s.copy(sfxEnabled = it)) }
-                            Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Text(t("set_volume"), fontSize = 14.sp, color = if (s.sfxEnabled) Ink else InkSoft, modifier = Modifier.weight(1f))
                                 Slider(
                                     value = s.sfxVolume / 100f, onValueChange = { onChange(s.copy(sfxVolume = (it * 100).toInt())) }, enabled = s.sfxEnabled,
