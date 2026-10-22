@@ -731,7 +731,7 @@ private fun Wheel(items: List<String>, selected: Int, onSelect: (Int) -> Unit, m
     Box(
         modifier.height(132.dp),
     ) {
-        LazyColumn(state = state, modifier = Modifier.fillMaxSize()) {
+        LazyColumn(state = state, modifier = Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 44.dp)) {
             itemsIndexed(items) { index, label ->
                 Text(
                     label,

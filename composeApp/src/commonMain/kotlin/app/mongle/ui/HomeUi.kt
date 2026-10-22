@@ -376,7 +376,7 @@ fun HomeV4(
                 StatBarChip(t("stat_full_l"), "${state.hunger}%", MintSoft, Color(0xFF6EBE96), state.hunger / 100f, Modifier.weight(1.06f).testTag("stat-hunger"))
                 StatBarChip(t("stat_happy_l"), "${state.happiness}%", PeachSoft, Peach, state.happiness / 100f, Modifier.weight(0.98f))
                 val (bg, bar) = conditionColors(state.condition, state.sick)
-                val condLabel = if (state.sick) tf("cond_recovery", state.recovery) else t("cond_" + state.condition.name.lowercase())
+                val condLabel = t("cond_" + (if (state.sick) "sick" else state.condition.name.lowercase()))
                 StatBarChip(t("stat_cond_l"), condLabel, bg, bar, conditionFrac(state), Modifier.weight(1f).testTag("stat-condition"))
             }
             Spacer(Modifier.height(12.dp))
@@ -418,4 +418,31 @@ fun RoomActionButton(mark: Mark, label: String, tag: String, onClick: () -> Unit
         Modifier.size(38.dp).shadow(4.dp, CircleShape).background(Color.White.copy(alpha = 0.92f), CircleShape).clip(CircleShape).clickable(onClick = onClick).testTag(tag),
         contentAlignment = Alignment.Center,
     ) { MarkIcon(mark, Modifier.size(18.dp), PeachDeep) }
+}
+
+/** Shown in the shop only while 몽이 is sick (sheet 3): 50 coins, recovery +80%. */
+@Composable
+fun MedicineCard(coins: Int, onBuy: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().shadow(5.dp, RoundedCornerShape(20.dp), spotColor = Color(0x33E07070)).background(Color(0xFFFFF5F5), RoundedCornerShape(20.dp)).padding(14.dp).testTag("medicine-card"),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Canvas(Modifier.size(48.dp)) {
+            val w = size.width
+            drawRoundRect(Color(0xFFF7B5C0), Offset(w * 0.2f, w * 0.28f), Size(w * 0.6f, w * 0.66f), CornerRadius(w * 0.14f))
+            drawRoundRect(Color(0xFF7CC6A8), Offset(w * 0.26f, w * 0.1f), Size(w * 0.48f, w * 0.2f), CornerRadius(w * 0.06f))
+            drawRoundRect(Color.White, Offset(w * 0.3f, w * 0.44f), Size(w * 0.4f, w * 0.34f), CornerRadius(w * 0.06f))
+            drawRect(Color(0xFFE07070), Offset(w * 0.46f, w * 0.48f), Size(w * 0.08f, w * 0.26f)); drawRect(Color(0xFFE07070), Offset(w * 0.37f, w * 0.57f), Size(w * 0.26f, w * 0.08f))
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(t("medicine_badge"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFE07070), modifier = Modifier.background(Color(0xFFFFE0E4), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 2.dp))
+            Text(t("medicine_name"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Ink, modifier = Modifier.padding(top = 3.dp))
+            Text(t("medicine_desc"), fontSize = 11.sp, color = InkSoft)
+        }
+        val can = coins >= app.mongle.logic.ConditionRules.MEDICINE_PRICE
+        Box(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(if (can) Color(0xFFF08A7A) else Color(0xFFE6D6D0)).clickable(enabled = can, onClick = onBuy).padding(horizontal = 12.dp).testTag("buy-medicine"), contentAlignment = Alignment.Center) {
+            Text(tf("medicine_buy", app.mongle.logic.ConditionRules.MEDICINE_PRICE), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+    }
 }

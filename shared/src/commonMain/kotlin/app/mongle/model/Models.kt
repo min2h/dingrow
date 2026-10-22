@@ -189,6 +189,7 @@ data class AppSettings(
     val weatherAlerts: Boolean = true,
     val scheduleAlerts: Boolean = true,
     val newScheduleConfirm: Boolean = true,
+    val briefingWeather: Boolean = true,
     val briefingEnabled: Boolean = true,
     val briefingMinute: Int = 7 * 60 + 30,
     val giftAlerts: Boolean = true,

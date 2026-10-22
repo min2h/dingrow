@@ -338,6 +338,11 @@ class GameService(
         return r
     }
 
+    /** Settings › 데이터 › 몽이 처음부터 다시: fresh pet and data, settings kept. */
+    suspend fun resetAll(): ActionResult = mutate { state, now ->
+        done(Seed.create(now, balance).copy(settings = state.settings, onboarded = false), ActionResult(true, L10n.t("msg_reset_done")))
+    }
+
     /** Test/debug hook: force a condition state (used by screenshot tests and the debug menu). */
     suspend fun debugSetCondition(c: app.mongle.logic.ConditionState): ActionResult = mutate { state, _ ->
         done(state.copy(extras = ConditionRules.write(state.extras, c) - "line.text"), ActionResult(true, ""))
@@ -902,7 +907,7 @@ class GameService(
         val list = todays.take(4).joinToString(", ") { L10n.clock(it.timeMillis, zone) + " " + (if (it.place.isNotBlank()) it.place + " " else "") + it.title }
         val w = weatherOf(state, now)
         val pm = w?.let { Weather.afternoon(it, trigger - 1, zone) ?: Weather.afternoon(it, now, zone) }
-        val wx = w?.let {
+        val wx = w?.takeIf { state.settings.briefingWeather }?.let {
             L10n.fmt("brief_weather", Weather.label(it.kind), Weather.temp(it.tempC, state.settings.fahrenheit)) + " " +
                 (pm?.let { p -> L10n.fmt("brief_pm", Weather.label(p.first), Weather.temp(p.second, state.settings.fahrenheit)) + " " }.orEmpty())
         }.orEmpty()

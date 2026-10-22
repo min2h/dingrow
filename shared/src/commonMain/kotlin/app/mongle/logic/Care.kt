@@ -465,7 +465,7 @@ object MetaCodec {
         "newc=${b(v.newScheduleConfirm)}", "brief=${b(v.briefingEnabled)}", "briefm=${v.briefingMinute}", "gift=${b(v.giftAlerts)}",
         "wander=${b(v.wander)}", "bubble=${v.bubbleFrequency}", "motion=${v.motionLevel}", "reduce=${b(v.reduceMotion)}",
         "hap=${b(v.haptics)}", "sfx=${b(v.sfxEnabled)}", "vol=${v.sfxVolume}", "wlist=${b(v.widgetList)}",
-        "wcond=${b(v.widgetCondition)}", "wbub=${b(v.widgetBubble)}",
+        "wcond=${b(v.widgetCondition)}", "wbub=${b(v.widgetBubble)}", "bwx=${b(v.briefingWeather)}",
     ).joinToString(";")
 
     private fun b(v: Boolean) = if (v) "1" else "0"
@@ -486,6 +486,7 @@ object MetaCodec {
             motionLevel = i("motion", base.motionLevel).coerceIn(0, 2), reduceMotion = bo("reduce", base.reduceMotion),
             haptics = bo("hap", base.haptics), sfxEnabled = bo("sfx", base.sfxEnabled), sfxVolume = i("vol", base.sfxVolume).coerceIn(0, 100),
             widgetList = bo("wlist", base.widgetList), widgetCondition = bo("wcond", base.widgetCondition), widgetBubble = bo("wbub", base.widgetBubble),
+            briefingWeather = bo("bwx", base.briefingWeather),
         )
     }
 

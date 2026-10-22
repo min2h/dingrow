@@ -186,9 +186,10 @@ fun MongleAppScreen(
             },
         )
     } else if (overlay == "settings") {
-        SettingsScreen(
+        SettingsV2(
             state = state,
             permissions = permissions,
+            onReset = { scope.launch { service.resetAll(); overlayState.value = "none"; tabState.value = Tab.Home } },
             onChange = { scope.launch { service.updateSettings(it) } },
             onTip = { scope.launch { service.showTip() } },
             onPin = { onPinWidget(false) },
@@ -342,7 +343,7 @@ fun MongleAppScreen(
             }
         }
     }
-    if (state.statusMessage.isNotBlank()) {
+    if (state.statusMessage.isNotBlank() && !showComposer && overlay == "none") {
         Text(
             state.statusMessage,
             modifier = Modifier
@@ -658,6 +659,10 @@ private fun RoomScreen(
     ) {
         Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
             RoomScene(state, Modifier.fillMaxHeight())
+        }
+        if (state.sick) {
+            Spacer(Modifier.height(10.dp))
+            MedicineCard(state.coins) { scope.launch { service.takeMedicine() } }
         }
         Spacer(Modifier.height(8.dp))
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

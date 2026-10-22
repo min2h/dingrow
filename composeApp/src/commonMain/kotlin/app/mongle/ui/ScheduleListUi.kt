@@ -71,7 +71,7 @@ fun ScheduleDayList(
             }
         }
         Spacer(Modifier.height(8.dp))
-        MiniWeek(selected, onSelectDay)
+        MiniWeek(selected, state.settings.weekStartsMonday, onSelectDay)
         banner()
         Spacer(Modifier.height(10.dp))
         if (cards.isEmpty()) {
@@ -104,15 +104,16 @@ private fun longDate(d: LocalDate): String {
 }
 
 @Composable
-private fun MiniWeek(selected: LocalDate, onSelect: (LocalDate) -> Unit) {
+private fun MiniWeek(selected: LocalDate, mondayFirst: Boolean, onSelect: (LocalDate) -> Unit) {
     val today = kotlinx.datetime.Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-    val sunday = today.minus((today.dayOfWeek.ordinal + 1) % 7, DateTimeUnit.DAY)
+    val back = if (mondayFirst) today.dayOfWeek.ordinal else (today.dayOfWeek.ordinal + 1) % 7
+    val sunday = today.minus(back, DateTimeUnit.DAY)
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         (0..6).forEach { i ->
             val d = sunday.plus(i, DateTimeUnit.DAY)
             val sel = d == selected
             Column(Modifier.width(38.dp).clip(RoundedCornerShape(12.dp)).background(if (sel) PeachSoft else Color.Transparent).clickable { onSelect(d) }.padding(vertical = 4.dp).testTag("day-$i"), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(t("wd_$i"), fontSize = 10.sp, color = InkSoft)
+                Text(t("wd_${(d.dayOfWeek.ordinal + 1) % 7}"), fontSize = 10.sp, color = InkSoft)
                 Text("${d.dayOfMonth}", fontSize = 13.sp, fontWeight = if (sel || d == today) FontWeight.Bold else FontWeight.Medium, color = if (sel) PeachDeep else Ink)
             }
         }
