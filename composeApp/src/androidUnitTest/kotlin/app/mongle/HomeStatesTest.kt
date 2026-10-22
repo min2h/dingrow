@@ -1,5 +1,10 @@
 package app.mongle
 
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.test.performSemanticsAction
+
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -107,14 +112,25 @@ class HomeStatesTest {
     @Test fun hot() { setup(14, 0) { setWeather(wx(it, 0, 31.0)) }; rule.onNodeWithTag("cond-hot").fetchSemanticsNode(); shot("home-hot.png") }
 
     @Test fun outingTimerCountsDown() {
-        setup(13, 0) { debugSetStage(app.mongle.model.Stage.CHILD); val r = startOuting(); assertTrue(r.message, r.ok) }
+        setup(13, 0) { debugSetStage(app.mongle.model.Stage.CHILD); val r = startOuting(); assertTrue(r.message, r.ok); ackLevelUp(state.value.level) }
         rule.onNodeWithTag("outing-card").fetchSemanticsNode()
         rule.onNodeWithTag("room-away").fetchSemanticsNode()
         assertTrue(rule.onAllNodesWithTag("speech-bubble").fetchSemanticsNodes().isEmpty())
         val txt = rule.onNodeWithTag("outing-timer").fetchSemanticsNode().config.getOrNull(SemanticsProperties.Text)?.joinToString { it.text }.orEmpty()
         assertTrue(txt, Regex("""\d\d:\d\d""").matches(txt))
         assertTrue(txt, txt.startsWith("19") || txt.startsWith("20"))
+        if (rule.onAllNodesWithTag("levelup-ok").fetchSemanticsNodes().isNotEmpty()) {
+            rule.onNodeWithTag("levelup-ok").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            repeat(3) { rule.mainClock.advanceTimeBy(300); rule.waitForIdle() }
+        }
         shot("home-outing.png")
+        val auto = rule.mainClock.autoAdvance
+        rule.mainClock.autoAdvance = true
+        runCatching { rule.onNodeWithTag("home-scroll").performTouchInput { swipeUp() } }
+        rule.waitForIdle()
+        rule.mainClock.autoAdvance = auto
+        rule.waitForIdle()
+        shot("home-outing-scrolled.png")
     }
 
     @Test fun sickShowsRecoveryAndMedicine() {
