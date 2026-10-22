@@ -497,8 +497,9 @@ class MongleRulesTest {
         )
         assertEquals(legacy, modern)
 
-        assertTrue(ScheduleTemplates.all.any { it.title == "아침 물 마시기" && it.repeat == RepeatRule.DAILY })
-        assertTrue(ScheduleTemplates.all.any { it.title == "분리수거" && it.repeat == RepeatRule.WEEKLY })
+        assertEquals(listOf("출근", "수업", "운동 가기", "약속", "술약속", "병원", "공부", "장보기", "약 먹기"), ScheduleTemplates.all.map { it.title })
+        assertTrue(ScheduleTemplates.all.all { it.category in app.mongle.logic.Categories.all })
+        assertTrue(ScheduleTemplates.all.any { it.title == "출근" && it.repeat == RepeatRule.WEEKDAYS })
 
         val clock = MutableClock(atZone(seoul, 2026, 10, 21, 8, 0))
         val service = service(clock, balance)

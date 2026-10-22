@@ -338,6 +338,11 @@ class GameService(
         return r
     }
 
+    /** Test/debug hook: force a condition state (used by screenshot tests and the debug menu). */
+    suspend fun debugSetCondition(c: app.mongle.logic.ConditionState): ActionResult = mutate { state, _ ->
+        done(state.copy(extras = ConditionRules.write(state.extras, c) - "line.text"), ActionResult(true, ""))
+    }
+
     /** Asks 몽이 to mutter something to itself (used while wandering). */
     suspend fun selfTalk(): ActionResult = mutate { state, now -> done(rotateLine(state, now, selfTalk = true), ActionResult(true, "")) }
 

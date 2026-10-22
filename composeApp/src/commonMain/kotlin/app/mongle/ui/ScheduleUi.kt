@@ -1,5 +1,7 @@
 package app.mongle.ui
 
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.shadow
 import kotlinx.coroutines.launch
 
 import androidx.compose.runtime.rememberCoroutineScope
@@ -143,9 +145,33 @@ fun ScheduleForm(
     var endDate by remember { mutableStateOf(initial.date.plus(30, DateTimeUnit.DAY)) }
     var leads by remember { mutableStateOf(setOf(0)) }
     var alert by remember { mutableStateOf(AlertStyle.SILENT) }
-    var category by remember { mutableStateOf("sport") }
+    var category by remember { mutableStateOf("other") }
+    var place by remember { mutableStateOf("") }
+    var memo by remember { mutableStateOf("") }
     var scope by remember { mutableStateOf(EditScope.ALL) }
     var picking by remember { mutableStateOf<String?>(null) }
+
+    fun save() {
+        onSave(
+            ScheduleDraft(
+                        title = title,
+                        timeMillis = composeMillis(date, isPm, hour12, minute, zone),
+                        repeat = repeat,
+                        leadsMinutes = leads.toList().ifEmpty { listOf(0) },
+                        alert = alert,
+                        category = category,
+                        place = place.trim(),
+                        memo = memo.trim(),
+                        weekdays = weekdays,
+                        interval = interval.coerceAtLeast(1),
+                        monthOrdinal = monthOrdinal,
+                        endKind = endKind,
+                        endAt = if (endKind == EndKind.UNTIL) composeMillis(endDate, true, 11, 59, zone) else 0L,
+                        endCount = if (endKind == EndKind.COUNT) endCount else 0,
+                    ),
+            if (editing) scope else EditScope.ALL,
+        )
+    }
 
     if (picking != null) {
         DateDialog(
@@ -166,24 +192,21 @@ fun ScheduleForm(
             TextButton(onClick = onClose, modifier = Modifier.testTag("overlay-back")) {
                 Text("‹", color = Ink, fontSize = 22.sp)
             }
-            Text(t("add_schedule"), modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 18.sp, color = Ink)
-            Spacer(Modifier.width(48.dp))
+            Text(t("add_schedule"), modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Ink)
+            TextButton(onClick = { if (title.isNotBlank()) save() }, enabled = title.isNotBlank(), modifier = Modifier.testTag("save-top")) {
+                Text(t("save"), color = if (title.isNotBlank()) PeachDeep else InkSoft, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
         }
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
         ) {
-            TextField(
-                value = title,
-                onValueChange = { title = it },
-                placeholder = { Text(t("task_hint")) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
+            FormField(title, { title = it }, t("task_hint"), "field-title", big = true)
+            Spacer(Modifier.height(16.dp))
+            SectionLabel(t("quick_pick"))
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ScheduleTemplates.all.forEach { template ->
                     val label = if (template.key.isBlank()) template.title else t(template.key)
-                    ChoiceChip(label, false) {
+                    ChoiceChip(label, title == label) {
                         title = label
                         repeat = template.repeat
                         interval = template.interval
@@ -196,7 +219,17 @@ fun ScheduleForm(
                     }
                 }
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
+            SectionLabel(t("place_label"))
+            FormField(place, { place = it }, t("place_hint"), "field-place")
+            Spacer(Modifier.height(10.dp))
+            SectionLabel(t("memo_label"))
+            FormField(memo, { memo = it }, t("memo_hint"), "field-memo")
+            Spacer(Modifier.height(14.dp))
+            SectionLabel(t("category"))
+            CategoryRow(category) { category = it }
+            Spacer(Modifier.height(14.dp))
+            SectionLabel(t("time_label"))
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -209,7 +242,9 @@ fun ScheduleForm(
                 Text(tf("date_row", L10n.formatDate(date)), color = Ink, modifier = Modifier.weight(1f))
                 Text("›", color = InkSoft)
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
+            Box(Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(20.dp), spotColor = Color(0x22000000)).background(CardWhite, RoundedCornerShape(20.dp)).padding(horizontal = 12.dp, vertical = 4.dp)) {
+            Box(Modifier.align(Alignment.Center).fillMaxWidth().height(36.dp).background(PeachSoft, RoundedCornerShape(12.dp)))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Wheel(
                     listOf(t("am"), t("pm")),
@@ -230,8 +265,9 @@ fun ScheduleForm(
                     Modifier.weight(1f),
                 )
             }
+            }
             Spacer(Modifier.height(14.dp))
-            Text(t("repeat"), color = InkSoft, fontSize = 13.sp)
+            SectionLabel(t("repeat"))
             ChoiceRow(
                 listOf(
                     RepeatRule.NONE to t("repeat_off"),
@@ -285,7 +321,7 @@ fun ScheduleForm(
                 ) { monthOrdinal = it }
             }
             Spacer(Modifier.height(8.dp))
-            Text(t("end"), color = InkSoft, fontSize = 13.sp)
+            SectionLabel(t("end"))
             ChoiceRow(
                 listOf(EndKind.NEVER to t("end_never"), EndKind.UNTIL to t("end_until"), EndKind.COUNT to t("end_count")),
                 endKind,
@@ -297,17 +333,20 @@ fun ScheduleForm(
                 ChoiceRow(listOf(5 to t("times_5"), 10 to t("times_10"), 30 to t("times_30")), endCount) { endCount = it }
             }
             Spacer(Modifier.height(8.dp))
-            Text(t("lead"), color = InkSoft, fontSize = 13.sp)
+            SectionLabel(t("lead"))
             LeadRow(leads) { leads = it }
             Spacer(Modifier.height(8.dp))
-            Text(t("alert_mode"), color = InkSoft, fontSize = 13.sp)
+            SectionLabel(t("alert_mode"))
             ChoiceRow(
                 listOf(AlertStyle.SILENT to t("alert_silent"), AlertStyle.SOUND to t("alert_sound"), AlertStyle.VIBRATE to t("alert_vibrate")),
                 alert,
             ) { alert = it }
-            Spacer(Modifier.height(8.dp))
-            Text(t("category"), color = InkSoft, fontSize = 13.sp)
-            CategoryRow(category) { category = it }
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth().background(Color(0xFFFAF4EE), RoundedCornerShape(16.dp)).padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                StillPet("base", app.mongle.model.Stage.BABY, app.mongle.model.Pose.IDLE, Modifier.size(32.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(t("form_tip_bubble"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ink)
+            }
             if (editing) {
                 Spacer(Modifier.height(8.dp))
                 Text(t("edit_scope"), color = InkSoft, fontSize = 13.sp)
@@ -319,30 +358,12 @@ fun ScheduleForm(
             Spacer(Modifier.height(12.dp))
         }
         Button(
-            onClick = {
-                onSave(
-                    ScheduleDraft(
-                        title = title,
-                        timeMillis = composeMillis(date, isPm, hour12, minute, zone),
-                        repeat = repeat,
-                        leadsMinutes = leads.toList().ifEmpty { listOf(0) },
-                        alert = alert,
-                        category = category,
-                        weekdays = weekdays,
-                        interval = interval.coerceAtLeast(1),
-                        monthOrdinal = monthOrdinal,
-                        endKind = endKind,
-                        endAt = if (endKind == EndKind.UNTIL) composeMillis(endDate, true, 11, 59, zone) else 0L,
-                        endCount = if (endKind == EndKind.COUNT) endCount else 0,
-                    ),
-                    if (editing) scope else EditScope.ALL,
-                )
-            },
+            onClick = { save() },
             enabled = title.isNotBlank(),
             shape = PillShape,
-            colors = ButtonDefaults.buttonColors(containerColor = PeachDeep),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp).height(52.dp),
-        ) { Text(t("save")) }
+            colors = ButtonDefaults.buttonColors(containerColor = Peach, contentColor = Color.White, disabledContainerColor = Peach.copy(alpha = 0.45f), disabledContentColor = Color.White),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 12.dp).height(48.dp).testTag("save-bottom"),
+        ) { Text(t("save_big"), fontWeight = FontWeight.Bold, fontSize = 16.sp) }
     }
 }
 
@@ -708,11 +729,8 @@ private fun Wheel(items: List<String>, selected: Int, onSelect: (Int) -> Unit, m
     val safe = selected.coerceIn(0, items.lastIndex)
     val state = rememberLazyListState(safe)
     Box(
-        modifier.height(132.dp).clip(RoundedCornerShape(16.dp)).background(CardWhite),
+        modifier.height(132.dp),
     ) {
-        Box(
-            Modifier.align(Alignment.Center).fillMaxWidth().height(40.dp).background(PeachSoft.copy(alpha = 0.7f)),
-        )
         LazyColumn(state = state, modifier = Modifier.fillMaxSize()) {
             itemsIndexed(items) { index, label ->
                 Text(
@@ -723,8 +741,9 @@ private fun Wheel(items: List<String>, selected: Int, onSelect: (Int) -> Unit, m
                         .clickable { onSelect(index) }
                         .padding(top = 10.dp),
                     textAlign = TextAlign.Center,
-                    color = if (index == safe) Ink else InkSoft,
+                    color = if (index == safe) Ink else InkSoft.copy(alpha = 0.6f),
                     fontSize = if (index == safe) 22.sp else 16.sp,
+                    fontWeight = if (index == safe) FontWeight.Bold else FontWeight.Medium,
                 )
             }
         }
@@ -745,12 +764,15 @@ private fun ChoiceChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(
         label,
         modifier = Modifier
+            .height(30.dp)
             .clip(PillShape)
-            .background(if (selected) PeachSoft else CardWhite)
+            .background(if (selected) Peach else CardWhite)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        color = Ink,
-        fontSize = 13.sp,
+            .padding(horizontal = 13.dp, vertical = 7.dp),
+        color = if (selected) Color.White else Ink,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold,
+        maxLines = 1,
     )
 }
 
@@ -792,25 +814,40 @@ private fun LeadRow(selected: Set<Int>, onChange: (Set<Int>) -> Unit) {
 
 @Composable
 private fun CategoryRow(selected: String, onSelect: (String) -> Unit) {
-    val options = listOf(
-        "sport" to (t("cat_sport") to Mark.Sport),
-        "meal" to (t("cat_meal") to Mark.Meal),
-        "study" to (t("cat_study") to Mark.Study),
-        "pill" to (t("cat_pill") to Mark.Pill),
-        "task" to (t("cat_task") to Mark.More),
-    )
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-        options.forEach { (id, pair) ->
-            val (label, mark) = pair
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onSelect(id) }) {
+    val sel = app.mongle.logic.Categories.normalize(selected)
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        app.mongle.logic.Categories.all.forEach { id ->
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(52.dp).clickable { onSelect(id) }.testTag("cat-$id")) {
                 Box(
-                    Modifier.size(48.dp).clip(CircleShape).background(if (selected == id) PeachSoft else CardWhite).border(1.dp, if (selected == id) PeachDeep else Color.Transparent, CircleShape),
+                    Modifier.size(44.dp).clip(CircleShape).background(if (sel == id) PeachSoft else CardWhite).border(1.5.dp, if (sel == id) PeachDeep else Color.Transparent, CircleShape),
                     contentAlignment = Alignment.Center,
-                ) { MarkIcon(mark, Modifier.size(22.dp), Ink) }
-                Text(label, color = Ink, fontSize = 11.sp)
+                ) { CategoryIcon(id, Modifier.size(22.dp)) }
+                Text(t("cat_$id"), color = Ink, fontSize = 11.sp, maxLines = 1)
             }
         }
     }
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(text, color = InkSoft, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+}
+
+@Composable
+private fun FormField(value: String, onChange: (String) -> Unit, hint: String, tag: String, big: Boolean = false) {
+    androidx.compose.foundation.text.BasicTextField(
+        value = value, onValueChange = onChange, singleLine = true,
+        textStyle = androidx.compose.ui.text.TextStyle(fontSize = if (big) 16.sp else 14.sp, fontWeight = if (big) FontWeight.Bold else FontWeight.Medium, color = Ink),
+        cursorBrush = androidx.compose.ui.graphics.SolidColor(Peach),
+        modifier = Modifier.fillMaxWidth().height(if (big) 48.dp else 44.dp).shadow(if (big) 4.dp else 0.dp, RoundedCornerShape(16.dp), spotColor = Color(0x22000000))
+            .background(CardWhite, RoundedCornerShape(16.dp)).testTag(tag),
+        decorationBox = { inner ->
+            Box(Modifier.fillMaxSize().padding(horizontal = 18.dp), contentAlignment = Alignment.CenterStart) {
+                if (value.isEmpty()) Text(hint, color = InkSoft.copy(alpha = 0.6f), fontSize = if (big) 16.sp else 14.sp)
+                inner()
+            }
+        },
+    )
 }
 
 @Composable

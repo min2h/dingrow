@@ -44,11 +44,17 @@ data class ScheduleTemplate(
 object ScheduleTemplates {
     private const val MONDAY = 1 shl 1
 
+    /** The user's own life events (not pet care). */
     val all: List<ScheduleTemplate> = listOf(
-        ScheduleTemplate("아침 물 마시기", RepeatRule.DAILY, 8, 0, category = "meal", key = "template_water"),
-        ScheduleTemplate("약 먹기", RepeatRule.DAILY, 9, 0, category = "pill", key = "template_pill"),
-        ScheduleTemplate("운동", RepeatRule.WEEKDAYS, 18, 0, category = "sport", key = "template_sport"),
-        ScheduleTemplate("분리수거", RepeatRule.WEEKLY, 9, 0, weekdays = MONDAY, category = "task", key = "template_recycle"),
+        ScheduleTemplate("출근", RepeatRule.WEEKDAYS, 9, 0, category = "work", key = "template_work"),
+        ScheduleTemplate("수업", RepeatRule.NONE, 10, 0, category = "study", key = "template_class"),
+        ScheduleTemplate("운동 가기", RepeatRule.NONE, 19, 0, category = "exercise", key = "template_gym"),
+        ScheduleTemplate("약속", RepeatRule.NONE, 18, 30, category = "meeting", key = "template_meet"),
+        ScheduleTemplate("술약속", RepeatRule.NONE, 19, 0, category = "social", key = "template_drinks"),
+        ScheduleTemplate("병원", RepeatRule.NONE, 10, 30, category = "health", key = "template_clinic"),
+        ScheduleTemplate("공부", RepeatRule.NONE, 20, 0, category = "study", key = "template_study"),
+        ScheduleTemplate("장보기", RepeatRule.NONE, 17, 0, category = "chores", key = "template_groceries"),
+        ScheduleTemplate("약 먹기", RepeatRule.DAILY, 9, 0, category = "health", key = "template_pill"),
     )
 }
 

@@ -1,5 +1,7 @@
 package app.mongle.ui
 
+import androidx.compose.foundation.layout.widthIn
+
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -114,6 +116,12 @@ fun MongleAppScreen(
     var resellId by remember { mutableStateOf<String?>(null) }
     var decorate by remember { mutableStateOf(false) }
     var editingId by remember { mutableStateOf<String?>(null) }
+    var highlightId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(highlightId) { if (highlightId != null) { delay(4_000); highlightId = null } }
+    // An empty schedule tab goes straight to the add form.
+    LaunchedEffect(tab, state.schedules.isEmpty(), state.onboarded) {
+        if (tab == Tab.Schedule && state.onboarded && state.schedules.isEmpty() && !showComposer) { editingId = null; showComposer = true }
+    }
     var name by remember(state.onboarded) { mutableStateOf(state.petName) }
 
     LaunchedEffect(Unit) {
@@ -121,6 +129,12 @@ fun MongleAppScreen(
             if (route == "add-schedule") {
                 tabState.value = Tab.Schedule
                 showComposer = true
+                NavigationBus.consume()
+            } else if (route?.startsWith("schedule/") == true) {
+                tabState.value = Tab.Schedule
+                showComposer = false
+                overlayState.value = "none"
+                highlightId = route.removePrefix("schedule/")
                 NavigationBus.consume()
             } else if (route?.startsWith("alarm") == true) {
                 overlayState.value = "alarm"
@@ -219,6 +233,9 @@ fun MongleAppScreen(
         containerColor = Cream,
         topBar = {
             TopBar(
+                weather = if (tab == Tab.Home) state.weather else null,
+                fahrenheit = state.settings.fahrenheit,
+                onSettings = if (tab == Tab.Home) null else ({ overlayState.value = "settings" }),
                 title = when (tab) {
                     Tab.Home -> t("app_name")
                     Tab.Schedule -> t("screen_schedule")
@@ -264,7 +281,7 @@ fun MongleAppScreen(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (tab) {
-                Tab.Home -> HomeScreen(state, scope, service)
+                Tab.Home -> HomeScreen(state, scope, service, onAdd = { tabState.value = Tab.Schedule; editingId = null; showComposer = true })
                 Tab.Schedule -> ScheduleScreen(
                     state,
                     scope,
@@ -274,6 +291,7 @@ fun MongleAppScreen(
                     onOpenSettings = { overlayState.value = "settings" },
                     onAdd = { editingId = null; showComposer = true },
                     onEdit = { editingId = it; showComposer = true },
+                    highlightId = highlightId,
                 )
                 Tab.Room -> RoomScreen(
                     state,
@@ -328,8 +346,9 @@ fun MongleAppScreen(
         Text(
             state.statusMessage,
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 64.dp)
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 92.dp)
+                .testTag("status-toast")
                 .clip(Pill)
                 .background(Ink)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -342,22 +361,23 @@ fun MongleAppScreen(
 }
 
 @Composable
-private fun TopBar(title: String, coins: Int) {
+private fun TopBar(title: String, coins: Int, weather: app.mongle.logic.WeatherSnapshot? = null, fahrenheit: Boolean = false, onSettings: (() -> Unit)? = null) {
     Row(
-        Modifier.fillMaxWidth().background(Cream).padding(horizontal = 16.dp, vertical = 8.dp),
+        Modifier.fillMaxWidth().background(Cream).padding(start = 22.dp, end = 22.dp, top = 12.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MarkIcon(Mark.Paw, Modifier.size(22.dp), PeachDeep)
-        Spacer(Modifier.width(8.dp))
-        Text(title, style = MaterialTheme.typography.titleLarge)
+        Text(title, fontSize = 22.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, color = Ink)
         Spacer(Modifier.weight(1f))
+        if (weather != null) {
+            WeatherChip(weather, fahrenheit)
+            Spacer(Modifier.width(10.dp))
+        }
         CoinPill(coins)
-        Spacer(Modifier.width(8.dp))
-        Box(
-            Modifier.size(36.dp).clip(CircleShape).background(CardWhite),
-            contentAlignment = Alignment.Center,
-        ) {
-            MarkIcon(Mark.Bell, Modifier.size(18.dp), Ink)
+        if (onSettings != null) {
+            Spacer(Modifier.width(8.dp))
+            Box(Modifier.size(32.dp).clip(CircleShape).background(CardWhite).clickable(onClick = onSettings).testTag("open-settings"), contentAlignment = Alignment.Center) {
+                MarkIcon(Mark.Gear, Modifier.size(16.dp), Ink)
+            }
         }
     }
 }
@@ -443,120 +463,58 @@ private fun HomeScreen(
     state: GameState,
     scope: kotlinx.coroutines.CoroutineScope,
     service: GameService,
+    onAdd: () -> Unit = {},
 ) {
-    Column(
-        Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .testTag("home-scroll"),
-    ) {
-        Box(
-            Modifier.weight(1f).fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            RoomScene(state, Modifier.fillMaxSize(), onPet = { scope.launch { service.react(PetGesture.TAP) } })
-        }
-        Spacer(Modifier.height(10.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(state.petName, style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.width(8.dp))
-            Text("Lv.${state.level}", color = PeachDeep, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.width(4.dp))
-            MarkIcon(Mark.Paw, Modifier.size(16.dp), PeachDeep)
-        }
-        Text(tf("stat_xp", state.xp, state.xpForNext.coerceAtLeast(state.xp)), color = InkSoft, fontSize = 12.sp)
-        Spacer(Modifier.height(6.dp))
-        LinearProgressIndicator(
-            progress = { state.progressFraction.coerceIn(0f, 1f) },
-            modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(8.dp)),
-            color = Butter,
-            trackColor = ButterSoft,
-        )
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatChip(tf("stat_hunger", state.hunger), Mark.Leaf, MintSoft, Modifier.weight(1f))
-            StatChip(tf("stat_happy", state.happiness), Mark.Heart, PeachSoft, Modifier.weight(1f))
-        }
-        Spacer(Modifier.height(10.dp))
-        SoftCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                MarkIcon(Mark.Calendar, Modifier.size(14.dp), PeachDeep)
-                Spacer(Modifier.width(6.dp))
-                Text(t("next_task"), color = InkSoft, fontSize = 12.sp)
+    HomeV4(
+        state = state,
+        onPet = { scope.launch { service.react(PetGesture.TAP) } },
+        onRoamRest = { scope.launch { service.selfTalk() } },
+        onComplete = { id -> scope.launch { service.completeSchedule(id) } },
+        onAdd = onAdd,
+        actions = {
+            Column(Modifier.align(Alignment.BottomEnd).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                RoomActionButton(Mark.Bowl, t("feed"), "feed") { scope.launch { service.feed() } }
+                RoomActionButton(Mark.Paw, t("outing"), "outing") { scope.launch { service.startOuting() } }
+                if (state.sick) RoomActionButton(Mark.Heart, t("medicine_take"), "medicine") { scope.launch { service.takeMedicine() } }
             }
-            val next = state.nextSchedule
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                MarkIcon(Mark.Paw, Modifier.size(16.dp), PeachDeep)
-                Spacer(Modifier.width(6.dp))
-                Text(next?.timeLabel ?: t("empty_time"), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                Text(next?.title ?: t("empty_hint"), color = InkSoft, fontSize = 13.sp)
-            }
-            state.outing?.let { Text(it.label, color = Mint) }
-            if (state.revealKind.isNotBlank() && state.pendingGift == null && state.pendingDropKind.isBlank()) {
-                Text(
-                    buildString {
-                        append(GiftDrops.label(state.revealKind))
-                        append(" · ")
-                        append(state.revealLabel)
-                        if (state.revealSparkle) append(" · " + t("sparkle"))
-                    },
-                    color = InkSoft,
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
+        },
+        extra = {
+            state.outing?.let { Text(it.label, color = Mint, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)) }
         if (state.pendingGift != null || state.pendingDropKind == "COINS") {
-            Spacer(Modifier.height(8.dp))
-            SoftCard {
-                val gift = state.pendingGift
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (gift != null) {
-                        ArtImage(Catalog.byId(gift.defId)?.pictureId() ?: gift.defId, Modifier.size(48.dp), gift.name)
-                        Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.height(8.dp))
+                SoftCard {
+                    val gift = state.pendingGift
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (gift != null) {
+                            ArtImage(Catalog.byId(gift.defId)?.pictureId() ?: gift.defId, Modifier.size(48.dp), gift.name)
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                if (gift != null) tf("gift_arrived_named", gift.name) else tf("coins_arrived", state.pendingDropCoins),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Text(
+                                buildString {
+                                    append(GiftDrops.label(state.pendingDropKind).ifBlank { t("gift") })
+                                    if (gift != null) append(" · " + tf("coins_amount", gift.sellPrice))
+                                    if (state.pendingSparkle) append(" · " + t("sparkle"))
+                                },
+                                color = InkSoft,
+                            )
+                        }
                     }
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            if (gift != null) tf("gift_arrived_named", gift.name) else tf("coins_arrived", state.pendingDropCoins),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(
-                            buildString {
-                                append(GiftDrops.label(state.pendingDropKind).ifBlank { t("gift") })
-                                if (gift != null) append(" · " + tf("coins_amount", gift.sellPrice))
-                                if (state.pendingSparkle) append(" · " + t("sparkle"))
-                            },
-                            color = InkSoft,
-                        )
+                    Row {
+                        TextButton(onClick = { scope.launch { service.keepGift() } }) { Text(t("keep")) }
+                        TextButton(
+                            onClick = { scope.launch { service.sellPendingOrLatest() } },
+                            modifier = Modifier.testTag("sell-gift"),
+                        ) { Text(if (state.pendingDropKind == "COINS") t("claim") else t("sell_short")) }
                     }
                 }
-                Row {
-                    TextButton(onClick = { scope.launch { service.keepGift() } }) { Text(t("keep")) }
-                    TextButton(
-                        onClick = { scope.launch { service.sellPendingOrLatest() } },
-                        modifier = Modifier.testTag("sell-gift"),
-                    ) { Text(if (state.pendingDropKind == "COINS") t("claim") else t("sell_short")) }
-                }
             }
-        }
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PillButton(t("feed"), Mark.Bowl, PeachSoft, Modifier.weight(1f).testTag("feed")) {
-                scope.launch { service.feed() }
-            }
-            PillButton(t("outing"), Mark.Paw, MintSoft, Modifier.weight(1f).testTag("outing")) {
-                scope.launch { service.startOuting() }
-            }
-            PillButton(t("gift"), Mark.Gift, ButterSoft, Modifier.weight(1f)) { }
-        }
-        state.outingBlockReason?.let {
-            if (state.outing == null) {
-                Spacer(Modifier.height(4.dp))
-                Text(it, color = InkSoft, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-    }
+        },
+    )
 }
 
 @Composable
@@ -569,57 +527,30 @@ private fun ScheduleScreen(
     onOpenSettings: () -> Unit,
     onAdd: () -> Unit,
     onEdit: (String) -> Unit,
+    highlightId: String? = null,
 ) {
     val zone = TimeZone.currentSystemDefault()
-    var selected by remember { mutableStateOf(Clock.System.now().toLocalDateTime(zone).date) }
+    val focusDate = highlightId?.let { h -> state.schedules.firstOrNull { it.id.substringBefore('@') == h.substringBefore('@') } }
+        ?.let { kotlinx.datetime.Instant.fromEpochMilliseconds(it.timeMillis).toLocalDateTime(zone).date }
+    var selected by remember(focusDate) { mutableStateOf(focusDate ?: Clock.System.now().toLocalDateTime(zone).date) }
     val dayStart = LocalDateTime(selected.year, selected.monthNumber, selected.dayOfMonth, 0, 0).toInstant(zone).toEpochMilliseconds()
     val nextDay = selected.plus(1, DateTimeUnit.DAY)
     val dayEnd = LocalDateTime(nextDay.year, nextDay.monthNumber, nextDay.dayOfMonth, 0, 0).toInstant(zone).toEpochMilliseconds()
     val cards = cardsForDay(state.schedules, dayStart, dayEnd, Clock.System.now().toEpochMilliseconds(), zone.id)
-    Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                WeekStrip(selected, Modifier.weight(1f)) { selected = it }
-                TextButton(onClick = onOpenSettings, modifier = Modifier.testTag("open-settings")) { Text(t("settings")) }
-            }
+    ScheduleDayList(
+        state = state, cards = cards, selected = selected, highlightId = highlightId,
+        onSelectDay = { selected = it }, onAdd = onAdd,
+        onComplete = { id -> scope.launch { service.completeSchedule(id) } },
+        onSnooze = { id -> scope.launch { service.snooze(id.substringBefore('@')) } },
+        onSkip = { id -> scope.launch { service.skipSchedule(id) } },
+        onEdit = onEdit,
+        onDelete = { id -> scope.launch { service.deleteSchedule(id.substringBefore('@')) } },
+        banner = {
             if (!permissions.exactAlarmsOn && permissions.supportsExactAlarm) {
                 TextButton(onClick = onOpenExactAlarm) { Text(t("allow_exact")) }
             }
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    MarkIcon(Mark.Calendar, Modifier.size(18.dp), PeachDeep)
-                    Spacer(Modifier.width(6.dp))
-                    Text(tf("today_tasks", cards.count { !it.done }), style = MaterialTheme.typography.titleMedium)
-                }
-                Spacer(Modifier.height(8.dp))
-                if (cards.isEmpty()) {
-                    ArtImage("empty_schedule", Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(24.dp)), t("empty_schedule_cd"))
-                    Spacer(Modifier.height(8.dp))
-                    Text(t("no_tasks_yet"), color = InkSoft)
-                }
-                cards.forEach { card ->
-                    ScheduleCard(
-                        card.view,
-                        done = card.done,
-                        speciesId = state.speciesId,
-                        onComplete = { scope.launch { service.completeSchedule(card.view.id) } },
-                        onSnooze = { scope.launch { service.snooze(card.view.id.substringBefore('@')) } },
-                        onDelete = { scope.launch { service.deleteSchedule(card.view.id.substringBefore('@')) } },
-                        onSkip = { scope.launch { service.skipSchedule(card.view.id) } },
-                        onEdit = { onEdit(card.view.id) },
-                    )
-                }
-                Spacer(Modifier.height(72.dp))
-            }
-        }
-        Button(
-            onClick = onAdd,
-            shape = CircleShape,
-            colors = ButtonDefaults.buttonColors(containerColor = PeachDeep),
-            modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
-        ) { Text(t("add")) }
-    }
+        },
+    )
 }
 
 @Composable
@@ -990,12 +921,15 @@ private fun StatChip(label: String, mark: Mark, color: Color, modifier: Modifier
 @Composable
 private fun CoinPill(coins: Int) {
     Row(
-        Modifier.clip(Pill).background(ButterSoft).padding(horizontal = 10.dp, vertical = 6.dp),
+        Modifier.height(30.dp).widthIn(min = 78.dp).clip(Pill).background(Butter).padding(horizontal = 10.dp).testTag("coin-pill"),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MarkIcon(Mark.Coin, Modifier.size(16.dp))
-        Spacer(Modifier.width(4.dp))
-        Text(coinsLabel(coins), color = Ink, fontSize = 13.sp)
+        androidx.compose.foundation.Canvas(Modifier.size(16.dp)) {
+            drawCircle(Color(0xFFFFCE54)); drawCircle(Color(0xFFD6A032), style = androidx.compose.ui.graphics.drawscope.Stroke(1.4.dp.toPx()))
+            drawCircle(Color(0xFFD6A032), size.minDimension * 0.22f, style = androidx.compose.ui.graphics.drawscope.Stroke(1.2.dp.toPx()))
+        }
+        Spacer(Modifier.weight(1f, fill = false).widthIn(min = 8.dp))
+        Text(coinsLabel(coins), color = Ink, fontSize = 14.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
     }
 }
 

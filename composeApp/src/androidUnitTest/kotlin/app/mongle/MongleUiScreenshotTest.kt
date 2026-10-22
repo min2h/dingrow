@@ -104,13 +104,16 @@ class MongleFlowScreenshotTest {
         harness.settle()
         composeRule.onNodeWithTag("tab-Schedule").performClick()
         harness.settle()
-        harness.clickText("추가")
-        harness.settle()
-        composeRule.onNode(hasSetTextAction()).performTextReplacement("물 마시기")
+        // Empty schedule tab opens the add form directly.
+        composeRule.onNodeWithTag("field-title").performTextReplacement("물 마시기")
+        composeRule.onNodeWithTag("field-place").performTextReplacement("집")
+        composeRule.onNodeWithTag("cat-health").performClick()
         composeRule.onNodeWithText("저장").performClick()
         harness.settle()
         val added = harness.service.state.value.schedules.single()
         assertEquals("물 마시기", added.title)
+        assertEquals("집", added.place)
+        assertEquals("health", added.category)
         assertTrue(added.timeMillis > System.currentTimeMillis() - 5_000)
         harness.capture("schedule.png")
         harness.clickTag("complete-${added.id}")
@@ -608,7 +611,7 @@ internal fun primeComposeResources() {
 private fun seoulMillis(year: Int, month: Int, day: Int, hour: Int, minute: Int): Long =
     LocalDateTime(year, month, day, hour, minute).toInstant(TimeZone.of("Asia/Seoul")).toEpochMilliseconds()
 
-private class MutableClock(var now: Long) : TimeProvider {
+internal class MutableClock(var now: Long) : TimeProvider {
     override fun now(): Long = now
 }
 

@@ -111,7 +111,7 @@ fun AnimatedPet(
     PetFigure(
         speciesId = speciesId,
         stage = stage,
-        act = petAct(stage, pose, energy = 80, status = ""),
+        act0 = petAct(stage, pose, energy = 80, status = ""),
         outfitId = outfitId,
         modifier = modifier,
         animate = pinned == null && !still,
@@ -148,7 +148,7 @@ fun RoomScene(
             PetFigure(
                 speciesId = state.speciesId,
                 stage = state.stage,
-                act = act,
+                act0 = act,
                 outfitId = state.outfitId,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -166,10 +166,10 @@ fun RoomScene(
 }
 
 @Composable
-private fun PetFigure(
+internal fun PetFigure(
     speciesId: String,
     stage: Stage,
-    act: PetAct,
+    act0: PetAct,
     outfitId: String?,
     modifier: Modifier,
     animate: Boolean,
@@ -177,11 +177,14 @@ private fun PetFigure(
     walk: Float,
     body: String = "",
     onClick: (() -> Unit)? = null,
+    hoisted: app.mongle.ui.motion.PetMotionEngine? = null,
 ) {
     val density = LocalDensity.current
-    val sleeping = act == PetAct.SLEEP
-    val walking = act == PetAct.WALK
-    val engine = remember { app.mongle.ui.motion.PetMotionEngine(speciesId.hashCode()) }
+    val sleeping = act0 == PetAct.SLEEP
+    val walking = act0 == PetAct.WALK
+    val engine = hoisted ?: remember { app.mongle.ui.motion.PetMotionEngine(speciesId.hashCode()) }
+    val roaming = remember { mutableStateOf(false) }
+    val act = if (roaming.value && act0 == PetAct.IDLE && stage != Stage.EGG) PetAct.WALK else act0
     // Only graphicsLayer/draw lambdas read this, so a frame never recomposes the screen.
     val frame = remember { mutableLongStateOf(0L) }
     SideEffect {
@@ -195,6 +198,7 @@ private fun PetFigure(
                 withFrameNanos { now ->
                     if (last > 0) engine.step((now - last) / 1_000_000_000f)
                     last = now
+                    if (engine.roamMoving != roaming.value) roaming.value = engine.roamMoving
                     frame.longValue = now
                 }
             }

@@ -44,6 +44,7 @@ fun SpeechBubble(
     text: String,
     modifier: Modifier = Modifier,
     tailX: Dp? = null,
+    tailXPx: (() -> Float)? = null,
     maxWidth: Dp = 240.dp,
     fontSize: Int = 14,
 ) {
@@ -52,7 +53,7 @@ fun SpeechBubble(
         modifier
             .widthIn(max = maxWidth)
             .drawBehind {
-                val tx = (tailX?.toPx() ?: (size.width / 2)).coerceIn(18.dp.toPx(), size.width - 18.dp.toPx())
+                val tx = (tailXPx?.invoke() ?: tailX?.toPx() ?: (size.width / 2)).coerceIn(18.dp.toPx(), size.width - 18.dp.toPx())
                 val bottom = size.height - tail.toPx()
                 val p = Path().apply {
                     moveTo(tx - 8.dp.toPx(), bottom - 1f)

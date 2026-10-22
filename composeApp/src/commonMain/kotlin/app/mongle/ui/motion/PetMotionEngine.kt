@@ -84,6 +84,16 @@ class PetMotionEngine(seed: Int = 7) {
     var time = 0f; private set
     var walking = false
     var sleeping = false
+    /** Half-width (dp) of the free-roam area; 0 disables wandering around the room. */
+    var roamDp = 0f
+    /** Cold: fast small shiver. */
+    var shiver = false
+    /** True while 몽이 is strolling during free roam (use the walk pose). */
+    var roamMoving = false; private set
+    private var roamPauseUntil = 0f
+    private var roamTarget = 0f
+    /** Called when a roam stroll ends (good moment for self-talk). */
+    var onRoamRest: (() -> Unit)? = null
 
     // Blink: randomized interval, sometimes a double blink.
     var blink = 0f; private set
@@ -117,9 +127,10 @@ class PetMotionEngine(seed: Int = 7) {
         return sin(2 * PI * time / period).toFloat()
     }
     private fun breathLiftDp(): Float = -1.2f * (breath() * 0.5f + 0.5f)
-    private fun swayDeg(): Float = if (phase == MotionPhase.IDLE && !walking) 1.6f * sin(2 * PI * time / 4.3f).toFloat() * if (sleeping) 0.4f else 1f else 0f
+    private fun swayDeg(): Float = (if (phase == MotionPhase.IDLE && !walking && !roamMoving) 1.6f * sin(2 * PI * time / 4.3f).toFloat() * if (sleeping) 0.4f else 1f else 0f) +
+        if (shiver && !sleeping) 1.8f * sin(2 * PI * time * 9f).toFloat() else 0f
     private var stepPhase = 0f
-    private fun walkBobDp(): Float = if (walking) -4.5f * abs(sin(stepPhase)) else 0f
+    private fun walkBobDp(): Float = if (walking || roamMoving) -4.5f * abs(sin(stepPhase)) else 0f
 
     fun trigger(shape: ReactionShape) {
         current = shape
@@ -212,6 +223,9 @@ class PetMotionEngine(seed: Int = 7) {
     }
 
     private fun stepWander(dt: Float) {
+        if (!walking && roamDp > 0f && !sleeping) { stepRoam(dt); return }
+        roamMoving = false
+        walkX.stiffness = 9f
         if (!walking) { walkX.target = 0f; return }
         if (time >= nextWanderAt) {
             wanderTarget = (rng.nextFloat() * 2f - 1f) * 22f
@@ -221,6 +235,27 @@ class PetMotionEngine(seed: Int = 7) {
         val v = walkX.velocity
         if (abs(v) > 0.6f) facing.target = if (v > 0) 1f else -1f
         stepPhase += dt * (4f + min(abs(v), 20f) * 0.25f)
+    }
+
+    /** Stroll to a random spot, pause 3–7 s, repeat. Speed is eased by the walkX spring. */
+    private fun stepRoam(dt: Float) {
+        walkX.stiffness = 4f
+        if (roamMoving) {
+            val v = walkX.velocity
+            if (abs(v) > 0.6f) facing.target = if (v > 0) 1f else -1f
+            stepPhase += dt * (4f + min(abs(v), 20f) * 0.25f)
+            if (abs(walkX.value - roamTarget) < 1.5f && abs(v) < 2f) {
+                roamMoving = false
+                roamPauseUntil = time + 3f + rng.nextFloat() * 4f
+                onRoamRest?.invoke()
+            }
+        } else if (time >= roamPauseUntil && phase == MotionPhase.IDLE) {
+            var next = (rng.nextFloat() * 2f - 1f) * roamDp
+            if (abs(next - walkX.value) < roamDp * 0.3f) next = -next
+            roamTarget = next
+            walkX.target = next
+            roamMoving = true
+        }
     }
 
     fun burst(kind: ParticleKind, count: Int) {

@@ -28,6 +28,7 @@ enum class Mark {
     Study,
     Pill,
     More,
+    Gear,
 }
 
 @Composable
@@ -174,6 +175,14 @@ fun MarkIcon(mark: Mark, modifier: Modifier = Modifier, tint: Color = Ink) {
                 drawCircle(tint, w * 0.08f, Offset(w * 0.22f, h * 0.50f))
                 drawCircle(tint, w * 0.08f, Offset(w * 0.50f, h * 0.50f))
                 drawCircle(tint, w * 0.08f, Offset(w * 0.78f, h * 0.50f))
+            }
+            Mark.Gear -> {
+                for (i in 0 until 8) {
+                    val a = kotlin.math.PI / 4 * i
+                    drawLine(tint, Offset(w * 0.5f + (kotlin.math.cos(a) * w * 0.28f).toFloat(), h * 0.5f + (kotlin.math.sin(a) * h * 0.28f).toFloat()), Offset(w * 0.5f + (kotlin.math.cos(a) * w * 0.44f).toFloat(), h * 0.5f + (kotlin.math.sin(a) * h * 0.44f).toFloat()), w * 0.14f)
+                }
+                drawCircle(tint, w * 0.3f, Offset(w * 0.5f, h * 0.5f))
+                drawCircle(androidx.compose.ui.graphics.Color.White, w * 0.12f, Offset(w * 0.5f, h * 0.5f))
             }
         }
     }
