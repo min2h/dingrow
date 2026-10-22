@@ -3,12 +3,17 @@ package app.mongle.service
 import app.mongle.data.GameStore
 import app.mongle.data.Seed
 import app.mongle.data.newId
+import app.mongle.logic.GiftDrops
 import app.mongle.logic.Korean
 import app.mongle.logic.PetRules
 import app.mongle.logic.ScheduleRules
 import app.mongle.logic.beginOuting
+import app.mongle.logic.grantImmediate
 import app.mongle.logic.keptGift
+import app.mongle.logic.levelOf
+import app.mongle.logic.resellAmount
 import app.mongle.logic.resolveState
+import app.mongle.logic.withDrop
 import app.mongle.model.ActionRecord
 import app.mongle.model.ActionResult
 import app.mongle.model.Catalog
@@ -166,6 +171,7 @@ class GameService(
     }
 
     suspend fun keepGift(): ActionResult = mutate { state, now ->
+        if (state.pendingDropKind == "COINS") return@mutate claimCoins(state, now)
         val defId = state.pet.pendingGiftDefId ?: return@mutate done(state, ActionResult(false, "도착한 선물이 없어요"))
         val def = Catalog.byId(defId)
         val gift = keptGift(defId, now)
@@ -173,12 +179,18 @@ class GameService(
             state.copy(
                 pet = state.pet.copy(pendingGiftDefId = null, pendingGiftAt = null),
                 gifts = state.gifts + gift,
+                pendingDropKind = "",
+                pendingDropCoins = 0,
+                pendingSparkle = false,
+                owned = if (defId in Catalog.uniqueIds) state.owned + defId else state.owned,
+                ownedAt = if (defId in Catalog.uniqueIds) state.ownedAt + (defId to now) else state.ownedAt,
             ),
             ActionResult(true, "${def?.name ?: "선물"}을 보관했어요"),
         )
     }
 
     suspend fun sellPendingOrLatest(): ActionResult = mutate { state, now ->
+        if (state.pendingDropKind == "COINS") return@mutate claimCoins(state, now)
         val pending = state.pet.pendingGiftDefId
         if (pending != null) return@mutate sellDef(state, pending, now, fromPending = true, instanceId = null)
         val latest = state.gifts.maxByOrNull { it.acquiredAt }
@@ -329,17 +341,40 @@ class GameService(
             pet.stage != beforeStage -> "${Korean.stageLabel(pet.stage)}로 자랐어요"
             else -> "완료! 경험치 +${allow.xp}, 코인 +${allow.coins}"
         }
+        var next = state.copy(
+            pet = pet,
+            schedules = schedules,
+            coins = state.coins + allow.coins,
+            rewardDay = day,
+            rewardCount = rewardedToday + 1,
+            completions = state.completions + CompletionRecord(newId(now), id, now, allow.xp, allow.coins),
+            ledger = state.ledger + LedgerEntry(newId(now), allow.coins, "COMPLETE", id, now, null),
+        )
+        if (next.pet.pendingGiftDefId == null && next.pendingDropKind.isBlank()) {
+            val chanceSeed = now xor id.hashCode().toLong() xor next.pet.completions.toLong()
+            if (GiftDrops.completionHit(chanceSeed)) {
+                val drop = GiftDrops.roll(chanceSeed xor 0xC0FFEE, levelOf(next.pet.stage), next.giftDryStreak)
+                next = next.grantImmediate(drop, now)
+            }
+        }
+        return done(next, ActionResult(true, message))
+    }
+
+    private fun claimCoins(state: PersistedState, now: Long): Mutate {
+        val amount = state.pendingDropCoins
+        if (state.pendingDropKind != "COINS" || amount <= 0) {
+            return done(state, ActionResult(false, "받을 코인이 없어요"))
+        }
         return done(
             state.copy(
-                pet = pet,
-                schedules = schedules,
-                coins = state.coins + allow.coins,
-                rewardDay = day,
-                rewardCount = rewardedToday + 1,
-                completions = state.completions + CompletionRecord(newId(now), id, now, allow.xp, allow.coins),
-                ledger = state.ledger + LedgerEntry(newId(now), allow.coins, "COMPLETE", id, now, null),
+                coins = state.coins + amount,
+                pendingDropKind = "",
+                pendingDropCoins = 0,
+                pendingSparkle = false,
+                pet = state.pet.copy(pendingGiftDefId = null, pendingGiftAt = null),
+                ledger = state.ledger + LedgerEntry(newId(now), amount, "GIFT_COIN", null, now, "gift-coin:$now"),
             ),
-            ActionResult(true, message),
+            ActionResult(true, "${amount}코인을 받았어요"),
         )
     }
 
@@ -381,17 +416,23 @@ class GameService(
         instanceId: String?,
     ): Mutate {
         val def = Catalog.byId(defId) ?: return done(state, ActionResult(false, "선물을 찾지 못했어요"))
-        val coins = state.coins + def.sellPrice
+        val price = resellAmount(def)
+        val coins = state.coins + price
         val pet = if (fromPending) state.pet.copy(pendingGiftDefId = null, pendingGiftAt = null) else state.pet
         val gifts = if (instanceId == null) state.gifts else state.gifts.filterNot { it.instanceId == instanceId }
+        val owned = if (fromPending) state.owned else state.owned - defId
         return done(
             state.copy(
                 pet = pet,
                 gifts = gifts,
+                owned = owned,
                 coins = coins,
-                ledger = state.ledger + LedgerEntry(newId(now), def.sellPrice, "SELL", defId, now, instanceId ?: "pending:$defId:$now"),
+                pendingDropKind = if (fromPending) "" else state.pendingDropKind,
+                pendingDropCoins = if (fromPending) 0 else state.pendingDropCoins,
+                pendingSparkle = if (fromPending) false else state.pendingSparkle,
+                ledger = state.ledger + LedgerEntry(newId(now), price, "SELL", defId, now, instanceId ?: "pending:$defId:$now"),
             ),
-            ActionResult(true, "${def.name}을 ${def.sellPrice}코인에 팔았어요"),
+            ActionResult(true, "${def.name}을 ${price}코인에 팔았어요"),
         )
     }
 
@@ -410,12 +451,15 @@ class GameService(
             val raw = LegacyIds.migrate(store.load() ?: Seed.create(now, balance))
             val resolved = resolveState(raw, now, zone, balance)
             var working = resolved
-            val returned = raw.pet.isOut && !resolved.pet.isOut && resolved.pet.pendingGiftDefId != null
+            val returned = raw.pet.isOut && !resolved.pet.isOut &&
+                (resolved.pet.pendingGiftDefId != null || resolved.pendingDropKind == "COINS")
             if (returned) {
-                val key = resolved.pet.pendingGiftDefId + ":" + (resolved.pet.pendingGiftAt ?: now)
+                val key = (resolved.pet.pendingGiftDefId ?: resolved.pendingDropKind) + ":" + (resolved.pet.pendingGiftAt ?: now)
                 if (raw.notifiedGiftKey != key) {
-                    val giftName = Catalog.byId(resolved.pet.pendingGiftDefId)?.name ?: "선물"
-                    immediate = "선물이 도착했어요" to "${Korean.subject(resolved.pet.name)} $giftName${Korean.eulReul(giftName)} 가져왔어요"
+                    val giftName = Catalog.byId(resolved.pet.pendingGiftDefId)?.name
+                        ?: if (resolved.pendingDropKind == "COINS") "${resolved.pendingDropCoins}코인" else "선물"
+                    val rarity = GiftDrops.label(resolved.pendingDropKind)
+                    immediate = "선물이 도착했어요" to "${Korean.subject(resolved.pet.name)} $giftName${Korean.eulReul(giftName)} 가져왔어요. $rarity"
                     working = resolved.copy(notifiedGiftKey = key)
                 }
             }

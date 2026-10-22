@@ -102,6 +102,7 @@ fun PersistedState.trimmed(): PersistedState = copy(
 fun parseRepeat(raw: String): RepeatRule = when (raw) {
     "DAILY" -> RepeatRule.DAILY
     "WEEKLY" -> RepeatRule.WEEKLY
+    "WEEKDAYS" -> RepeatRule.WEEKDAYS
     else -> RepeatRule.NONE
 }
 

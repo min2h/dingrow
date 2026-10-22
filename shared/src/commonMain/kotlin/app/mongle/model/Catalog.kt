@@ -1,5 +1,7 @@
 package app.mongle.model
 
+private fun ItemDef.withShopPrice(): ItemDef = copy(price = EconomyConfig.shopPrice(id))
+
 object Catalog {
     val strawberry_cake = ItemDef(
         id = "strawberry_cake",
@@ -12,7 +14,7 @@ object Catalog {
         xp = 10,
         stackable = true,
         blurb = "딸기 케이크.",
-    )
+    ).withShopPrice()
     val rice_ball = ItemDef(
         id = "rice_ball",
         name = "주먹밥",
@@ -24,7 +26,7 @@ object Catalog {
         xp = 6,
         stackable = true,
         blurb = "주먹밥.",
-    )
+    ).withShopPrice()
     val milk_bottle = ItemDef(
         id = "milk_bottle",
         name = "우유병",
@@ -36,7 +38,7 @@ object Catalog {
         xp = 3,
         stackable = true,
         blurb = "우유병.",
-    )
+    ).withShopPrice()
     val cookie = ItemDef(
         id = "cookie",
         name = "쿠키",
@@ -48,7 +50,7 @@ object Catalog {
         xp = 4,
         stackable = true,
         blurb = "쿠키.",
-    )
+    ).withShopPrice()
     val foodBasic = cookie
     val foodCandy = strawberry_cake
 
@@ -66,7 +68,7 @@ object Catalog {
         ItemDef("flower_crown", "꽃 화관", ItemKind.OUTFIT, Rarity.COMMON, price = 350, blurb = "꽃 화관."),
         ItemDef("bow_tie", "나비넥타이", ItemKind.OUTFIT, Rarity.COMMON, price = 150, blurb = "나비넥타이."),
         ItemDef("rain_boots", "노란 장화", ItemKind.OUTFIT, Rarity.COMMON, price = 250, blurb = "노란 장화."),
-    )
+    ).map { it.withShopPrice() }
 
     val furniture = listOf(
         ItemDef("cushion_bed", "쿠션 침대", ItemKind.BED, Rarity.RARE, price = 800, blurb = "쿠션 침대."),
@@ -92,7 +94,7 @@ object Catalog {
         ItemDef("sofa", "미니 소파", ItemKind.DECOR, Rarity.UNCOMMON, price = 650, blurb = "미니 소파."),
         ItemDef("cloud_lamp", "구름 조명", ItemKind.LAMP, Rarity.UNCOMMON, price = 450, blurb = "구름 조명."),
         ItemDef("picture_frame", "액자", ItemKind.DECOR, Rarity.COMMON, price = 300, blurb = "액자."),
-    )
+    ).map { it.withShopPrice() }
 
     val gifts = listOf(
         ItemDef("seashell", "조개껍데기", ItemKind.GIFT, Rarity.COMMON, sellPrice = 100, blurb = "조개껍데기."),
@@ -107,12 +109,56 @@ object Catalog {
         ItemDef("wildflower", "들꽃", ItemKind.GIFT, Rarity.COMMON, sellPrice = 100, blurb = "들꽃."),
     )
 
+    val uniques = listOf(
+        ItemDef(
+            id = "moon_bell",
+            name = "달종",
+            kind = ItemKind.GIFT,
+            rarity = Rarity.RARE,
+            price = 0,
+            sellPrice = EconomyConfig.rareResell.getValue("moon_bell"),
+            blurb = "상점에 없는 달종.",
+            artId = "clover",
+        ),
+        ItemDef(
+            id = "glass_marble",
+            name = "유리구슬",
+            kind = ItemKind.GIFT,
+            rarity = Rarity.RARE,
+            price = 0,
+            sellPrice = EconomyConfig.rareResell.getValue("glass_marble"),
+            blurb = "상점에 없는 유리구슬.",
+            artId = "pebble",
+        ),
+        ItemDef(
+            id = "dawn_feather",
+            name = "새벽깃",
+            kind = ItemKind.GIFT,
+            rarity = Rarity.EPIC,
+            price = 0,
+            sellPrice = EconomyConfig.legendaryResell.getValue("dawn_feather"),
+            blurb = "상점에 없는 새벽깃.",
+            artId = "feather",
+        ),
+        ItemDef(
+            id = "comet_shard",
+            name = "혜성조각",
+            kind = ItemKind.GIFT,
+            rarity = Rarity.EPIC,
+            price = 0,
+            sellPrice = EconomyConfig.legendaryResell.getValue("comet_shard"),
+            blurb = "상점에 없는 혜성조각.",
+            artId = "star_piece",
+        ),
+    )
+
     val companions: List<ItemDef> = SpeciesCatalog.all.map { species ->
         ItemDef(species.id, species.name, ItemKind.COMPANION, species.rarity, price = species.price, blurb = species.blurb)
     }
 
     val goods: List<ItemDef> = listOf(cookie, rice_ball, milk_bottle, strawberry_cake) + outfits + furniture + gifts
-    val all: List<ItemDef> = goods + companions
+    val all: List<ItemDef> = goods + uniques + companions
+    val uniqueIds: Set<String> = uniques.map { it.id }.toSet()
 
     fun byId(id: String?): ItemDef? = all.find { it.id == id }
     fun foods(): List<ItemDef> = listOf(cookie, rice_ball, milk_bottle, strawberry_cake)

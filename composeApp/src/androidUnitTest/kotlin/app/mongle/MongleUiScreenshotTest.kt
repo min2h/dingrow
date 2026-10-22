@@ -143,8 +143,9 @@ class MongleFlowScreenshotTest {
         harness.clock.now += 21 * 60_000
         runBlocking { harness.service.refresh() }
         harness.settle()
-        assertNotNull(harness.service.state.value.pendingGift)
-        val coins = harness.service.state.value.coins
+        val reveal = harness.service.state.value
+        assertTrue(reveal.pendingGift != null || reveal.pendingDropKind.isNotBlank())
+        val coins = reveal.coins
         harness.clickTag("sell-gift")
         harness.settle()
         assertTrue(harness.service.state.value.coins > coins)
@@ -320,8 +321,9 @@ class MongleWidgetAlarmWallpaperTest {
         service.startOuting()
         clock.now += 21 * 60_000
         service.refresh()
-        assertNotNull(service.state.value.pendingGift)
-        val beforeSell = service.state.value.coins
+        val reveal = service.state.value
+        assertTrue(reveal.pendingGift != null || reveal.pendingDropKind.isNotBlank())
+        val beforeSell = reveal.coins
         SellAction().onAction(context, glanceId, actionParametersOf())
         assertTrue(service.state.value.coins > beforeSell)
 

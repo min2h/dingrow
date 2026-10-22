@@ -1,6 +1,7 @@
 package app.mongle.data
 
 import app.mongle.db.MongleDatabase
+import app.mongle.logic.MetaCodec
 import app.mongle.model.ActionRecord
 import app.mongle.model.CompletionRecord
 import app.mongle.model.GiftRecord
@@ -40,15 +41,18 @@ class SqlGameStore(private val db: MongleDatabase) : GameStore {
                 speciesId = meta["species_id"]?.takeIf { it.isNotBlank() } ?: "base",
             ),
             schedules = q.selectSchedules().executeAsList().map { row ->
-                ScheduleRecord(
-                    id = row.id,
-                    title = row.title,
-                    timeMillis = row.time_millis,
-                    repeat = parseRepeat(row.repeat_rule),
-                    done = row.done != 0L,
-                    createdAt = row.created_at,
-                    completedAt = row.completed_at,
-                    tz = row.tz,
+                MetaCodec.applySchedule(
+                    ScheduleRecord(
+                        id = row.id,
+                        title = row.title,
+                        timeMillis = row.time_millis,
+                        repeat = parseRepeat(row.repeat_rule),
+                        done = row.done != 0L,
+                        createdAt = row.created_at,
+                        completedAt = row.completed_at,
+                        tz = row.tz,
+                    ),
+                    meta["sx:${row.id}"],
                 )
             },
             completions = q.selectCompletions().executeAsList().map { row ->
@@ -98,6 +102,20 @@ class SqlGameStore(private val db: MongleDatabase) : GameStore {
             notifiedGiftKey = meta["notified_gift_key"].orEmpty(),
             statusMessage = meta["status_message"].orEmpty(),
             statusUntil = meta["status_until"]?.toLongOrNull() ?: 0L,
+            settings = MetaCodec.parseSettings(meta["settings"]),
+            placements = MetaCodec.parsePlacements(meta["placements"]),
+            premium = meta["premium"] == "1",
+            iapTokens = MetaCodec.parseTokens(meta["iap_tokens"]),
+            anim = MetaCodec.parseAnim(meta["anim"]),
+            lastTipAt = meta["last_tip_at"]?.toLongOrNull() ?: 0L,
+            tipIndex = meta["tip_index"]?.toIntOrNull() ?: 0,
+            giftDryStreak = meta["gift_dry"]?.toIntOrNull() ?: 0,
+            pendingDropKind = meta["pending_drop_kind"].orEmpty(),
+            pendingDropCoins = meta["pending_drop_coins"]?.toIntOrNull() ?: 0,
+            pendingSparkle = meta["pending_sparkle"] == "1",
+            revealKind = meta["reveal_kind"].orEmpty(),
+            revealLabel = meta["reveal_label"].orEmpty(),
+            revealSparkle = meta["reveal_sparkle"] == "1",
             actionLog = q.selectActions().executeAsList().map { row ->
                 ActionRecord(
                     key = row.idempotency_key,
@@ -209,6 +227,23 @@ class SqlGameStore(private val db: MongleDatabase) : GameStore {
             meta("status_message", trimmed.statusMessage)
             meta("status_until", trimmed.statusUntil.toString())
             meta("species_id", pet.speciesId)
+            meta("settings", MetaCodec.settings(trimmed.settings))
+            meta("placements", MetaCodec.placements(trimmed.placements))
+            meta("premium", if (trimmed.premium) "1" else "0")
+            meta("iap_tokens", MetaCodec.tokens(trimmed.iapTokens))
+            meta("anim", MetaCodec.anim(trimmed.anim))
+            meta("last_tip_at", trimmed.lastTipAt.toString())
+            meta("tip_index", trimmed.tipIndex.toString())
+            meta("gift_dry", trimmed.giftDryStreak.toString())
+            meta("pending_drop_kind", trimmed.pendingDropKind)
+            meta("pending_drop_coins", trimmed.pendingDropCoins.toString())
+            meta("pending_sparkle", if (trimmed.pendingSparkle) "1" else "0")
+            meta("reveal_kind", trimmed.revealKind)
+            meta("reveal_label", trimmed.revealLabel)
+            meta("reveal_sparkle", if (trimmed.revealSparkle) "1" else "0")
+            trimmed.schedules.forEach { row ->
+                meta("sx:${row.id}", MetaCodec.scheduleExtra(row))
+            }
             q.deleteActions()
             trimmed.actionLog.forEach { row ->
                 q.insertAction(

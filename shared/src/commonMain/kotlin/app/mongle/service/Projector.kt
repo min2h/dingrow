@@ -1,8 +1,10 @@
 package app.mongle.service
 
 import app.mongle.logic.Korean
+import app.mongle.logic.PetAnimMachine
 import app.mongle.logic.PetRules
 import app.mongle.logic.ShopRotation
+import app.mongle.logic.resellAmount
 import app.mongle.logic.resolveState
 import app.mongle.model.Catalog
 import app.mongle.model.FoodView
@@ -40,20 +42,24 @@ fun project(raw: PersistedState, now: Long, zone: TimeZone, balance: GameBalance
                 timeMillis = row.timeMillis,
                 timeLabel = Korean.formatWhen(row.timeMillis, zone),
                 repeat = row.repeat,
-                repeatLabel = Korean.repeatLabel(row.repeat),
+                repeatLabel = Korean.repeatLabel(row.repeat, row.weekdays),
                 done = row.done,
                 overdue = !row.done && row.timeMillis <= now,
+                leadsMinutes = row.leadsMinutes,
+                alert = row.alert,
+                category = row.category,
+                weekdays = row.weekdays,
             )
         }
     val next = schedules.filter { !it.done }.minByOrNull { it.timeMillis }
     val pending = pet.pendingGiftDefId?.let { id ->
         Catalog.byId(id)?.let { def ->
-            GiftView("pending", def.id, def.name, def.rarity, def.sellPrice, pet.pendingGiftAt ?: now)
+            GiftView("pending", def.id, def.name, def.rarity, resellAmount(def), pet.pendingGiftAt ?: now)
         }
     }
     val gifts = state.gifts.mapNotNull { row ->
         val def = Catalog.byId(row.defId) ?: return@mapNotNull null
-        GiftView(row.instanceId, def.id, def.name, def.rarity, def.sellPrice, row.acquiredAt)
+        GiftView(row.instanceId, def.id, def.name, def.rarity, resellAmount(def), row.acquiredAt)
     }
     val foods = state.foods.mapNotNull { (id, qty) ->
         val def = Catalog.byId(id) ?: return@mapNotNull null
@@ -61,6 +67,12 @@ fun project(raw: PersistedState, now: Long, zone: TimeZone, balance: GameBalance
     }.sortedBy { it.name }
     val offer = ShopRotation.today(now, zone, state.owned)
     val (fraction, xpNext, progress) = progressOf(pet.stage, pet.xp, pet.completions, balance)
+    val clip = PetAnimMachine.resolve(pet.stage, PetRules.pose(pet.stage, mood, time), pet.energy, state.statusMessage, state.anim, now)
+    val speech = when {
+        state.anim.until >= now && state.statusMessage.isNotBlank() -> state.statusMessage
+        next != null -> next.title
+        else -> ""
+    }
     val outing = if (pet.isOut && pet.outingReturnAt != null) {
         val left = (((pet.outingReturnAt - now).coerceAtLeast(0)) / 60_000L).toInt()
         OutingView(pet.outingReturnAt, left, if (left <= 0) "곧 돌아와요" else "약 ${left}분 뒤 돌아와요")
@@ -115,6 +127,18 @@ fun project(raw: PersistedState, now: Long, zone: TimeZone, balance: GameBalance
             Stage.CHILD -> 3
             Stage.ADULT -> 4
         },
+        settings = state.settings,
+        placements = state.placements,
+        premium = state.premium,
+        animClip = clip.name.lowercase(),
+        animTrigger = PetAnimMachine.trigger(state.anim, now),
+        speech = speech,
+        pendingDropKind = state.pendingDropKind,
+        pendingDropCoins = state.pendingDropCoins,
+        pendingSparkle = state.pendingSparkle,
+        revealKind = state.revealKind,
+        revealLabel = state.revealLabel,
+        revealSparkle = state.revealSparkle,
     )
 }
 
@@ -195,6 +219,7 @@ data class WidgetSnapshot(
     val progressLabel: String = "",
     val speciesId: String = "base",
     val level: Int = 1,
+    val speech: String = "",
 )
 
 fun GameState.toSnapshot(): WidgetSnapshot {
@@ -232,6 +257,7 @@ fun GameState.toSnapshot(): WidgetSnapshot {
         progressLabel = progressLabel,
         speciesId = speciesId,
         level = level,
+        speech = speech,
     )
 }
 

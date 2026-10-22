@@ -2,8 +2,11 @@ package app.mongle.logic
 
 import app.mongle.model.Catalog
 import app.mongle.model.GameBalance
+import app.mongle.model.PetAnimState
 import app.mongle.model.SpeciesCatalog
+import app.mongle.model.Stage
 import app.mongle.model.GiftRecord
+import app.mongle.model.ItemKind
 import app.mongle.model.ItemDef
 import app.mongle.model.Mood
 import app.mongle.model.PersistedState
@@ -12,7 +15,6 @@ import app.mongle.model.Pose
 import app.mongle.model.Rarity
 import app.mongle.model.RepeatRule
 import app.mongle.model.ShopOffer
-import app.mongle.model.Stage
 import app.mongle.model.TimeOfDay
 import kotlin.random.Random
 import kotlinx.datetime.DateTimeUnit
@@ -58,6 +60,16 @@ object Korean {
         RepeatRule.NONE -> "한 번"
         RepeatRule.DAILY -> "매일"
         RepeatRule.WEEKLY -> "매주"
+        RepeatRule.WEEKDAYS -> "평일"
+    }
+
+    fun repeatLabel(rule: RepeatRule, weekdays: Int): String {
+        if (weekdays != 0) {
+            val names = listOf("일", "월", "화", "수", "목", "금", "토")
+            val picked = names.filterIndexed { index, _ -> weekdays and (1 shl index) != 0 }
+            if (picked.isNotEmpty()) return picked.joinToString("")
+        }
+        return repeatLabel(rule)
     }
 
     fun rarityLabel(rarity: Rarity): String = when (rarity) {
@@ -106,22 +118,39 @@ object Korean {
 }
 
 object ScheduleRules {
-    fun step(timeMillis: Long, rule: RepeatRule, tz: String): Long {
-        if (rule == RepeatRule.NONE) return timeMillis
+    fun step(timeMillis: Long, rule: RepeatRule, tz: String, weekdays: Int = 0): Long {
+        if (rule == RepeatRule.NONE && weekdays == 0) return timeMillis
         val zone = zoneOrUtc(tz)
         val local = Instant.fromEpochMilliseconds(timeMillis).toLocalDateTime(zone)
-        val days = if (rule == RepeatRule.WEEKLY) 7 else 1
-        val nextDate = local.date.plus(days, DateTimeUnit.DAY)
-        return kotlinx.datetime.LocalDateTime(nextDate, local.time).toInstant(zone).toEpochMilliseconds()
+        val mask = when {
+            weekdays != 0 -> weekdays
+            rule == RepeatRule.WEEKDAYS -> WEEKDAY_MASK
+            else -> 0
+        }
+        if (mask == 0) {
+            val days = if (rule == RepeatRule.WEEKLY) 7 else 1
+            val nextDate = local.date.plus(days, DateTimeUnit.DAY)
+            return kotlinx.datetime.LocalDateTime(nextDate, local.time).toInstant(zone).toEpochMilliseconds()
+        }
+        var date = local.date
+        repeat(8) {
+            date = date.plus(1, DateTimeUnit.DAY)
+            val bit = weekdayBit(date.dayOfWeek.ordinal)
+            if (mask and (1 shl bit) != 0) {
+                return kotlinx.datetime.LocalDateTime(date, local.time).toInstant(zone).toEpochMilliseconds()
+            }
+        }
+        val fallback = local.date.plus(1, DateTimeUnit.DAY)
+        return kotlinx.datetime.LocalDateTime(fallback, local.time).toInstant(zone).toEpochMilliseconds()
     }
 
     /** 놓친 반복은 건너뛰고, 지금 이후의 다음 회차로 옮긴다. */
-    fun advance(timeMillis: Long, rule: RepeatRule, tz: String, now: Long): Long {
-        if (rule == RepeatRule.NONE) return timeMillis
-        var next = step(timeMillis, rule, tz)
+    fun advance(timeMillis: Long, rule: RepeatRule, tz: String, now: Long, weekdays: Int = 0): Long {
+        if (rule == RepeatRule.NONE && weekdays == 0) return timeMillis
+        var next = step(timeMillis, rule, tz, weekdays)
         var guard = 0
         while (next <= now && guard < 500) {
-            next = step(next, rule, tz)
+            next = step(next, rule, tz, weekdays)
             guard++
         }
         return next
@@ -244,7 +273,7 @@ object PetRules {
     fun outingBlock(state: PersistedState, pet: PetRecord, now: Long, balance: GameBalance): String? {
         if (pet.stage == Stage.EGG || pet.stage == Stage.BABY) return "어린이가 되면 밖에 나갈 수 있어요"
         if (pet.isOut) return "이미 외출 중이에요"
-        if (pet.pendingGiftDefId != null) return "선물을 먼저 정리해 주세요"
+        if (pet.pendingGiftDefId != null || state.pendingDropKind.isNotBlank()) return "선물을 먼저 정리해 주세요"
         if (pet.hunger < balance.outingMinHunger) return "배가 고파서 나가지 않아요"
         if (pet.energy < balance.outingMinEnergy) return "피곤해서 쉬고 있어요"
         if (state.lastOutingEndedAt > 0 && now - state.lastOutingEndedAt < balance.outingCooldownMillis) {
@@ -301,15 +330,16 @@ fun resolveState(state: PersistedState, now: Long, zone: TimeZone, balance: Game
     if (!collapsed.isOut) return state.copy(pet = collapsed)
     val backAt = collapsed.outingReturnAt ?: return state.copy(pet = collapsed)
     if (now < backAt) return state.copy(pet = collapsed)
-    val giftId = collapsed.outingGiftDefId
     val found = collapsed.outingSeed?.let { SpeciesCatalog.unlockFor(it, state.owned) }
     val owned = if (found == null) state.owned else state.owned + found
     val ownedAt = if (found == null) state.ownedAt else state.ownedAt + (found to now)
-    return state.copy(
+    val seed = collapsed.outingSeed ?: now
+    val drop = GiftDrops.roll(seed, levelOf(collapsed.stage), state.giftDryStreak)
+    return state.withDrop(drop, now).copy(
         pet = collapsed.copy(
             isOut = false,
-            pendingGiftDefId = giftId,
-            pendingGiftAt = now,
+            pendingGiftDefId = drop.defId,
+            pendingGiftAt = if (drop.defId != null) now else null,
             outingGiftDefId = null,
             outingReturnAt = null,
             outingStartedAt = null,
@@ -321,9 +351,55 @@ fun resolveState(state: PersistedState, now: Long, zone: TimeZone, balance: Game
     )
 }
 
+fun levelOf(stage: Stage): Int = when (stage) {
+    Stage.EGG -> 1
+    Stage.BABY -> 2
+    Stage.CHILD -> 3
+    Stage.ADULT -> 4
+}
+
+fun PersistedState.grantImmediate(drop: GiftDrop, now: Long): PersistedState {
+    val def = drop.defId?.let { Catalog.byId(it) }
+    val ownIt = def != null && (def.id in Catalog.uniqueIds || (def.kind != ItemKind.GIFT && def.kind != ItemKind.FOOD && def.kind != ItemKind.COMPANION))
+    val gift = if (def != null && def.kind == ItemKind.GIFT) gifts + keptGift(def.id, now) else gifts
+    return copy(
+        giftDryStreak = GiftDrops.nextStreak(giftDryStreak, drop.kind),
+        coins = coins + drop.coins,
+        gifts = gift,
+        owned = if (ownIt && def != null) owned + def.id else owned,
+        ownedAt = if (ownIt && def != null) ownedAt + (def.id to now) else ownedAt,
+        revealKind = drop.kind.name,
+        revealLabel = if (drop.kind == DropKind.COINS) "${drop.coins}코인" else def?.name.orEmpty(),
+        revealSparkle = drop.sparkle,
+        statusMessage = if (drop.sparkle) drop.reactionLine else statusMessage,
+        statusUntil = if (drop.sparkle) now + 8_000 else statusUntil,
+        anim = if (drop.sparkle) PetAnimState("happy", "legendary", drop.reactionId, now + 2_800) else anim,
+    )
+}
+
+fun PersistedState.withDrop(drop: GiftDrop, now: Long): PersistedState {
+    val legendary = drop.sparkle
+    return copy(
+        giftDryStreak = GiftDrops.nextStreak(giftDryStreak, drop.kind),
+        pendingDropKind = drop.kind.name,
+        pendingDropCoins = drop.coins,
+        pendingSparkle = drop.sparkle,
+        pet = pet.copy(
+            pendingGiftDefId = drop.defId,
+            pendingGiftAt = if (drop.defId != null) now else pet.pendingGiftAt,
+        ),
+        statusMessage = if (legendary) drop.reactionLine else statusMessage,
+        statusUntil = if (legendary) now + 8_000 else statusUntil,
+        anim = if (legendary) {
+            PetAnimState("happy", "legendary", drop.reactionId, now + 2_800)
+        } else {
+            anim
+        },
+    )
+}
+
 fun beginOuting(state: PersistedState, now: Long, balance: GameBalance): PersistedState {
     val seed = now xor state.pet.id.hashCode().toLong() xor state.pet.completions.toLong()
-    val gift = GiftRoller.roll(seed)
     return state.copy(
         pet = state.pet.copy(
             isOut = true,
@@ -331,7 +407,7 @@ fun beginOuting(state: PersistedState, now: Long, balance: GameBalance): Persist
             outingStartedAt = now,
             outingReturnAt = now + balance.outingDurationMillis,
             outingSeed = seed,
-            outingGiftDefId = gift.id,
+            outingGiftDefId = null,
             snapshotAt = now,
         ),
     )

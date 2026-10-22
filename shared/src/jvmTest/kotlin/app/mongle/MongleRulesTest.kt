@@ -4,12 +4,16 @@ import app.mongle.data.MemoryGameStore
 import app.mongle.data.Seed
 import app.mongle.data.SqlGameStore
 import app.mongle.db.MongleDatabase
+import app.mongle.logic.DropKind
+import app.mongle.logic.GiftDrops
 import app.mongle.logic.GiftRoller
 import app.mongle.logic.Korean
 import app.mongle.logic.PetRules
 import app.mongle.logic.ScheduleRules
 import app.mongle.logic.ShopRotation
+import app.mongle.logic.resellAmount
 import app.mongle.model.Catalog
+import app.mongle.model.EconomyConfig
 import app.mongle.model.GameBalance
 import app.mongle.model.LegacyIds
 import app.mongle.model.Rarity
@@ -112,13 +116,16 @@ class MongleRulesTest {
         assertTrue(SpeciesCatalog.all.size >= 50)
         assertEquals(SpeciesCatalog.all.size, SpeciesCatalog.all.map { it.id }.toSet().size)
         assertTrue(Catalog.goods.size >= 50)
-        assertEquals(800, Catalog.byId("cushion_bed")!!.price)
+        assertEquals(EconomyConfig.shopPrice("cushion_bed"), Catalog.byId("cushion_bed")!!.price)
         assertEquals("쿠션 침대", Catalog.byId("cushion_bed")!!.name)
-        assertEquals(350, Catalog.byId("sprout_hat")!!.price)
+        assertEquals(EconomyConfig.shopPrice("sprout_hat"), Catalog.byId("sprout_hat")!!.price)
         assertEquals("새싹 모자", Catalog.byId("sprout_hat")!!.name)
+        assertTrue(Catalog.byId("sprout_hat")!!.price in 150..200)
         assertEquals(50, Catalog.byId("pebble")!!.sellPrice)
+        assertEquals(50, resellAmount(Catalog.byId("pebble")!!))
         assertEquals("조약돌", Catalog.byId("pebble")!!.name)
-        assertEquals(900, Catalog.byId("piano")!!.price)
+        assertEquals(EconomyConfig.shopPrice("piano"), Catalog.byId("piano")!!.price)
+        assertTrue(Catalog.byId("piano")!!.price in 150..200)
         assertTrue(Catalog.byId("hoodie")!!.fresh)
         assertTrue(Catalog.rotating().any { it.stackable })
         assertTrue(Catalog.rotating().filter { !it.stackable }.all { it.price in 1..80 })
@@ -277,7 +284,8 @@ class MongleRulesTest {
         assertFalse(service.startOuting().ok)
         clock.now += balance.outingDurationMillis + 1_000
         service.refresh()
-        assertTrue(service.state.value.pendingGift != null)
+        val reveal = service.state.value
+        assertTrue(reveal.pendingGift != null || reveal.pendingDropKind.isNotBlank())
         assertTrue(JvmNotices.immediate.isNotEmpty())
         val coins = service.state.value.coins
         val sold = service.sellPendingOrLatest()
@@ -355,6 +363,41 @@ class MongleRulesTest {
         assertTrue(json.contains("보리"))
         assertTrue(json.contains("hunger"))
         driver.close()
+    }
+
+    @Test
+    fun giftDropTablePityAndShopPrices() {
+        val shop = Catalog.foods() + Catalog.outfits + Catalog.furniture
+        assertTrue(shop.all { it.price in EconomyConfig.shopPriceMin..EconomyConfig.shopPriceMax })
+        assertEquals(70, EconomyConfig.commonResellPercent)
+        assertEquals(EconomyConfig.shopPrice("sprout_hat") * 70 / 100, resellAmount(Catalog.byId("sprout_hat")!!))
+        assertTrue(EconomyConfig.rareResell.values.all { it in 300..600 })
+        assertTrue(EconomyConfig.legendaryResell.values.all { it in 700..3000 })
+        assertTrue(EconomyConfig.legendaryResell.getValue("comet_shard") > EconomyConfig.legendaryResell.getValue("dawn_feather"))
+        assertEquals(EconomyConfig.rareResell.getValue("moon_bell"), resellAmount(Catalog.byId("moon_bell")!!))
+        assertEquals(EconomyConfig.legendaryResell.getValue("comet_shard"), resellAmount(Catalog.byId("comet_shard")!!))
+        assertEquals(0, Catalog.byId("comet_shard")!!.price)
+        assertTrue(Catalog.rotating().none { it.id in Catalog.uniqueIds })
+        assertEquals(GiftDrops.roll(99, 3, 0), GiftDrops.roll(99, 3, 0))
+        val rolls = (0 until 8000).map { GiftDrops.roll(it.toLong(), 1, 0) }
+        val counts = rolls.groupingBy { it.kind }.eachCount()
+        assertTrue(counts.getValue(DropKind.COINS) in 5600..6400)
+        assertTrue(counts.getValue(DropKind.COMMON) in 1400..1900)
+        assertTrue(counts.getValue(DropKind.RARE) in 280..460)
+        assertTrue(counts.getValue(DropKind.LEGENDARY) in 15..80)
+        assertTrue(rolls.filter { it.kind == DropKind.COINS }.all { it.coins in 10..50 })
+        val higher = (0 until 400).map { GiftDrops.roll(it.toLong(), 4, 0) }.filter { it.kind == DropKind.COINS }
+        assertTrue(higher.maxOf { it.coins } > 50)
+        assertTrue((0 until 80).all {
+            val kind = GiftDrops.roll(it.toLong(), 1, EconomyConfig.pityDryGifts).kind
+            kind == DropKind.RARE || kind == DropKind.LEGENDARY
+        })
+        assertTrue((0 until 400).any { GiftDrops.roll(it.toLong(), 1, EconomyConfig.pityDryGifts - 1).kind == DropKind.COINS })
+        val hits = (0 until 4000).count { GiftDrops.completionHit(it.toLong()) }
+        assertTrue(hits in 680..960)
+        assertTrue(rolls.filter { it.kind == DropKind.LEGENDARY }.all { it.sparkle && it.reactionLine.isNotBlank() })
+        assertTrue(rolls.filter { it.kind == DropKind.COMMON }.all { Catalog.byId(it.defId)!!.kind != app.mongle.model.ItemKind.FOOD })
+        assertTrue(rolls.filter { it.kind == DropKind.RARE }.all { it.defId in Catalog.uniqueIds })
     }
 
     @Test

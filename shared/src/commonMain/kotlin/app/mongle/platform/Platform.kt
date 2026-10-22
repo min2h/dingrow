@@ -9,6 +9,9 @@ data class ScheduledNotice(
     val title: String,
     val body: String,
     val triggerAtMillis: Long,
+    val alert: String = "SOUND",
+    val fullScreen: Boolean = false,
+    val leadMinutes: Int = 0,
 )
 
 /**

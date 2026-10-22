@@ -2,7 +2,11 @@ package app.mongle.model
 
 enum class Stage { EGG, BABY, CHILD, ADULT }
 
-enum class RepeatRule { NONE, DAILY, WEEKLY }
+enum class RepeatRule { NONE, DAILY, WEEKLY, WEEKDAYS }
+
+enum class AlertStyle { SILENT, SOUND, VIBRATE }
+
+enum class AlarmSound { SOFT, CHIME, BELL }
 
 enum class ItemKind { FOOD, GIFT, OUTFIT, WALL, FLOOR, BED, RUG, LAMP, DECOR, COMPANION }
 
@@ -38,7 +42,10 @@ data class ItemDef(
     val blurb: String = "",
     val motif: ItemMotif = ItemMotif.GENERIC,
     val fresh: Boolean = false,
-)
+    val artId: String = "",
+) {
+    fun pictureId(): String = artId.ifBlank { id }
+}
 
 data class GameBalance(
     val hungerPerHour: Int = 4,
@@ -100,6 +107,10 @@ data class ScheduleRecord(
     val createdAt: Long,
     val completedAt: Long?,
     val tz: String,
+    val leadsMinutes: List<Int> = listOf(0),
+    val alert: AlertStyle = AlertStyle.SOUND,
+    val category: String = "task",
+    val weekdays: Int = 0,
 )
 
 data class CompletionRecord(
@@ -142,6 +153,30 @@ data class ActionRecord(
     val at: Long,
 )
 
+data class AppSettings(
+    val tipsEnabled: Boolean = true,
+    val quietStartMinute: Int = -1,
+    val quietEndMinute: Int = -1,
+    val defaultLeadMinutes: Int = 0,
+    val soundEnabled: Boolean = true,
+    val vibrateEnabled: Boolean = true,
+    val alarmSound: AlarmSound = AlarmSound.SOFT,
+)
+
+data class Placement(
+    val defId: String,
+    val x: Int = 50,
+    val y: Int = 70,
+    val rotation: Int = 0,
+)
+
+data class PetAnimState(
+    val clip: String = "idle",
+    val trigger: String = "none",
+    val reactionId: String = "",
+    val until: Long = 0,
+)
+
 data class PersistedState(
     val pet: PetRecord,
     val schedules: List<ScheduleRecord>,
@@ -164,6 +199,20 @@ data class PersistedState(
     val statusMessage: String,
     val statusUntil: Long,
     val actionLog: List<ActionRecord>,
+    val settings: AppSettings = AppSettings(),
+    val placements: List<Placement> = emptyList(),
+    val premium: Boolean = false,
+    val iapTokens: Set<String> = emptySet(),
+    val anim: PetAnimState = PetAnimState(),
+    val lastTipAt: Long = 0,
+    val tipIndex: Int = 0,
+    val giftDryStreak: Int = 0,
+    val pendingDropKind: String = "",
+    val pendingDropCoins: Int = 0,
+    val pendingSparkle: Boolean = false,
+    val revealKind: String = "",
+    val revealLabel: String = "",
+    val revealSparkle: Boolean = false,
 )
 
 data class ActionResult(val ok: Boolean, val message: String)
@@ -177,6 +226,10 @@ data class ScheduleView(
     val repeatLabel: String,
     val done: Boolean,
     val overdue: Boolean,
+    val leadsMinutes: List<Int> = listOf(0),
+    val alert: AlertStyle = AlertStyle.SOUND,
+    val category: String = "task",
+    val weekdays: Int = 0,
 )
 
 data class GiftView(
@@ -244,6 +297,18 @@ data class GameState(
     val darkRoom: Boolean,
     val speciesId: String = "base",
     val level: Int = 1,
+    val settings: AppSettings = AppSettings(),
+    val placements: List<Placement> = emptyList(),
+    val premium: Boolean = false,
+    val animClip: String = "idle",
+    val animTrigger: String = "none",
+    val speech: String = "",
+    val pendingDropKind: String = "",
+    val pendingDropCoins: Int = 0,
+    val pendingSparkle: Boolean = false,
+    val revealKind: String = "",
+    val revealLabel: String = "",
+    val revealSparkle: Boolean = false,
 ) {
     val activeRoom: RoomPreset get() = presets[activePreset.coerceIn(0, presets.lastIndex.coerceAtLeast(0))]
 }

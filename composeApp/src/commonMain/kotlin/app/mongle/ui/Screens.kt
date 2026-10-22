@@ -322,16 +322,43 @@ private fun HomeScreen(
                 Text(next?.title ?: "일정을 추가해 보세요", color = InkSoft, fontSize = 13.sp)
             }
             state.outing?.let { Text(it.label, color = Mint) }
+            if (state.revealKind.isNotBlank() && state.pendingGift == null && state.pendingDropKind.isBlank()) {
+                Text(
+                    buildString {
+                        append(app.mongle.logic.GiftDrops.label(state.revealKind))
+                        append(" · ")
+                        append(state.revealLabel)
+                        if (state.revealSparkle) append(" · 반짝")
+                    },
+                    color = InkSoft,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
-        state.pendingGift?.let { gift ->
+        if (state.pendingGift != null || state.pendingDropKind == "COINS") {
             Spacer(Modifier.height(8.dp))
             SoftCard {
+                val gift = state.pendingGift
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    ArtImage(gift.defId, Modifier.size(48.dp), gift.name)
-                    Spacer(Modifier.width(8.dp))
+                    if (gift != null) {
+                        ArtImage(Catalog.byId(gift.defId)?.pictureId() ?: gift.defId, Modifier.size(48.dp), gift.name)
+                        Spacer(Modifier.width(8.dp))
+                    }
                     Column(Modifier.weight(1f)) {
-                        Text("${gift.name}이 도착했어요", style = MaterialTheme.typography.titleMedium)
-                        Text("${gift.sellPrice}코인", color = InkSoft)
+                        Text(
+                            if (gift != null) "${gift.name}이 도착했어요" else "${state.pendingDropCoins}코인이 도착했어요",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Text(
+                            buildString {
+                                append(app.mongle.logic.GiftDrops.label(state.pendingDropKind).ifBlank { "선물" })
+                                if (gift != null) append(" · ${gift.sellPrice}코인")
+                                if (state.pendingSparkle) append(" · 반짝")
+                            },
+                            color = InkSoft,
+                        )
                     }
                 }
                 Row {
@@ -339,7 +366,7 @@ private fun HomeScreen(
                     TextButton(
                         onClick = { scope.launch { service.sellPendingOrLatest() } },
                         modifier = Modifier.testTag("sell-gift"),
-                    ) { Text("팔기") }
+                    ) { Text(if (state.pendingDropKind == "COINS") "받기" else "팔기") }
                 }
             }
         }
