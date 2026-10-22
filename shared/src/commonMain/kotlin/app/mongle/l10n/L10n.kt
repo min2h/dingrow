@@ -27,7 +27,6 @@ object AppLocale {
 expect fun systemLanguageCode(): String
 
 object L10n {
-    private val token = Regex("%[sd]")
 
     fun code(): String = AppLocale.code()
 
@@ -36,12 +35,20 @@ object L10n {
         return table[key] ?: En[key] ?: key
     }
 
-    fun fmt(key: String, vararg args: Any): String {
-        var index = 0
-        return Regex("%(\\d+)\\$[sd]").replace(token.replace(t(key).replace(Regex("%(\\d+)\\$([sd])")) { "\u0000" + it.groupValues[1] + "\u0000" }) {
-            args.getOrNull(index++)?.toString().orEmpty()
-        }) { it.value }.replace(Regex("\u0000(\\d+)\u0000")) { args.getOrNull(it.groupValues[1].toInt() - 1)?.toString().orEmpty() }.replace("%%", "%")
+    fun fmt(key: String, vararg args: Any): String = format(t(key), args.toList())
+
+    /** Fills %s / %d in order and %N$s / %N$d by position; %% becomes %. */
+    fun format(template: String, args: List<Any?>, wrap: (String) -> String = { it }): String {
+        var next = 0
+        return placeholder.replace(template) { m ->
+            when {
+                m.value == "%%" -> "%"
+                m.groupValues[1].isNotEmpty() -> wrap(args.getOrNull(m.groupValues[1].toInt() - 1)?.toString().orEmpty())
+                else -> wrap(args.getOrNull(next++)?.toString().orEmpty())
+            }
+        }
     }
+    private val placeholder = Regex("%%|%(?:(\\d+)\\$)?[sd]")
 
     fun table(lang: String): Map<String, String> = if (lang == "ko") Ko else En
 

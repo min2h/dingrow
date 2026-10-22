@@ -308,14 +308,7 @@ object Secretary {
     }
 
     /** Inserted schedule/weather details are wrapped in ** so every surface can emphasize them. */
-    fun format(template: String, args: List<Any>): String {
-        var i = 0
-        return Regex("%(\\d+)\\$[sd]|%[sd]").replace(template) { m ->
-            val pos = m.groupValues[1].toIntOrNull()
-            val v = (if (pos != null) args.getOrNull(pos - 1) else args.getOrNull(i++))?.toString().orEmpty()
-            if (v.isBlank()) v else Emphasis.wrap(v)
-        }
-    }
+    fun format(template: String, args: List<Any>): String = L10n.format(template, args) { Emphasis.wrap(it) }
 
     fun remember(recent: List<String>, key: String) = (recent + key).takeLast(HISTORY)
 }
