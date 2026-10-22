@@ -686,4 +686,6 @@
     <string name="listing_alarm_body">알 속의 보리: \"물 마시기\" 할 시간이에요</string>
     <string name="listing_date_sample">10월 21일 수요일</string>
     <string name="listing_bori">보리</string>
+    <string name="tip_notice_title">딩그로 팁</string>
+    <string name="react_legend_sparkle">반짝, 전설이 손 안에 내려왔어요</string>
 </resources>

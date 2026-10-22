@@ -87,6 +87,7 @@ class GameService(
     private var lastNotices: List<ScheduledNotice>? = null
     private var forceNotices = false
     private var forceReload = false
+    val tipGapMillis = 6L * 60 * 60 * 1000
     private var lastFingerprint: String? = null
 
     private val initial = run {
@@ -283,6 +284,30 @@ class GameService(
         }
         AppLocale.preference = next.language
         done(state.copy(settings = next), ActionResult(true, L10n.t("msg_settings_saved")))
+    }
+
+    /**
+     * Background tip notification. Called by the periodic worker; at most one tip every
+     * [tipGapMillis], only 9:00-21:00 local, never in quiet hours, and only with tips on.
+     * Returns the tip text when one was posted.
+     */
+    suspend fun maybeTipNotification(roll: Int = kotlin.random.Random.nextInt(100), chancePercent: Int = 35): String? {
+        var posted: String? = null
+        mutate { state, now ->
+            val settings = state.settings
+            val minute = Instant.fromEpochMilliseconds(now).toLocalDateTime(zone).let { it.hour * 60 + it.minute }
+            val qs = settings.quietStartMinute
+            val qe = settings.quietEndMinute
+            val quiet = qs >= 0 && qe >= 0 && (if (qs <= qe) minute in qs until qe else minute >= qs || minute < qe)
+            val ok = state.onboarded && settings.tipsEnabled && !quiet && minute in (9 * 60) until (21 * 60) &&
+                (state.lastTipAt == 0L || now - state.lastTipAt >= tipGapMillis) && roll < chancePercent
+            if (!ok) return@mutate done(state, ActionResult(true, ""))
+            val line = Tips.next(state.tipIndex + roll)
+            posted = line
+            done(state.copy(lastTipAt = now, tipIndex = state.tipIndex + 1 + roll), ActionResult(true, ""))
+        }
+        posted?.let { notifier.notifyNow(L10n.t("tip_notice_title"), it) }
+        return posted
     }
 
     suspend fun showTip(): ActionResult = mutate { state, now ->

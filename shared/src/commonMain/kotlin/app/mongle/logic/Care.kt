@@ -154,7 +154,7 @@ object GiftDrops {
                     defId = item.id,
                     sparkle = true,
                     reactionId = EconomyConfig.legendaryReactionId,
-                    reactionLine = EconomyConfig.legendaryReactionLine,
+                    reactionLine = app.mongle.l10n.L10n.react(EconomyConfig.legendaryReactionId, EconomyConfig.legendaryReactionLine),
                 )
             }
         }

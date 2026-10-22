@@ -9,6 +9,7 @@ class PetTickWorker(context: Context, params: WorkerParameters) : CoroutineWorke
     override suspend fun doWork(): Result {
         AppGraph.ensure(applicationContext)
         AppGraph.service.tick()
+        AppGraph.service.maybeTipNotification()
         return Result.success()
     }
 }

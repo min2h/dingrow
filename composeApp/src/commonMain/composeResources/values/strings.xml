@@ -686,4 +686,6 @@
     <string name="listing_alarm_body">Bori in the egg: time for \"drink water\"</string>
     <string name="listing_date_sample">Wednesday, Oct 21</string>
     <string name="listing_bori">Bori</string>
+    <string name="tip_notice_title">Dingrow tip</string>
+    <string name="react_legend_sparkle">Sparkle! A legend landed in my paws</string>
 </resources>

@@ -1,5 +1,11 @@
 package app.mongle.ui
 
+import androidx.compose.runtime.SideEffect
+
+import androidx.compose.runtime.withFrameNanos
+
+import androidx.compose.runtime.mutableLongStateOf
+
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -59,7 +65,6 @@ import org.jetbrains.compose.resources.painterResource
  */
 val LocalPetMotion = staticCompositionLocalOf<Pair<Float, Float>?> { null }
 
-private data class Motion(val breath: Float, val walk: Float, val blink: Float, val pop: Float)
 
 @Composable
 fun ArtImage(id: String, modifier: Modifier = Modifier, description: String? = null) {
@@ -173,62 +178,119 @@ private fun PetFigure(
     body: String = "",
     onClick: (() -> Unit)? = null,
 ) {
-    val motion = if (animate && body.isBlank()) liveMotion(act) else Motion(breath, walk, blink = 0f, pop = 1f)
-    val squash = if (animate && body.isNotBlank()) rememberSquash(body) else null
-    val poseEase = rememberPoseEase(act, enabled = animate && body.isBlank())
     val density = LocalDensity.current
     val sleeping = act == PetAct.SLEEP
     val walking = act == PetAct.WALK
-    val wave = (motion.breath - 0.5f) * if (sleeping) 0.45f else 1f
-    val stride = if (SpeciesPoses.weakWalk(speciesId)) 0.35f else 1f
-    val scaleX = squash?.sx ?: ((1f + 0.05f * wave) * motion.pop * (1f + 0.14f * poseEase))
-    val scaleY = squash?.sy ?: ((1f - 0.045f * wave) * motion.pop * (1f - 0.12f * poseEase) * if (sleeping) 0.94f else 1f)
-    val bobDp = if (sleeping) 3f else 7f
-    val lean = squash?.rot ?: if (walking) sin(motion.walk * 2 * PI).toFloat() * 7f * stride else 0f
-    val driftDp = if (walking) sin(motion.walk * 2 * PI).toFloat() * 16f * stride else 0f
-    val jump = squash?.yDp ?: 0f
-    val mirror = walking && SpeciesPoses.mirrorSafeWalk(speciesId) && sin(motion.walk * 2 * PI) > 0
+    val engine = remember { app.mongle.ui.motion.PetMotionEngine(speciesId.hashCode()) }
+    // Only graphicsLayer/draw lambdas read this, so a frame never recomposes the screen.
+    val frame = remember { mutableLongStateOf(0L) }
+    SideEffect {
+        engine.walking = walking && animate
+        engine.sleeping = sleeping
+    }
+    if (animate) {
+        LaunchedEffect(Unit) {
+            var last = -1L
+            while (true) {
+                withFrameNanos { now ->
+                    if (last > 0) engine.step((now - last) / 1_000_000_000f)
+                    last = now
+                    frame.longValue = now
+                }
+            }
+        }
+        LaunchedEffect(body) {
+            if (body.isNotBlank()) engine.trigger(app.mongle.ui.motion.PetMotionEngine.shapeFor(body))
+        }
+        var seenAct by remember { mutableStateOf<PetAct?>(null) }
+        LaunchedEffect(act) {
+            if (seenAct != null) {
+                engine.pulsePose()
+                when (act) {
+                    PetAct.HAPPY -> engine.trigger(app.mongle.ui.motion.PetMotionEngine.shapeFor("heart"))
+                    PetAct.EAT -> engine.trigger(app.mongle.ui.motion.PetMotionEngine.shapeFor("eat"))
+                    else -> Unit
+                }
+            }
+            seenAct = act
+        }
+    }
+    // Static pose for pinned screenshots and still previews.
+    val staticWave = (breath - 0.5f) * if (sleeping) 0.45f else 1f
+    val tap: (() -> Unit)? = if (onClick != null) {
+        {
+            if (animate) engine.trigger(app.mongle.ui.motion.PetMotionEngine.shapeFor("pat"))
+            onClick()
+        }
+    } else null
     Box(
         modifier
             .graphicsLayer {
-                this.scaleX = scaleX
-                this.scaleY = scaleY
-                rotationZ = lean
-                translationY = with(density) { ((-bobDp * wave) + jump).dp.toPx() }
-                translationX = with(density) { driftDp.dp.toPx() }
+                frame.longValue
                 transformOrigin = TransformOrigin(0.5f, 0.92f)
+                if (animate) {
+                    scaleX = engine.bodyScaleX()
+                    scaleY = engine.bodyScaleY()
+                    rotationZ = engine.rotation
+                    translationY = engine.translationYdp.dp.toPx()
+                    translationX = engine.translationXdp.dp.toPx()
+                } else {
+                    scaleX = 1f + 0.05f * staticWave
+                    scaleY = (1f - 0.045f * staticWave) * if (sleeping) 0.94f else 1f
+                    translationY = (-(if (sleeping) 3f else 7f) * staticWave).dp.toPx()
+                    translationX = if (walking) (sin(walk * 2 * PI).toFloat() * 16f).dp.toPx() else 0f
+                }
             }
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+            .then(if (tap != null) Modifier.clickable(onClick = tap) else Modifier),
     ) {
         Canvas(
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth(0.62f)
                 .aspectRatio(3.4f)
-                .graphicsLayer { this.scaleX = 1f + 0.08f * wave },
+                .graphicsLayer {
+                    frame.longValue
+                    // Counter the body transform so the shadow stays on the floor and lags the jump.
+                    if (animate) {
+                        val sx = engine.bodyScaleX().let { if (it == 0f) 1f else it }
+                        scaleX = engine.shadowScale / sx
+                        scaleY = engine.shadowScale / engine.bodyScaleY()
+                        translationY = -engine.translationYdp.dp.toPx()
+                        alpha = engine.shadowAlpha / 0.2f
+                    } else {
+                        scaleX = 1f + 0.08f * staticWave
+                    }
+                },
         ) {
             drawOval(Color(0x33000000))
         }
         Box(
             Modifier
                 .fillMaxSize()
-                .graphicsLayer { this.scaleX = if (mirror) -1f else 1f },
+                .graphicsLayer {
+                    frame.longValue
+                    val mirrorSafe = SpeciesPoses.mirrorSafeWalk(speciesId)
+                    scaleX = if (animate) {
+                        if (mirrorSafe) engine.facing.value.coerceIn(-1f, 1f).let { if (kotlin.math.abs(it) < 0.06f) 0.06f else it } else 1f
+                    } else if (walking && mirrorSafe && sin(walk * 2 * PI) > 0) -1f else 1f
+                },
         ) {
+            val blinkOf: () -> Float = { if (animate) { frame.longValue; engine.blink } else 0f }
             if (animate && body.isBlank()) {
                 Crossfade(
                     targetState = act,
                     modifier = Modifier.fillMaxSize(),
-                    animationSpec = tween(360, easing = FastOutSlowInEasing),
+                    animationSpec = tween(420, easing = FastOutSlowInEasing),
                     label = "pose",
-                ) { frame ->
-                    PoseSprite(speciesId, stage, frame, if (frame == PetAct.IDLE) motion.blink else 0f)
+                ) { shown ->
+                    PoseSprite(speciesId, stage, shown, if (shown == PetAct.IDLE) blinkOf else ({ 0f }))
                 }
             } else {
-                PoseSprite(speciesId, stage, act, blink = 0f)
+                PoseSprite(speciesId, stage, act, if (animate) blinkOf else ({ 0f }))
             }
         }
-        if (sleeping) {
-            SleepMarks(phase = motion.walk, modifier = Modifier.fillMaxSize())
+        if (sleeping && !animate) {
+            SleepMarks(phase = walk, modifier = Modifier.fillMaxSize())
         }
         if (stage != Stage.EGG && act != PetAct.EGG && outfitId != null && Art.known(outfitId)) {
             Image(
@@ -238,54 +300,88 @@ private fun PetFigure(
                     .align(Alignment.TopCenter)
                     .fillMaxWidth(0.38f)
                     .aspectRatio(1f)
-                    .offset(y = (-4).dp),
+                    .offset(y = (-4).dp)
+                    .graphicsLayer {
+                        frame.longValue
+                        if (animate) {
+                            translationY = engine.accessoryYdp.dp.toPx()
+                            rotationZ = engine.accessoryYdp * 0.8f
+                        }
+                    },
                 contentScale = ContentScale.Fit,
             )
         }
+        if (animate) {
+            Canvas(Modifier.fillMaxSize()) {
+                frame.longValue
+                drawParticles(engine, density.density)
+            }
+        }
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawParticles(engine: app.mongle.ui.motion.PetMotionEngine, dp: Float) {
+    val cx = size.width / 2f
+    val cy = size.height * 0.35f
+    for (p in engine.particles) {
+        val x = cx + p.x * dp
+        val y = cy + p.y * dp
+        val r = 6f * dp * p.scale
+        val a = p.alpha
+        when (p.kind) {
+            app.mongle.ui.motion.ParticleKind.HEART -> {
+                val c = Color(0xFFF07C8A).copy(alpha = a)
+                drawCircle(c, r * 0.55f, androidx.compose.ui.geometry.Offset(x - r * 0.45f, y - r * 0.2f))
+                drawCircle(c, r * 0.55f, androidx.compose.ui.geometry.Offset(x + r * 0.45f, y - r * 0.2f))
+                val path = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(x - r, y); lineTo(x + r, y); lineTo(x, y + r * 1.1f); close()
+                }
+                drawPath(path, c)
+            }
+            app.mongle.ui.motion.ParticleKind.SPARKLE -> {
+                val c = Color(0xFFFFD45C).copy(alpha = a)
+                val path = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(x, y - r * 1.3f); lineTo(x + r * 0.3f, y - r * 0.3f); lineTo(x + r * 1.3f, y)
+                    lineTo(x + r * 0.3f, y + r * 0.3f); lineTo(x, y + r * 1.3f); lineTo(x - r * 0.3f, y + r * 0.3f)
+                    lineTo(x - r * 1.3f, y); lineTo(x - r * 0.3f, y - r * 0.3f); close()
+                }
+                drawPath(path, c)
+            }
+            app.mongle.ui.motion.ParticleKind.ZZZ -> {
+                val c = Color(0xFF6E8CAE).copy(alpha = a)
+                val w = r * 1.2f
+                val path = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(x - w / 2, y - w / 2); lineTo(x + w / 2, y - w / 2); lineTo(x - w / 2, y + w / 2); lineTo(x + w / 2, y + w / 2)
+                }
+                drawPath(path, c, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.2f * dp))
+            }
+            app.mongle.ui.motion.ParticleKind.CRUMB -> {
+                drawCircle(Color(0xFFC98B4E).copy(alpha = a), r * 0.35f, androidx.compose.ui.geometry.Offset(x, y + 30f * dp))
+            }
+        }
     }
 }
 
 @Composable
-private fun PoseSprite(speciesId: String, stage: Stage, act: PetAct, blink: Float) {
-    val shown = if (act == PetAct.IDLE) PetAct.IDLE else act
+private fun PoseSprite(speciesId: String, stage: Stage, act: PetAct, blink: () -> Float) {
     val blinkId = petAssetId(speciesId, stage, PetAct.BLINK)
     val idleId = petAssetId(speciesId, stage, PetAct.IDLE)
-    val showBlink = act == PetAct.IDLE && blink > 0.01f && blinkId != idleId
+    val canBlink = act == PetAct.IDLE && blinkId != idleId
     Image(
-        painter = painterResource(Art.pet(speciesId, stage, shown)),
+        painter = painterResource(Art.pet(speciesId, stage, act)),
         contentDescription = null,
-        modifier = Modifier.fillMaxSize().alpha(if (showBlink) 1f - blink else 1f),
+        modifier = Modifier.fillMaxSize().graphicsLayer { alpha = if (canBlink) 1f - blink() else 1f },
         contentScale = ContentScale.Fit,
     )
-    if (showBlink) {
+    if (canBlink) {
+        // Always composed; the eyelid frame fades in only through the layer alpha (no recomposition).
         Image(
             painter = painterResource(Art.drawable(blinkId)),
             contentDescription = null,
-            modifier = Modifier.fillMaxSize().alpha(blink),
+            modifier = Modifier.fillMaxSize().graphicsLayer { alpha = blink() },
             contentScale = ContentScale.Fit,
         )
     }
-}
-
-/** Peaks halfway through a pose change so the crossfade eases through a squash, then settles. */
-@Composable
-private fun rememberPoseEase(act: PetAct, enabled: Boolean): Float {
-    val ease = remember { Animatable(0f) }
-    var seen by remember { mutableStateOf(false) }
-    LaunchedEffect(act, enabled) {
-        if (!enabled) {
-            ease.snapTo(0f)
-            return@LaunchedEffect
-        }
-        if (!seen) {
-            seen = true
-            return@LaunchedEffect
-        }
-        ease.snapTo(0f)
-        ease.animateTo(1f, tween(150, easing = FastOutSlowInEasing))
-        ease.animateTo(0f, tween(210, easing = FastOutSlowInEasing))
-    }
-    return if (enabled) ease.value else 0f
 }
 
 /** Sleep frames have no drawn zzz, so the marks float up in code. */
@@ -315,60 +411,3 @@ private fun SleepMarks(phase: Float, modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-private fun liveMotion(act: PetAct): Motion {
-    val transition = rememberInfiniteTransition(label = "mongle-live")
-    val breath by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(if (act == PetAct.SLEEP) 2800 else 2200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "breath",
-    )
-    val walk by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(animation = tween(3200, easing = LinearEasing)),
-        label = "walk",
-    )
-    val blinkCycle by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(animation = tween(4600, easing = LinearEasing)),
-        label = "blink",
-    )
-    val pop = remember { Animatable(1f) }
-    LaunchedEffect(act) {
-        if (act == PetAct.HAPPY || act == PetAct.EAT) {
-            pop.snapTo(0.84f)
-            pop.animateTo(
-                1f,
-                spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-            )
-        }
-    }
-    val blink = if (act == PetAct.IDLE) blinkWindow(blinkCycle) else 0f
-    return Motion(breath, walk, blink, pop.value)
-}
-
-@Composable
-private fun rememberSquash(body: String): Squash {
-    val frames = squashFrames(body)
-    var index by remember(body) { mutableIntStateOf(0) }
-    LaunchedEffect(body) {
-        frames.indices.forEach { step ->
-            index = step
-            delay(150)
-        }
-    }
-    return frames[index.coerceIn(frames.indices)]
-}
-
-private fun blinkWindow(cycle: Float): Float {
-    val start = 0.90f
-    if (cycle < start) return 0f
-    val t = (cycle - start) / (1f - start)
-    return if (t < 0.5f) t * 2f else (1f - t) * 2f
-}
