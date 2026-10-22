@@ -40,6 +40,11 @@
                 <data android:host="schedule" android:path="/add" android:scheme="dingrow" />
                 <data android:host="schedule" android:path="/add" android:scheme="mongle" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:host="schedule" android:pathPrefix="/" android:scheme="dingrow" />
+            </intent-filter>
         </activity>
 
         <receiver
@@ -54,6 +59,17 @@
                 android:resource="@xml/widget_small" />
         </receiver>
 
+        <receiver
+            android:name="app.mongle.widget.MediumWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_medium_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_medium" />
+        </receiver>
         <receiver
             android:name="app.mongle.widget.LargeWidgetReceiver"
             android:exported="true"

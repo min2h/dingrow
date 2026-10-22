@@ -634,7 +634,7 @@ private fun drawWallpaper(state: app.mongle.model.GameState, shift: Long): Bitma
 }
 
 @OptIn(ExperimentalGlanceRemoteViewsApi::class)
-private suspend fun saveGlance(
+internal suspend fun saveGlance(
     context: Context,
     name: String,
     widthDp: Int,
@@ -653,7 +653,7 @@ private suspend fun saveGlance(
     saveBitmap(renderRemoteViews(context, result.remoteViews, width, height), name, publish)
 }
 
-private fun renderRemoteViews(context: Context, remote: RemoteViews, width: Int, height: Int): Bitmap {
+internal fun renderRemoteViews(context: Context, remote: RemoteViews, width: Int, height: Int): Bitmap {
     val host = FrameLayout(context)
     val child = remote.apply(context, host)
     host.addView(child, FrameLayout.LayoutParams(width, height))

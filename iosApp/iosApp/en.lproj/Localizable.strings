@@ -3,7 +3,7 @@
 "widget_small_name" = "Dingrow";
 "widget_small_desc" = "Pet, mood, and the next task. Feed and complete from the widget.";
 "widget_large_name" = "Dingrow room";
-"widget_large_desc" = "The decorated room and pet. Feed, complete, sell a gift, today's shop, change the room.";
+"widget_large_desc" = "Mongi's room, speech bubble and today's schedule list. Tap a schedule to open it.";
 "wallpaper_name" = "Dingrow wallpaper";
 "channel_schedule" = "Schedule reminders";
 "channel_schedule_desc" = "Dingrow reminds you when a task is due.";
@@ -57,3 +57,5 @@
 "intent_cancel_desc" = "Cancel the purchase confirmation.";
 "intent_preset" = "Change the room";
 "intent_preset_desc" = "Switch to the next room preset.";
+"widget_medium_name" = "Mongi and upcoming";
+"widget_medium_desc" = "Mongi with your next two schedules, fullness and condition.";

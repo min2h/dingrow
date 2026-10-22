@@ -1,5 +1,6 @@
 package app.mongle
 
+import app.mongle.widget.MediumPetWidget
 import android.content.Context
 import app.mongle.platform.AndroidHooks
 import app.mongle.platform.createAndroidDriver
@@ -64,6 +65,7 @@ object AppGraph {
                     runCatching {
                         SmallPetWidget().updateAll(app)
                         LargePetWidget().updateAll(app)
+                        MediumPetWidget().updateAll(app)
                     }
                 }
             }

@@ -607,7 +607,7 @@ internal val En: Map<String, String> = buildMap {
     put("widget_small_name", "Dingrow")
     put("widget_small_desc", "Pet, mood, and the next task. Feed and complete from the widget.")
     put("widget_large_name", "Dingrow room")
-    put("widget_large_desc", "The decorated room and pet. Feed, complete, sell a gift, today's shop, change the room.")
+    put("widget_large_desc", "Mongi's room, speech bubble and today's schedule list. Tap a schedule to open it.")
     put("wallpaper_name", "Dingrow wallpaper")
     put("channel_schedule", "Schedule reminders")
     put("channel_schedule_desc", "Dingrow reminds you when a task is due.")
@@ -985,6 +985,11 @@ internal val En: Map<String, String> = buildMap {
     put("medicine_name", "Medicine")
     put("medicine_desc", "Recovery +80%")
     put("medicine_buy", "%s coins · Give")
+    put("widget_today_count", "%d today")
+    put("widget_next_badge", "Next")
+    put("widget_upcoming", "Upcoming")
+    put("widget_medium_name", "Mongi and upcoming")
+    put("widget_medium_desc", "Mongi with your next two schedules, fullness and condition.")
 }
 
 internal val Ko: Map<String, String> = buildMap {
@@ -1593,7 +1598,7 @@ internal val Ko: Map<String, String> = buildMap {
     put("widget_small_name", "딩그로")
     put("widget_small_desc", "펫, 기분, 다음 일정. 먹이와 완료를 위젯에서 할 수 있어요.")
     put("widget_large_name", "딩그로의 방")
-    put("widget_large_desc", "꾸민 방과 펫. 먹이, 완료, 선물 판매, 오늘의 상점, 방 바꾸기.")
+    put("widget_large_desc", "몽이의 방, 말풍선, 오늘 일정 목록. 일정을 누르면 바로 열려요.")
     put("wallpaper_name", "딩그로 배경")
     put("channel_schedule", "일정 알림")
     put("channel_schedule_desc", "딩그로가 일정 시간에 알려 줘요.")
@@ -1971,4 +1976,9 @@ internal val Ko: Map<String, String> = buildMap {
     put("medicine_name", "약")
     put("medicine_desc", "먹이면 회복 +80%")
     put("medicine_buy", "%s 코인 · 사서 먹이기")
+    put("widget_today_count", "오늘 %d개")
+    put("widget_next_badge", "다음")
+    put("widget_upcoming", "다가오는 일정")
+    put("widget_medium_name", "몽이와 다가오는 일정")
+    put("widget_medium_desc", "몽이와 다음 일정 2개, 배부름과 컨디션.")
 }

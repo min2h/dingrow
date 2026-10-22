@@ -4,7 +4,7 @@
     <string name="widget_small_name">딩그로</string>
     <string name="widget_small_desc">펫, 기분, 다음 일정. 먹이와 완료를 위젯에서 할 수 있어요.</string>
     <string name="widget_large_name">딩그로의 방</string>
-    <string name="widget_large_desc">꾸민 방과 펫. 먹이, 완료, 선물 판매, 오늘의 상점, 방 바꾸기.</string>
+    <string name="widget_large_desc">몽이의 방, 말풍선, 오늘 일정 목록. 일정을 누르면 바로 열려요.</string>
     <string name="wallpaper_name">딩그로 배경</string>
     <string name="channel_schedule">일정 알림</string>
     <string name="channel_schedule_desc">딩그로가 일정 시간에 알려 줘요.</string>
@@ -58,4 +58,6 @@
     <string name="intent_cancel_desc">구매 확인을 취소합니다.</string>
     <string name="intent_preset">방 바꾸기</string>
     <string name="intent_preset_desc">다음 방 프리셋으로 바꿉니다.</string>
+    <string name="widget_medium_name">몽이와 다가오는 일정</string>
+    <string name="widget_medium_desc">몽이와 다음 일정 2개, 배부름과 컨디션.</string>
 </resources>

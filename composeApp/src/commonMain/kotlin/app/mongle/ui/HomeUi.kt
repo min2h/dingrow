@@ -110,7 +110,7 @@ fun DrawScope.drawWeatherGlyph(kind: WeatherKind?, phase: DayPhase? = null) {
 }
 
 /** Tint over the room art for the time of day and weather (night uses the night art). */
-private fun gradeFor(phase: DayPhase, kind: WeatherKind?): Color = when (kind) {
+internal fun gradeFor(phase: DayPhase, kind: WeatherKind?): Color = when (kind) {
     WeatherKind.STORM -> Color(0x6630364A)
     WeatherKind.RAIN -> Color(0x4D5A6A82)
     WeatherKind.SNOW -> Color(0x33C8D6EC)
@@ -221,7 +221,7 @@ fun LiveRoom(
     }
 }
 
-private fun DrawScope.drawPrecip(kind: WeatherKind, t: Float, dp: Float) {
+internal fun DrawScope.drawPrecip(kind: WeatherKind, t: Float, dp: Float) {
     val rnd = Random(7)
     val n = when (kind) { WeatherKind.STORM -> 90; WeatherKind.RAIN -> 55; else -> 60 }
     repeat(n) {
@@ -244,7 +244,7 @@ private fun DrawScope.drawPrecip(kind: WeatherKind, t: Float, dp: Float) {
 }
 
 /** Condition visuals around the pet box (size = pet). */
-private fun DrawScope.drawCondition(c: Condition, t: Float, dp: Float) {
+internal fun DrawScope.drawCondition(c: Condition, t: Float, dp: Float) {
     val s = size.width; val cx = s / 2; val cy = s * 0.55f
     when (c) {
         Condition.COLD -> {

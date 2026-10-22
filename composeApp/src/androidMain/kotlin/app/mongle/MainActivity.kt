@@ -84,6 +84,8 @@ class MainActivity : ComponentActivity() {
         val scheme = data?.scheme
         val alarmId = intent?.getStringExtra("alarmScheduleId")
         if (!alarmId.isNullOrBlank()) NavigationBus.request("alarm:$alarmId")
+        val focusId = scheduleIdFromUri(data)
+        if (focusId != null) { NavigationBus.request("schedule/$focusId"); return }
         if (route == "add-schedule" || ((scheme == "dingrow" || scheme == "mongle") && data?.host == "schedule")) {
             NavigationBus.request("add-schedule")
         }
@@ -151,4 +153,11 @@ class MainActivity : ComponentActivity() {
             canPinWidget = canPin,
         )
     }
+}
+
+/** `dingrow://schedule/<id>` → id; `/add` and other shapes → null. */
+internal fun scheduleIdFromUri(data: android.net.Uri?): String? {
+    if (data == null || data.scheme != "dingrow" || data.host != "schedule") return null
+    val seg = data.pathSegments.firstOrNull()?.takeIf { it.isNotBlank() && it != "add" } ?: return null
+    return seg
 }
