@@ -57,8 +57,8 @@ class ScreensV4Test {
     private suspend fun GameService.seedDay(lang: String) {
         val base = System.currentTimeMillis()
         val day = kotlinx.datetime.Instant.fromEpochMilliseconds(base).let { it.toEpochMilliseconds() - it.toEpochMilliseconds() % 86_400_000L } - 9 * 3_600_000L
-        val items = if (lang == "ko") listOf(Triple("출근", "회사", "work"), Triple("팀 회의", "3층 회의실", "meeting"), Triple("점심 약속", "을지로", "meeting"), Triple("운동 가기", "헬스장", "exercise"), Triple("술약속", "강남역", "social"), Triple("장보기", "", "chores"))
-            else listOf(Triple("Work", "Office", "work"), Triple("Team sync", "Room 3F", "meeting"), Triple("Lunch", "Euljiro", "meeting"), Triple("Gym", "Gym", "exercise"), Triple("Drinks", "Gangnam Stn", "social"), Triple("Groceries", "", "chores"))
+        val items = if (lang == "ko") listOf(Triple("출근", "회사", "work"), Triple("팀 회의", "3층 회의실", "meeting"), Triple("점심 약속", "을지로", "meeting"), Triple("운동 가기", "헬스장", "exercise"), Triple("저녁약속", "강남역", "social"), Triple("장보기", "", "chores"))
+            else listOf(Triple("Work", "Office", "work"), Triple("Team sync", "Room 3F", "meeting"), Triple("Lunch", "Euljiro", "meeting"), Triple("Gym", "Gym", "exercise"), Triple("Dinner plans", "Gangnam Stn", "social"), Triple("Groceries", "", "chores"))
         val hours = listOf(9 * 60, 10 * 60 + 30, 12 * 60 + 30, 18 * 60, 19 * 60 + 30, 21 * 60)
         items.zip(hours).forEach { (it, m) -> addDraft(ScheduleDraft(title = it.first, timeMillis = day + 24 * 3_600_000L * ((base - day) / 86_400_000L) + m * 60_000L, repeat = RepeatRule.NONE, place = it.second, category = it.third)) }
     }

@@ -50,7 +50,7 @@ object ScheduleTemplates {
         ScheduleTemplate("수업", RepeatRule.NONE, 10, 0, category = "study", key = "template_class"),
         ScheduleTemplate("운동 가기", RepeatRule.NONE, 19, 0, category = "exercise", key = "template_gym"),
         ScheduleTemplate("약속", RepeatRule.NONE, 18, 30, category = "meeting", key = "template_meet"),
-        ScheduleTemplate("술약속", RepeatRule.NONE, 19, 0, category = "social", key = "template_drinks"),
+        ScheduleTemplate("저녁약속", RepeatRule.NONE, 19, 0, category = "social", key = "template_drinks"),
         ScheduleTemplate("병원", RepeatRule.NONE, 10, 30, category = "health", key = "template_clinic"),
         ScheduleTemplate("공부", RepeatRule.NONE, 20, 0, category = "study", key = "template_study"),
         ScheduleTemplate("장보기", RepeatRule.NONE, 17, 0, category = "chores", key = "template_groceries"),

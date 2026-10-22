@@ -539,7 +539,7 @@ class MongleRulesTest {
         )
         assertEquals(legacy, modern)
 
-        assertEquals(listOf("출근", "수업", "운동 가기", "약속", "술약속", "병원", "공부", "장보기", "약 먹기"), ScheduleTemplates.all.map { it.title })
+        assertEquals(listOf("출근", "수업", "운동 가기", "약속", "저녁약속", "병원", "공부", "장보기", "약 먹기"), ScheduleTemplates.all.map { it.title })
         assertTrue(ScheduleTemplates.all.all { it.category in app.mongle.logic.Categories.all })
         assertTrue(ScheduleTemplates.all.any { it.title == "출근" && it.repeat == RepeatRule.WEEKDAYS })
 

@@ -52,10 +52,13 @@ fun DrawScope.drawCategory(cat: String, tint: Color) {
             drawArc(tint, 180f, 180f, false, Offset(w * 0.16f, w * 0.56f), Size(w * 0.4f, w * 0.36f), style = st)
             drawArc(tint, 180f, 180f, false, Offset(w * 0.46f, w * 0.56f), Size(w * 0.4f, w * 0.36f), style = st)
         }
-        "social" -> { // beer mug
-            drawRoundRect(tint, Offset(w * 0.2f, w * 0.28f), Size(w * 0.42f, w * 0.56f), CornerRadius(w * 0.06f), style = st)
-            drawArc(tint, -90f, 180f, false, Offset(w * 0.5f, w * 0.38f), Size(w * 0.26f, w * 0.3f), style = st)
-            drawCircle(tint, w * 0.07f, Offset(w * 0.28f, w * 0.22f)); drawCircle(tint, w * 0.08f, Offset(w * 0.42f, w * 0.2f)); drawCircle(tint, w * 0.07f, Offset(w * 0.55f, w * 0.23f))
+        "social" -> { // fork & knife (dinner plans)
+            drawLine(tint, Offset(w * 0.34f, w * 0.14f), Offset(w * 0.34f, w * 0.86f), sw)
+            drawLine(tint, Offset(w * 0.24f, w * 0.14f), Offset(w * 0.24f, w * 0.36f), sw)
+            drawLine(tint, Offset(w * 0.44f, w * 0.14f), Offset(w * 0.44f, w * 0.36f), sw)
+            drawArc(tint, 0f, 180f, false, Offset(w * 0.24f, w * 0.26f), Size(w * 0.2f, w * 0.2f), style = st)
+            drawRoundRect(tint, Offset(w * 0.6f, w * 0.14f), Size(w * 0.14f, w * 0.4f), CornerRadius(w * 0.07f))
+            drawLine(tint, Offset(w * 0.67f, w * 0.5f), Offset(w * 0.67f, w * 0.86f), sw)
         }
         "health" -> { // medical cross
             drawRoundRect(tint, Offset(w * 0.4f, w * 0.16f), Size(w * 0.2f, w * 0.68f), CornerRadius(w * 0.06f))

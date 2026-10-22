@@ -16,7 +16,7 @@ class WorldTest {
         cond: Condition = Condition.GOOD, today: Int = 0, left: Int = 0,
     ) = Situation(
         now = base, phase = DayPhase.NOON, condition = cond, weather = weather, fahrenheit = false,
-        nextTitle = mins?.let { "술약속" }, nextPlace = place, nextAt = mins?.let { base + it * 60_000L },
+        nextTitle = mins?.let { "저녁약속" }, nextPlace = place, nextAt = mins?.let { base + it * 60_000L },
         nextClock = mins?.let { "19:00" }, todayCount = today, todayLeft = left, hunger = 80,
     )
     private fun wx(code: Int, laterCode: Int? = null) = WeatherSnapshot(

@@ -60,7 +60,7 @@ class HomeStatesTest {
         runBlocking {
             s.completeOnboarding("몽이")
             s.updateSettings(s.state.value.settings.copy(language = lang, useLocation = true, newScheduleConfirm = false))
-            if (schedule) s.addDraft(ScheduleDraft(title = if (lang == "ko") "술약속" else "Drinks", timeMillis = now + 95 * 60_000L, repeat = RepeatRule.NONE, place = if (lang == "ko") "강남역" else "Gangnam Stn"))
+            if (schedule) s.addDraft(ScheduleDraft(title = if (lang == "ko") "저녁약속" else "Dinner plans", timeMillis = now + 95 * 60_000L, repeat = RepeatRule.NONE, place = if (lang == "ko") "강남역" else "Gangnam Stn"))
             s.block(now)
             s.refresh()
         }
@@ -90,7 +90,7 @@ class HomeStatesTest {
         setup(12, 30) { setWeather(wx(it, 0, 21.0)) }
         rule.onNodeWithTag("weather-chip").fetchSemanticsNode()
         val text = rule.onNodeWithTag("next-headline").fetchSemanticsNode().config.getOrNull(SemanticsProperties.Text)!!.first()
-        assertTrue(text.text, text.text.contains("14:05") && text.text.contains("강남역") && text.text.contains("술약속"))
+        assertTrue(text.text, text.text.contains("14:05") && text.text.contains("강남역") && text.text.contains("저녁약속"))
         assertTrue("time/place/title bold", text.spanStyles.count { it.item.fontWeight == FontWeight.ExtraBold } == 3)
         assertBubbleAnchored()
         shot("home-noon.png")

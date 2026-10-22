@@ -60,7 +60,7 @@
     <string name="owned_short">보유</string>
     <string name="owned">보유 중</string>
     <string name="add_schedule">일정 추가</string>
-    <string name="task_hint">일정 이름 (예: 술약속)</string>
+    <string name="task_hint">일정 이름 (예: 저녁약속)</string>
     <string name="date_row">날짜  %s</string>
     <string name="am">오전</string>
     <string name="pm">오후</string>
@@ -887,7 +887,7 @@
     <string name="cat_work">업무</string>
     <string name="cat_exercise">운동</string>
     <string name="cat_meeting">약속</string>
-    <string name="cat_social">모임·술</string>
+    <string name="cat_social">모임</string>
     <string name="cat_health">건강</string>
     <string name="cat_chores">집안일</string>
     <string name="cat_other">기타</string>
@@ -895,7 +895,7 @@
     <string name="template_class">수업</string>
     <string name="template_gym">운동 가기</string>
     <string name="template_meet">약속</string>
-    <string name="template_drinks">술약속</string>
+    <string name="template_drinks">저녁약속</string>
     <string name="template_clinic">병원</string>
     <string name="template_study">공부</string>
     <string name="template_groceries">장보기</string>

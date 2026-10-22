@@ -60,7 +60,7 @@
     <string name="owned_short">Owned</string>
     <string name="owned">Owned</string>
     <string name="add_schedule">Add a task</string>
-    <string name="task_hint">What\'s happening? (e.g. Drinks)</string>
+    <string name="task_hint">What\'s happening? (e.g. Dinner plans)</string>
     <string name="date_row">Date  %s</string>
     <string name="am">AM</string>
     <string name="pm">PM</string>
@@ -895,7 +895,7 @@
     <string name="template_class">Class</string>
     <string name="template_gym">Gym</string>
     <string name="template_meet">Meet up</string>
-    <string name="template_drinks">Drinks</string>
+    <string name="template_drinks">Dinner plans</string>
     <string name="template_clinic">Clinic</string>
     <string name="template_study">Study</string>
     <string name="template_groceries">Groceries</string>

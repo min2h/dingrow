@@ -61,7 +61,7 @@ fun clockOf(millis: Long, use24h: Boolean = true): String {
     return "$h:${t.minute.toString().padStart(2, '0')} ${if (t.hour < 12) "AM" else "PM"}"
 }
 
-/** "**19:00** **강남역** **술약속**": time, place and title emphasized for every surface. */
+/** "**19:00** **강남역** **저녁약속**": time, place and title emphasized for every surface. */
 fun scheduleHeadline(v: ScheduleView, use24h: Boolean = true): String =
     listOfNotNull(clockOf(v.timeMillis, use24h), v.place.takeIf { it.isNotBlank() }, v.title).joinToString(" ") { "**$it**" }
 
