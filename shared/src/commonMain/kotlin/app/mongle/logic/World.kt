@@ -162,7 +162,7 @@ object ConditionRules {
     const val RECOVERY_PER_TASK = 20
     const val RECOVERY_MEDICINE = 80
     const val RECOVERY_FEED = 5
-    const val MEDICINE_PRICE = 50
+    val MEDICINE_PRICE get() = app.mongle.model.EconomyConfig.medicinePrice
     const val MEDICINE_ID = "medicine"
     const val DISCOMFORT_LIMIT = 180
     const val SICK_CHANCE_PERCENT = 35

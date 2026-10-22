@@ -109,54 +109,89 @@ object Catalog {
         ItemDef("wildflower", "들꽃", ItemKind.GIFT, Rarity.COMMON, sellPrice = 100, blurb = "들꽃."),
     )
 
+    /** 50/100 코인 저가 아이템 (상점). */
+    val cheap = listOf(
+        ItemDef("mini_plant", "미니 다육이", ItemKind.DECOR, Rarity.COMMON, price = EconomyConfig.cheapPrices.getValue("mini_plant"), blurb = "미니 다육이."),
+        ItemDef("candle", "캔들", ItemKind.DECOR, Rarity.COMMON, price = EconomyConfig.cheapPrices.getValue("candle"), blurb = "캔들."),
+        ItemDef("sticker_sheet", "스티커", ItemKind.DECOR, Rarity.COMMON, price = EconomyConfig.cheapPrices.getValue("sticker_sheet"), blurb = "스티커."),
+        ItemDef("mug", "하트 머그", ItemKind.DECOR, Rarity.COMMON, price = EconomyConfig.cheapPrices.getValue("mug"), blurb = "하트 머그."),
+        ItemDef("ribbon_garland", "리본 가랜드", ItemKind.DECOR, Rarity.COMMON, price = EconomyConfig.cheapPrices.getValue("ribbon_garland"), blurb = "리본 가랜드."),
+        ItemDef("cozy_socks", "줄무늬 양말", ItemKind.OUTFIT, Rarity.COMMON, price = EconomyConfig.cheapPrices.getValue("cozy_socks"), blurb = "줄무늬 양말."),
+        ItemDef("floor_cushion", "방석 쿠션", ItemKind.DECOR, Rarity.COMMON, price = EconomyConfig.cheapPrices.getValue("floor_cushion"), blurb = "방석 쿠션."),
+        ItemDef("round_mint_rug", "동글 러그", ItemKind.RUG, Rarity.COMMON, price = EconomyConfig.cheapPrices.getValue("round_mint_rug"), blurb = "동글 러그."),
+        ItemDef("sun_poster", "해님 포스터", ItemKind.DECOR, Rarity.COMMON, price = EconomyConfig.cheapPrices.getValue("sun_poster"), blurb = "해님 포스터."),
+        ItemDef("snack_bowl", "과자 그릇", ItemKind.DECOR, Rarity.COMMON, price = EconomyConfig.cheapPrices.getValue("snack_bowl"), blurb = "과자 그릇."),
+    )
+
+    /** 300–600 코인 새 예쁜 아이템 (상점, 계절 아이템 포함). */
+    val pretty = listOf(
+        ItemDef("canopy_bed", "캐노피 침대", ItemKind.BED, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("canopy_bed"), blurb = "캐노피 침대."),
+        ItemDef("velvet_armchair", "벨벳 안락의자", ItemKind.DECOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("velvet_armchair"), blurb = "벨벳 안락의자."),
+        ItemDef("vanity_table", "화장대", ItemKind.DECOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("vanity_table"), blurb = "화장대."),
+        ItemDef("rattan_shelf", "라탄 선반", ItemKind.DECOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("rattan_shelf"), blurb = "라탄 선반."),
+        ItemDef("hanging_chair", "행잉 체어", ItemKind.DECOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("hanging_chair"), blurb = "행잉 체어."),
+        ItemDef("terrarium", "테라리움", ItemKind.DECOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("terrarium"), blurb = "테라리움."),
+        ItemDef("mushroom_lamp", "버섯 조명", ItemKind.LAMP, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("mushroom_lamp"), blurb = "버섯 조명."),
+        ItemDef("star_projector", "별빛 무드등", ItemKind.LAMP, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("star_projector"), blurb = "별빛 무드등."),
+        ItemDef("moon_mirror", "달 거울", ItemKind.DECOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("moon_mirror"), blurb = "달 거울."),
+        ItemDef("bunny_plush", "토끼 인형", ItemKind.DECOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("bunny_plush"), blurb = "토끼 인형."),
+        ItemDef("music_box", "오르골", ItemKind.DECOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("music_box"), blurb = "오르골."),
+        ItemDef("desk_globe", "지구본", ItemKind.DECOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("desk_globe"), blurb = "지구본."),
+        ItemDef("aroma_diffuser", "아로마 디퓨저", ItemKind.DECOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("aroma_diffuser"), blurb = "아로마 디퓨저."),
+        ItemDef("wall_stripe", "민트 줄무늬 벽지", ItemKind.WALL, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("wall_stripe"), blurb = "민트 줄무늬 벽지."),
+        ItemDef("wall_starry", "별밤 벽지", ItemKind.WALL, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("wall_starry"), blurb = "별밤 벽지."),
+        ItemDef("floor_herringbone", "헤링본 마루", ItemKind.FLOOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("floor_herringbone"), blurb = "헤링본 마루."),
+        ItemDef("floor_mint_tile", "민트 타일 바닥", ItemKind.FLOOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("floor_mint_tile"), blurb = "민트 타일 바닥."),
+        ItemDef("cardigan", "노랑 가디건", ItemKind.OUTFIT, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("cardigan"), blurb = "노랑 가디건."),
+        ItemDef("beanie", "털모자", ItemKind.OUTFIT, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("beanie"), blurb = "털모자."),
+        ItemDef("sailor_collar", "세일러 카라", ItemKind.OUTFIT, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("sailor_collar"), blurb = "세일러 카라."),
+        ItemDef("overalls", "멜빵바지", ItemKind.OUTFIT, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("overalls"), blurb = "멜빵바지."),
+        ItemDef("pearl_necklace", "진주 목걸이", ItemKind.OUTFIT, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("pearl_necklace"), blurb = "진주 목걸이."),
+        ItemDef("heart_hairpin", "하트 머리핀", ItemKind.OUTFIT, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("heart_hairpin"), blurb = "하트 머리핀."),
+        ItemDef("tiny_backpack", "꼬마 배낭", ItemKind.OUTFIT, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("tiny_backpack"), blurb = "꼬마 배낭."),
+        ItemDef("pumpkin_lantern", "호박 랜턴", ItemKind.DECOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("pumpkin_lantern"), blurb = "호박 랜턴.", fresh = true),
+        ItemDef("snow_globe", "스노우볼", ItemKind.DECOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("snow_globe"), blurb = "스노우볼.", fresh = true),
+        ItemDef("xmas_tree", "크리스마스 트리", ItemKind.DECOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("xmas_tree"), blurb = "크리스마스 트리.", fresh = true),
+        ItemDef("cherry_branch", "벚꽃 가지", ItemKind.DECOR, Rarity.UNCOMMON, price = EconomyConfig.prettyPrices.getValue("cherry_branch"), blurb = "벚꽃 가지.", fresh = true),
+    )
+
+    /** 선물 전용(상점 판매 없음). 도감에서는 얻기 전까지 실루엣. */
     val uniques = listOf(
-        ItemDef(
-            id = "moon_bell",
-            name = "달종",
-            kind = ItemKind.GIFT,
-            rarity = Rarity.RARE,
-            price = 0,
-            sellPrice = EconomyConfig.rareResell.getValue("moon_bell"),
-            blurb = "상점에 없는 달종.",
-            artId = "clover",
-        ),
-        ItemDef(
-            id = "glass_marble",
-            name = "유리구슬",
-            kind = ItemKind.GIFT,
-            rarity = Rarity.RARE,
-            price = 0,
-            sellPrice = EconomyConfig.rareResell.getValue("glass_marble"),
-            blurb = "상점에 없는 유리구슬.",
-            artId = "pebble",
-        ),
-        ItemDef(
-            id = "dawn_feather",
-            name = "새벽깃",
-            kind = ItemKind.GIFT,
-            rarity = Rarity.EPIC,
-            price = 0,
-            sellPrice = EconomyConfig.legendaryResell.getValue("dawn_feather"),
-            blurb = "상점에 없는 새벽깃.",
-            artId = "feather",
-        ),
-        ItemDef(
-            id = "comet_shard",
-            name = "혜성조각",
-            kind = ItemKind.GIFT,
-            rarity = Rarity.EPIC,
-            price = 0,
-            sellPrice = EconomyConfig.legendaryResell.getValue("comet_shard"),
-            blurb = "상점에 없는 혜성조각.",
-            artId = "star_piece",
-        ),
+        ItemDef("moon_bell", "달종", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("moon_bell"), blurb = "달종."),
+        ItemDef("glass_marble", "유리구슬", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("glass_marble"), blurb = "유리구슬."),
+        ItemDef("rainbow_shell", "무지개 조개", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("rainbow_shell"), blurb = "무지개 조개."),
+        ItemDef("amber_drop", "호박 물방울", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("amber_drop"), blurb = "호박 물방울."),
+        ItemDef("crystal_leaf", "수정 잎사귀", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("crystal_leaf"), blurb = "수정 잎사귀."),
+        ItemDef("music_charm", "음표 참", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("music_charm"), blurb = "음표 참."),
+        ItemDef("pocket_watch", "회중시계", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("pocket_watch"), blurb = "회중시계."),
+        ItemDef("silver_key", "은빛 열쇠", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("silver_key"), blurb = "은빛 열쇠."),
+        ItemDef("cloud_puff", "구름 솜", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("cloud_puff"), blurb = "구름 솜."),
+        ItemDef("lucky_dice", "행운 주사위", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("lucky_dice"), blurb = "행운 주사위."),
+        ItemDef("rose_heart", "장미수정 하트", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("rose_heart"), blurb = "장미수정 하트."),
+        ItemDef("fairy_lantern", "요정 랜턴", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("fairy_lantern"), blurb = "요정 랜턴."),
+        ItemDef("clover_brooch", "클로버 브로치", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("clover_brooch"), blurb = "클로버 브로치."),
+        ItemDef("sun_amulet", "해님 부적", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("sun_amulet"), blurb = "해님 부적."),
+        ItemDef("snow_crystal", "눈꽃 결정", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("snow_crystal"), blurb = "눈꽃 결정."),
+        ItemDef("unicorn_horn", "유니콘 뿔", ItemKind.GIFT, Rarity.RARE, price = 0, sellPrice = EconomyConfig.rareResell.getValue("unicorn_horn"), blurb = "유니콘 뿔."),
+        ItemDef("dawn_feather", "새벽깃", ItemKind.GIFT, Rarity.EPIC, price = 0, sellPrice = EconomyConfig.legendaryResell.getValue("dawn_feather"), blurb = "새벽깃."),
+        ItemDef("comet_shard", "혜성조각", ItemKind.GIFT, Rarity.EPIC, price = 0, sellPrice = EconomyConfig.legendaryResell.getValue("comet_shard"), blurb = "혜성조각."),
+        ItemDef("phoenix_plume", "불사조 깃털", ItemKind.GIFT, Rarity.EPIC, price = 0, sellPrice = EconomyConfig.legendaryResell.getValue("phoenix_plume"), blurb = "불사조 깃털."),
+        ItemDef("aurora_jar", "오로라 병", ItemKind.GIFT, Rarity.EPIC, price = 0, sellPrice = EconomyConfig.legendaryResell.getValue("aurora_jar"), blurb = "오로라 병."),
+        ItemDef("golden_acorn", "황금 도토리", ItemKind.GIFT, Rarity.EPIC, price = 0, sellPrice = EconomyConfig.legendaryResell.getValue("golden_acorn"), blurb = "황금 도토리."),
+        ItemDef("mermaid_pearl", "인어의 진주", ItemKind.GIFT, Rarity.EPIC, price = 0, sellPrice = EconomyConfig.legendaryResell.getValue("mermaid_pearl"), blurb = "인어의 진주."),
+        ItemDef("star_crown", "별 왕관", ItemKind.GIFT, Rarity.EPIC, price = 0, sellPrice = EconomyConfig.legendaryResell.getValue("star_crown"), blurb = "별 왕관."),
+        ItemDef("dragon_egg", "용의 알", ItemKind.GIFT, Rarity.EPIC, price = 0, sellPrice = EconomyConfig.legendaryResell.getValue("dragon_egg"), blurb = "용의 알."),
+        ItemDef("moon_rabbit", "달토끼 조각상", ItemKind.GIFT, Rarity.EPIC, price = 0, sellPrice = EconomyConfig.legendaryResell.getValue("moon_rabbit"), blurb = "달토끼 조각상."),
+        ItemDef("galaxy_marble", "은하 구슬", ItemKind.GIFT, Rarity.EPIC, price = 0, sellPrice = EconomyConfig.legendaryResell.getValue("galaxy_marble"), blurb = "은하 구슬."),
     )
 
     val companions: List<ItemDef> = SpeciesCatalog.all.map { species ->
         ItemDef(species.id, species.name, ItemKind.COMPANION, species.rarity, price = species.price, blurb = species.blurb)
     }
 
-    val goods: List<ItemDef> = listOf(cookie, rice_ball, milk_bottle, strawberry_cake) + outfits + furniture + gifts
+    val goods: List<ItemDef> = listOf(cookie, rice_ball, milk_bottle, strawberry_cake) + outfits + furniture + cheap + pretty + gifts
+    /** Everything sold in the coin shop (gift-only uniques excluded). */
+    val shop: List<ItemDef> = listOf(cookie, rice_ball, milk_bottle, strawberry_cake) + outfits + furniture + cheap + pretty
     val all: List<ItemDef> = goods + uniques + companions
     val uniqueIds: Set<String> = uniques.map { it.id }.toSet()
 
@@ -186,8 +221,8 @@ fun floorHex(id: String?): String = when (roomTheme(id)) {
 }
 
 fun roomTheme(id: String?): String = when (id) {
-    "mint", "wall_mint", "floor_tile" -> "mint"
-    "starry", "wall_night" -> "starry"
+    "mint", "wall_mint", "floor_tile", "wall_stripe", "floor_mint_tile" -> "mint"
+    "starry", "wall_night", "wall_starry" -> "starry"
     else -> "wood"
 }
 

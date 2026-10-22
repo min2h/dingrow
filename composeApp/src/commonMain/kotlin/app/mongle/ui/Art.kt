@@ -65,6 +65,70 @@ object Art {
     fun known(id: String): Boolean = id in ids
     fun drawable(id: String): DrawableResource = SpeciesPoses.drawable(id) ?: when (id) {
         "acorn" -> Res.drawable.acorn
+        "amber_drop" -> Res.drawable.amber_drop
+        "aroma_diffuser" -> Res.drawable.aroma_diffuser
+        "aurora_jar" -> Res.drawable.aurora_jar
+        "beanie" -> Res.drawable.beanie
+        "bunny_plush" -> Res.drawable.bunny_plush
+        "candle" -> Res.drawable.candle
+        "canopy_bed" -> Res.drawable.canopy_bed
+        "cardigan" -> Res.drawable.cardigan
+        "cherry_branch" -> Res.drawable.cherry_branch
+        "cloud_puff" -> Res.drawable.cloud_puff
+        "clover_brooch" -> Res.drawable.clover_brooch
+        "comet_shard" -> Res.drawable.comet_shard
+        "cozy_socks" -> Res.drawable.cozy_socks
+        "crystal_leaf" -> Res.drawable.crystal_leaf
+        "dawn_feather" -> Res.drawable.dawn_feather
+        "desk_globe" -> Res.drawable.desk_globe
+        "dragon_egg" -> Res.drawable.dragon_egg
+        "fairy_lantern" -> Res.drawable.fairy_lantern
+        "floor_cushion" -> Res.drawable.floor_cushion
+        "floor_herringbone" -> Res.drawable.floor_herringbone
+        "floor_mint_tile" -> Res.drawable.floor_mint_tile
+        "galaxy_marble" -> Res.drawable.galaxy_marble
+        "glass_marble" -> Res.drawable.glass_marble
+        "golden_acorn" -> Res.drawable.golden_acorn
+        "hanging_chair" -> Res.drawable.hanging_chair
+        "heart_hairpin" -> Res.drawable.heart_hairpin
+        "lucky_dice" -> Res.drawable.lucky_dice
+        "mermaid_pearl" -> Res.drawable.mermaid_pearl
+        "mini_plant" -> Res.drawable.mini_plant
+        "moon_bell" -> Res.drawable.moon_bell
+        "moon_mirror" -> Res.drawable.moon_mirror
+        "moon_rabbit" -> Res.drawable.moon_rabbit
+        "mug" -> Res.drawable.mug
+        "mushroom_lamp" -> Res.drawable.mushroom_lamp
+        "music_box" -> Res.drawable.music_box
+        "music_charm" -> Res.drawable.music_charm
+        "overalls" -> Res.drawable.overalls
+        "pearl_necklace" -> Res.drawable.pearl_necklace
+        "phoenix_plume" -> Res.drawable.phoenix_plume
+        "pocket_watch" -> Res.drawable.pocket_watch
+        "pumpkin_lantern" -> Res.drawable.pumpkin_lantern
+        "rainbow_shell" -> Res.drawable.rainbow_shell
+        "rattan_shelf" -> Res.drawable.rattan_shelf
+        "ribbon_garland" -> Res.drawable.ribbon_garland
+        "rose_heart" -> Res.drawable.rose_heart
+        "round_mint_rug" -> Res.drawable.round_mint_rug
+        "sailor_collar" -> Res.drawable.sailor_collar
+        "silver_key" -> Res.drawable.silver_key
+        "snack_bowl" -> Res.drawable.snack_bowl
+        "snow_crystal" -> Res.drawable.snow_crystal
+        "snow_globe" -> Res.drawable.snow_globe
+        "star_crown" -> Res.drawable.star_crown
+        "star_projector" -> Res.drawable.star_projector
+        "sticker_sheet" -> Res.drawable.sticker_sheet
+        "sun_amulet" -> Res.drawable.sun_amulet
+        "sun_poster" -> Res.drawable.sun_poster
+        "terrarium" -> Res.drawable.terrarium
+        "tiny_backpack" -> Res.drawable.tiny_backpack
+        "unicorn_horn" -> Res.drawable.unicorn_horn
+        "vanity_table" -> Res.drawable.vanity_table
+        "velvet_armchair" -> Res.drawable.velvet_armchair
+        "wall_starry" -> Res.drawable.wall_starry
+        "wall_stripe" -> Res.drawable.wall_stripe
+        "xmas_tree" -> Res.drawable.xmas_tree
         "app_icon" -> Res.drawable.app_icon
         "babydragon" -> Res.drawable.babydragon
         "barley" -> Res.drawable.barley
@@ -194,6 +258,70 @@ object Art {
         drawable(roomAssetId(theme, night, square))
     private val ids = setOf(
         "acorn",
+        "amber_drop",
+        "aroma_diffuser",
+        "aurora_jar",
+        "beanie",
+        "bunny_plush",
+        "candle",
+        "canopy_bed",
+        "cardigan",
+        "cherry_branch",
+        "cloud_puff",
+        "clover_brooch",
+        "comet_shard",
+        "cozy_socks",
+        "crystal_leaf",
+        "dawn_feather",
+        "desk_globe",
+        "dragon_egg",
+        "fairy_lantern",
+        "floor_cushion",
+        "floor_herringbone",
+        "floor_mint_tile",
+        "galaxy_marble",
+        "glass_marble",
+        "golden_acorn",
+        "hanging_chair",
+        "heart_hairpin",
+        "lucky_dice",
+        "mermaid_pearl",
+        "mini_plant",
+        "moon_bell",
+        "moon_mirror",
+        "moon_rabbit",
+        "mug",
+        "mushroom_lamp",
+        "music_box",
+        "music_charm",
+        "overalls",
+        "pearl_necklace",
+        "phoenix_plume",
+        "pocket_watch",
+        "pumpkin_lantern",
+        "rainbow_shell",
+        "rattan_shelf",
+        "ribbon_garland",
+        "rose_heart",
+        "round_mint_rug",
+        "sailor_collar",
+        "silver_key",
+        "snack_bowl",
+        "snow_crystal",
+        "snow_globe",
+        "star_crown",
+        "star_projector",
+        "sticker_sheet",
+        "sun_amulet",
+        "sun_poster",
+        "terrarium",
+        "tiny_backpack",
+        "unicorn_horn",
+        "vanity_table",
+        "velvet_armchair",
+        "wall_starry",
+        "wall_stripe",
+        "xmas_tree",
         "app_icon",
         "babydragon",
         "barley",

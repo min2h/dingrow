@@ -138,17 +138,18 @@ object GiftDrops {
             val ticket = random.nextInt(EconomyConfig.weightRare + EconomyConfig.weightLegendary)
             if (ticket < EconomyConfig.weightRare) DropKind.RARE else DropKind.LEGENDARY
         } else {
+            val w = EconomyConfig.weightsFor(level)
             val ticket = random.nextInt(EconomyConfig.weightTotal)
             when {
-                ticket < EconomyConfig.weightCoins -> DropKind.COINS
-                ticket < EconomyConfig.weightCoins + EconomyConfig.weightCommon -> DropKind.COMMON
-                ticket < EconomyConfig.weightCoins + EconomyConfig.weightCommon + EconomyConfig.weightRare -> DropKind.RARE
+                ticket < w[0] -> DropKind.COINS
+                ticket < w[0] + w[1] -> DropKind.COMMON
+                ticket < w[0] + w[1] + w[2] -> DropKind.RARE
                 else -> DropKind.LEGENDARY
             }
         }
         return when (kind) {
             DropKind.COINS -> GiftDrop(kind, coins = coinAmount(random, level))
-            DropKind.COMMON -> GiftDrop(kind, defId = pick(random, Catalog.outfits + Catalog.furniture).id)
+            DropKind.COMMON -> GiftDrop(kind, defId = pick(random, Catalog.outfits + Catalog.furniture + Catalog.cheap).id)
             DropKind.RARE -> GiftDrop(kind, defId = pick(random, Catalog.uniques.filter { it.rarity == Rarity.RARE }).id)
             DropKind.LEGENDARY -> {
                 val item = pick(random, Catalog.uniques.filter { it.rarity == Rarity.EPIC })
@@ -175,10 +176,8 @@ object GiftDrops {
     }
 
     private fun coinAmount(random: Random, level: Int): Int {
-        val span = (EconomyConfig.coinMax - EconomyConfig.coinMin + 1).coerceAtLeast(1)
-        val base = EconomyConfig.coinMin + random.nextInt(span)
-        val bonus = base * (level - 1).coerceAtLeast(0) * EconomyConfig.coinLevelPercent / 100
-        return base + bonus
+        val range = EconomyConfig.coinRange(level)
+        return range.first + random.nextInt((range.last - range.first + 1).coerceAtLeast(1))
     }
 
     private fun pick(random: Random, pool: List<ItemDef>): ItemDef = pool[random.nextInt(pool.size)]
