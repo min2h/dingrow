@@ -93,7 +93,10 @@ data class StoreReceipt(
 
 interface BillingGateway {
     suspend fun purchase(productId: String): StoreReceipt
+    /** Purchases the store still holds (paid but not yet consumed, e.g. pending that completed, or app killed mid-purchase). */
     suspend fun restore(): List<StoreReceipt>
+    /** Called after coins are granted (idempotent by token): consume the consumable so it can be bought again. */
+    suspend fun finish(receipt: StoreReceipt) {}
 }
 
 class FakeBilling : BillingGateway {
@@ -107,7 +110,11 @@ class FakeBilling : BillingGateway {
         return receipt
     }
 
-    override suspend fun restore(): List<StoreReceipt> = receipts.toList()
+    /** Test hooks: receipts the "store" still holds and ones that were finished (consumed). */
+    val held = mutableListOf<StoreReceipt>()
+    val finished = mutableListOf<String>()
+    override suspend fun restore(): List<StoreReceipt> = (receipts + held).filter { it.token !in finished }
+    override suspend fun finish(receipt: StoreReceipt) { finished += receipt.token }
 }
 
 object FreeDecor {

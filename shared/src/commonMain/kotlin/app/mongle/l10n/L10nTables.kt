@@ -1095,6 +1095,8 @@ internal val En: Map<String, String> = buildMap {
     put("notif_denied_hint", "Notifications are off. Tap to turn them on in Settings")
     put("save_blocked", "Can't save · %s")
     put("deco_no_changes", "No changes yet. Place or move an item, then save.")
+    put("msg_billing_pending", "Payment is pending. Coins arrive once it completes.")
+    put("msg_billing_owned", "A previous purchase is still open. Reopen the app to receive the coins.")
 }
 
 internal val Ko: Map<String, String> = buildMap {
@@ -2191,4 +2193,6 @@ internal val Ko: Map<String, String> = buildMap {
     put("notif_denied_hint", "알림이 꺼져 있어요. 눌러서 설정에서 켜 주세요")
     put("save_blocked", "저장할 수 없어요 · %s")
     put("deco_no_changes", "바꾼 내용이 없어요. 아이템을 놓거나 옮긴 뒤 저장해 주세요.")
+    put("msg_billing_pending", "결제가 대기 중이에요. 결제가 완료되면 코인이 들어와요.")
+    put("msg_billing_owned", "이전 결제가 남아 있어요. 다시 열면 코인이 들어와요.")
 }

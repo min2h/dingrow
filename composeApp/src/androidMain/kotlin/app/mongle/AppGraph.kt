@@ -72,7 +72,11 @@ object AppGraph {
             }
             val billing = gateway(app)
             service = createGameService(createAndroidDriver(app), billing = billing)
-            if (billing is PlayBillingGateway) scope.launch { runCatching { StorePrices.update(billing.prices()) } }
+            if (billing is PlayBillingGateway) scope.launch {
+                runCatching { StorePrices.update(billing.prices()) }
+                // Grant + consume purchases that completed while the app was closed (pending payments, interrupted flows).
+                runCatching { service.claimPendingPurchases() }
+            }
             ready = true
             scope.launch { service.refresh() }
         }
@@ -80,6 +84,9 @@ object AppGraph {
 
     private fun gateway(context: Context): BillingGateway {
         val robot = Build.FINGERPRINT.orEmpty().contains("robolectric")
-        return if (BuildConfig.DEBUG || robot) FakeBilling() else PlayBillingGateway(context)
+        return if (useFakeBilling(BuildConfig.DEBUG, robot)) FakeBilling() else PlayBillingGateway(context)
     }
+
+    /** Fake billing only in debug builds or under Robolectric; release builds always talk to Google Play. */
+    internal fun useFakeBilling(debug: Boolean, robot: Boolean) = debug || robot
 }

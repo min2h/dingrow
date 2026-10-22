@@ -22,3 +22,8 @@ iosApp/build/
 DerivedData/
 .DS_Store
 agent-tools/
+
+# Release secrets live outside the repo (/workspace/secrets); never commit them.
+secrets/
+*.password
+signing.env

@@ -494,7 +494,21 @@ class GameService(
     suspend fun purchaseProduct(productId: String): ActionResult {
         val receipt = billing.purchase(productId)
         if (!receipt.ok) return receiptToResult(receipt.message, false)
-        return grantStoreProduct(productId, receipt.token)
+        // Grant first (idempotent by token), then consume: a crash in between is healed by claimPendingPurchases().
+        val result = grantStoreProduct(productId, receipt.token)
+        if (result.ok) billing.finish(receipt)
+        return result
+    }
+
+    /** Silent startup sync: grant + consume purchases the store still holds (pending that completed, interrupted flows). */
+    suspend fun claimPendingPurchases(): Int {
+        var granted = 0
+        billing.restore().filter { it.ok && it.token.isNotBlank() }.forEach { r ->
+            val before = state.value.coins
+            val res = grantStoreProduct(r.productId, r.token)
+            if (res.ok) { billing.finish(r); if (state.value.coins > before) granted++ }
+        }
+        return granted
     }
 
     suspend fun restorePurchases(): ActionResult {
@@ -503,6 +517,7 @@ class GameService(
         var last = ActionResult(true, L10n.t("msg_restored"))
         receipts.forEach { receipt ->
             last = grantStoreProduct(receipt.productId, receipt.token)
+            if (last.ok) billing.finish(receipt)
         }
         return last
     }

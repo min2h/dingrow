@@ -38,10 +38,18 @@ class PlayBillingGateway(context: Context) : BillingGateway {
                 val purchase = purchases?.firstOrNull { it.products.contains(productId) }
                 if (!cont.isActive) return@client
                 if (result.responseCode == BillingClient.BillingResponseCode.OK && purchase != null) {
-                    // Coin packs are consumables: consume so the same pack can be bought again.
-                    val consume = com.android.billingclient.api.ConsumeParams.newBuilder().setPurchaseToken(purchase.purchaseToken).build()
-                    self?.consumeAsync(consume) { _, _ -> self?.endConnection() }
-                    cont.resume(StoreReceipt(productId, purchase.purchaseToken, true, L10n.t("msg_billing_ok")))
+                    // Only PURCHASED grants coins. PENDING (e.g. cash/convenience-store payment) is granted later by
+                    // claimPendingPurchases() on the next launch once Play marks it PURCHASED.
+                    // Consumption happens in finish(), after the app granted the coins (idempotent by token).
+                    if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+                        cont.resume(StoreReceipt(productId, purchase.purchaseToken, true, L10n.t("msg_billing_ok")))
+                    } else {
+                        cont.resume(StoreReceipt(productId, "", false, L10n.t("msg_billing_pending")))
+                    }
+                    self?.endConnection()
+                } else if (result.responseCode == BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED) {
+                    // An earlier purchase was never consumed: claim it now.
+                    cont.resume(StoreReceipt(productId, "", false, L10n.t("msg_billing_owned")))
                 } else if (result.responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
                     cont.resume(StoreReceipt(productId, "", false, L10n.t("msg_billing_cancel")))
                 } else if (cont.isActive) {
@@ -122,8 +130,25 @@ class PlayBillingGateway(context: Context) : BillingGateway {
                 }
             }
 
-            override fun onBillingServiceDisconnected() = Unit
+            override fun onBillingServiceDisconnected() { if (cont.isActive) cont.resume(emptyList()) }
         })
+    }
+
+    /** Consume the coin pack (consumables are acknowledged by consuming) so it can be bought again. */
+    override suspend fun finish(receipt: StoreReceipt) {
+        if (receipt.token.isBlank() || receipt.token.startsWith("fake:")) return
+        suspendCancellableCoroutine<Unit> { cont ->
+            val client = client { _, _ -> }
+            client.startConnection(object : BillingClientStateListener {
+                override fun onBillingSetupFinished(result: BillingResult) {
+                    if (result.responseCode != BillingClient.BillingResponseCode.OK) { client.endConnection(); if (cont.isActive) cont.resume(Unit); return }
+                    val params = com.android.billingclient.api.ConsumeParams.newBuilder().setPurchaseToken(receipt.token).build()
+                    // If consume fails, the purchase stays in queryPurchases and is retried by claimPendingPurchases (no double grant: token dedupe).
+                    client.consumeAsync(params) { _, _ -> client.endConnection(); if (cont.isActive) cont.resume(Unit) }
+                }
+                override fun onBillingServiceDisconnected() { if (cont.isActive) cont.resume(Unit) }
+            })
+        }
     }
 
     private fun launch(client: BillingClient, activity: Activity, details: ProductDetails) {

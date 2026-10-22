@@ -164,4 +164,27 @@ class IapTest {
         assertEquals(1100, s.state.value.coins)
         assertFalse(s.purchaseProduct("dingrow_coins_small").ok) // old products are gone
     }
+
+    @Test fun consumeAfterGrantPendingAndRestoreAreIdempotent() = runBlocking {
+        val c = Clock2(1_792_000_000_000)
+        val fake = app.mongle.logic.FakeBilling()
+        val s = GameService(MemoryGameStore(Seed.create(c.now).copy(coins = 0, onboarded = true)), c, TimeZone.of("Asia/Seoul"), billing = fake)
+        assertTrue(s.purchaseProduct("coins_100").ok)
+        assertEquals(1, fake.finished.size)              // consumed after the grant
+        // A purchase that was pending and completed later (or the app died before consuming) is claimed at startup.
+        fake.held += app.mongle.logic.StoreReceipt("coins_1000", "tok-late", true, "")
+        assertEquals(1, s.claimPendingPurchases())
+        assertEquals(1100, s.state.value.coins)
+        assertTrue("tok-late" in fake.finished)
+        // Running again (or restore) never double-grants.
+        assertEquals(0, s.claimPendingPurchases())
+        s.restorePurchases()
+        assertEquals(1100, s.state.value.coins)
+        // A failed / pending receipt grants nothing.
+        assertEquals(0, GameService(MemoryGameStore(Seed.create(c.now).copy(coins = 0, onboarded = true)), c, TimeZone.of("Asia/Seoul"),
+            billing = object : app.mongle.logic.BillingGateway {
+                override suspend fun purchase(productId: String) = app.mongle.logic.StoreReceipt(productId, "", false, "pending")
+                override suspend fun restore() = emptyList<app.mongle.logic.StoreReceipt>()
+            }).let { it.purchaseProduct("coins_100"); it.state.value.coins })
+    }
 }

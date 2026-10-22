@@ -1092,4 +1092,6 @@
     <string name="notif_denied_hint">알림이 꺼져 있어요. 눌러서 설정에서 켜 주세요</string>
     <string name="save_blocked">저장할 수 없어요 · %s</string>
     <string name="deco_no_changes">바꾼 내용이 없어요. 아이템을 놓거나 옮긴 뒤 저장해 주세요.</string>
+    <string name="msg_billing_pending">결제가 대기 중이에요. 결제가 완료되면 코인이 들어와요.</string>
+    <string name="msg_billing_owned">이전 결제가 남아 있어요. 다시 열면 코인이 들어와요.</string>
 </resources>
