@@ -129,29 +129,39 @@ fun ScheduleForm(
     editing: Boolean,
     onSave: (ScheduleDraft, EditScope) -> Unit,
     onClose: () -> Unit,
+    /** Schedule being edited: the form starts filled with it (it used to open blank, so edits could not be saved). */
+    source: app.mongle.model.ScheduleView? = null,
+    /** Occurrence time being edited (for "this one only" edits of a repeating schedule). */
+    occurrenceMillis: Long? = null,
+    /** Reason the last save was refused by the app (form stays open). */
+    rejected: String? = null,
 ) {
     val zone = TimeZone.currentSystemDefault()
-    val initial = remember { upcoming(Clock.System.now(), zone) }
-    var title by remember { mutableStateOf("") }
+    val initial = remember {
+        val at = occurrenceMillis ?: source?.timeMillis
+        if (at != null) Instant.fromEpochMilliseconds(at).toLocalDateTime(zone).let { Upcoming(it.date, it.hour, it.minute) }
+        else upcoming(Clock.System.now(), zone)
+    }
+    var title by remember { mutableStateOf(source?.title ?: "") }
     var date by remember { mutableStateOf(initial.date) }
     var isPm by remember { mutableStateOf(initial.hour >= 12) }
     var hour12 by remember { mutableIntStateOf(toHour12(initial.hour)) }
     var minute by remember { mutableIntStateOf(initial.minute) }
-    var repeat by remember { mutableStateOf(RepeatRule.NONE) }
-    var interval by remember { mutableIntStateOf(1) }
-    var weekdays by remember { mutableIntStateOf(0) }
-    var monthOrdinal by remember { mutableIntStateOf(0) }
-    var endKind by remember { mutableStateOf(EndKind.NEVER) }
-    var endCount by remember { mutableIntStateOf(10) }
-    var endDate by remember { mutableStateOf(initial.date.plus(30, DateTimeUnit.DAY)) }
-    var leads by remember { mutableStateOf(setOf(0)) }
-    var alert by remember { mutableStateOf(AlertStyle.SILENT) }
-    var category by remember { mutableStateOf("other") }
-    var place by remember { mutableStateOf("") }
-    var memo by remember { mutableStateOf("") }
+    var repeat by remember { mutableStateOf(source?.repeat ?: RepeatRule.NONE) }
+    var interval by remember { mutableIntStateOf(source?.interval?.coerceAtLeast(1) ?: 1) }
+    var weekdays by remember { mutableIntStateOf(source?.weekdays ?: 0) }
+    var monthOrdinal by remember { mutableIntStateOf(source?.monthOrdinal ?: 0) }
+    var endKind by remember { mutableStateOf(source?.endKind ?: EndKind.NEVER) }
+    var endCount by remember { mutableIntStateOf(source?.endCount?.takeIf { it > 0 } ?: 10) }
+    var endDate by remember { mutableStateOf(source?.endAt?.takeIf { it > 0 }?.let { Instant.fromEpochMilliseconds(it).toLocalDateTime(zone).date } ?: initial.date.plus(30, DateTimeUnit.DAY)) }
+    var leads by remember { mutableStateOf(source?.leadsMinutes?.toSet()?.ifEmpty { setOf(0) } ?: setOf(0)) }
+    var alert by remember { mutableStateOf(source?.alert ?: AlertStyle.SILENT) }
+    var category by remember { mutableStateOf(source?.category ?: "other") }
+    var place by remember { mutableStateOf(source?.place ?: "") }
+    var memo by remember { mutableStateOf(source?.memo ?: "") }
     var scope by remember { mutableStateOf(EditScope.ALL) }
     var picking by remember { mutableStateOf<String?>(null) }
-    var durationMin by remember { mutableIntStateOf(0) }
+    var durationMin by remember { mutableIntStateOf(source?.let { v -> if (v.endMillis > v.timeMillis) ((v.endMillis - v.timeMillis) / 60_000L).toInt() else 0 } ?: 0) }
     var touched by remember { mutableStateOf(false) }
 
     fun draft() = ScheduleDraft(
@@ -204,7 +214,7 @@ fun ScheduleForm(
                 Text("‹", color = Ink, fontSize = 22.sp)
             }
             Text(t("add_schedule"), modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Ink)
-            TextButton(onClick = { save() }, enabled = canSave, modifier = Modifier.heightIn(min = 48.dp).testTag("save-top")) {
+            TextButton(onClick = { save() }, modifier = Modifier.heightIn(min = 48.dp).testTag("save-top")) {
                 Text(t("save"), color = if (canSave) PeachDeep else InkSoft, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
         }
@@ -382,11 +392,19 @@ fun ScheduleForm(
             }
             Spacer(Modifier.height(12.dp))
         }
+        // Save is always tappable: a blocked save shows the reason instead of silently doing nothing.
+        val blockedReason = if (touched && errors.isNotEmpty()) t(errors.values.first()) else rejected?.takeIf { it.isNotBlank() }
+        if (blockedReason != null) {
+            Text(
+                tf("save_blocked", blockedReason),
+                color = Color(0xFFD9604F), fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(top = 8.dp).testTag("save-blocked"),
+            )
+        }
         Button(
             onClick = { save() },
-            enabled = canSave,
             shape = PillShape,
-            colors = ButtonDefaults.buttonColors(containerColor = Peach, contentColor = Color.White, disabledContainerColor = Peach.copy(alpha = 0.45f), disabledContentColor = Color.White),
+            colors = ButtonDefaults.buttonColors(containerColor = if (canSave) Peach else Peach.copy(alpha = 0.55f), contentColor = Color.White),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 12.dp).height(48.dp).testTag("save-bottom"),
         ) { Text(t("save_big"), fontWeight = FontWeight.Bold, fontSize = 16.sp) }
     }

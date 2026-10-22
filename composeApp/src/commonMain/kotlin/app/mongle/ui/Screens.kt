@@ -43,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
@@ -192,8 +193,14 @@ fun MongleAppScreen(
 
     Box(Modifier.fillMaxSize().background(Cream).windowInsetsPadding(WindowInsets.safeDrawing)) {
     if (showComposer) {
+        var rejected by remember(editingId) { mutableStateOf<String?>(null) }
+        val editingSource = editingId?.let { id -> state.schedules.firstOrNull { it.id == id } ?: state.schedules.firstOrNull { it.id == id.substringBefore('@') } }
+        key(editingId) {
         ScheduleForm(
             editing = editingId != null,
+            source = editingSource,
+            occurrenceMillis = editingId?.substringAfter('@', "")?.toLongOrNull(),
+            rejected = rejected,
             onClose = {
                 showComposer = false
                 editingId = null
@@ -201,12 +208,13 @@ fun MongleAppScreen(
             onSave = { draft, scopeName ->
                 scope.launch {
                     val id = editingId
-                    if (id == null) service.addDraft(draft) else service.editSchedule(id, scopeName, draft)
-                    showComposer = false
-                    editingId = null
+                    val result = if (id == null) service.addDraft(draft) else service.editSchedule(id, scopeName, draft)
+                    // Keep the form (and what the user typed) when the app refuses the save, and say why.
+                    if (result.ok) { showComposer = false; editingId = null; rejected = null } else rejected = result.message
                 }
             },
         )
+        }
     } else if (overlay == "settings") {
         SettingsV2(
             state = state,

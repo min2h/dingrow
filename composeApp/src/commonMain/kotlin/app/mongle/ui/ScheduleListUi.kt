@@ -212,7 +212,7 @@ fun ScheduleRow(
             Row(Modifier.padding(start = 8.dp, bottom = 4.dp)) {
                 TextButton(onClick = onSnooze) { Text(t("snooze_5"), fontSize = 12.sp) }
                 TextButton(onClick = onSkip) { Text(t("skip"), fontSize = 12.sp) }
-                TextButton(onClick = onEdit) { Text(t("edit"), fontSize = 12.sp) }
+                TextButton(onClick = onEdit, modifier = Modifier.testTag("edit-${view.id}")) { Text(t("edit"), fontSize = 12.sp) }
                 TextButton(onClick = onDelete) { Text(t("delete"), fontSize = 12.sp, color = PeachDeep) }
             }
         }

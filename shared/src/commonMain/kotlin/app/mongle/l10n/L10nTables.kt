@@ -1093,6 +1093,8 @@ internal val En: Map<String, String> = buildMap {
     put("notif_explain_yes", "Allow")
     put("notif_explain_later", "Later")
     put("notif_denied_hint", "Notifications are off. Tap to turn them on in Settings")
+    put("save_blocked", "Can't save · %s")
+    put("deco_no_changes", "No changes yet. Place or move an item, then save.")
 }
 
 internal val Ko: Map<String, String> = buildMap {
@@ -2187,4 +2189,6 @@ internal val Ko: Map<String, String> = buildMap {
     put("notif_explain_yes", "허용하기")
     put("notif_explain_later", "나중에")
     put("notif_denied_hint", "알림이 꺼져 있어요. 눌러서 설정에서 켜 주세요")
+    put("save_blocked", "저장할 수 없어요 · %s")
+    put("deco_no_changes", "바꾼 내용이 없어요. 아이템을 놓거나 옮긴 뒤 저장해 주세요.")
 }

@@ -1090,4 +1090,6 @@
     <string name="notif_explain_yes">Allow</string>
     <string name="notif_explain_later">Later</string>
     <string name="notif_denied_hint">Notifications are off. Tap to turn them on in Settings</string>
+    <string name="save_blocked">Can\'t save · %s</string>
+    <string name="deco_no_changes">No changes yet. Place or move an item, then save.</string>
 </resources>

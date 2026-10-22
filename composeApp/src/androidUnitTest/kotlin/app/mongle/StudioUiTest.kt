@@ -142,7 +142,8 @@ class StudioUiTest {
         clickNoScroll("deco-rotate"); clickNoScroll("deco-flip")
         clickNoScroll("deco-undo")
         clickNoScroll("deco-revert")
-        rule.onNodeWithTag("deco-save").assertIsNotEnabled()
+        clickNoScroll("deco-save")
+        tag("deco-save-hint").fetchSemanticsNode()   // blocked save explains why
         click("deco-item-mug"); clickNoScroll("deco-rotate")
         clickNoScroll("deco-save")
         assertTrue(s.state.value.placements.any { it.defId == "mug" && it.rotation % 1000 == 90 })
@@ -191,17 +192,16 @@ class StudioUiTest {
     @Test fun scheduleFormInlineErrorsDisableSave() {
         app(coins = 0)
         rule.onNodeWithTag("tab-Schedule").performClick(); settle()   // empty list opens the form
-        rule.onNodeWithTag("save-bottom").assertIsNotEnabled()
+        clickNoScroll("save-bottom"); tag("save-blocked").fetchSemanticsNode(); tag("err-title").fetchSemanticsNode()
         rule.onNodeWithTag("field-title").performTextInput("가".repeat(41)); settle()
         tag("err-title").fetchSemanticsNode()
-        rule.onNodeWithTag("save-bottom").assertIsNotEnabled()
         rule.onNodeWithTag("field-title").performTextClearance(); settle()
         tag("err-title").fetchSemanticsNode()  // required
         rule.onNodeWithTag("field-title").performTextInput("운동"); settle()
-        rule.onNodeWithTag("save-bottom").assertIsEnabled()
+        assertTrue(rule.onAllNodesWithTag("save-blocked", useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
         rule.onNodeWithTag("field-memo").performTextInput("x".repeat(201)); settle()
         tag("err-memo").fetchSemanticsNode()
-        rule.onNodeWithTag("save-bottom").assertIsNotEnabled()
+        tag("save-blocked").fetchSemanticsNode()
         rule.onRoot().captureRoboImage(artifact("form-errors.png"))
     }
 }

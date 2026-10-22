@@ -400,6 +400,7 @@ fun DecorateScreen(state: GameState, service: GameService, scope: CoroutineScope
     val layout = remember(version) { editor.current }
     var selected by remember { mutableStateOf<String?>(null) }
     var tab by remember { mutableStateOf("furniture") }
+    var noChangeHint by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
     val items = Shop.decoratable(state.owned)
     Column(Modifier.fillMaxSize().background(Cream).testTag("decorate-screen")) {
@@ -463,15 +464,19 @@ fun DecorateScreen(state: GameState, service: GameService, scope: CoroutineScope
                 Spacer(Modifier.height(8.dp))
             }
         }
+        if (noChangeHint && !editor.dirty) {
+            Text(t("deco_no_changes"), color = Color(0xFFD9604F), fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth().background(CardWhite).padding(horizontal = 16.dp, vertical = 8.dp).testTag("deco-save-hint"))
+        }
         Row(Modifier.fillMaxWidth().shadow(12.dp).background(CardWhite).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = { edit { revert() }; selected = null }, modifier = Modifier.heightIn(min = 48.dp).testTag("deco-revert")) { Text(t("shop_revert"), color = Ink) }
             Spacer(Modifier.weight(1f))
             Button(
-                onClick = { scope.launch { service.applyLayout(editor.current); onClose() } },
-                enabled = editor.dirty,
+                // Always tappable; with nothing changed it explains why instead of silently ignoring the tap.
+                onClick = { if (!editor.dirty) noChangeHint = true else scope.launch { service.applyLayout(editor.current); onClose() } },
                 shape = StudioPill,
                 modifier = Modifier.heightIn(min = 48.dp).testTag("deco-save"),
-                colors = ButtonDefaults.buttonColors(containerColor = PeachDeep, contentColor = Color.White),
+                colors = ButtonDefaults.buttonColors(containerColor = if (editor.dirty) PeachDeep else PeachDeep.copy(alpha = 0.55f), contentColor = Color.White),
             ) { Text(t("deco_save")) }
         }
     }
