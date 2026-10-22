@@ -16,7 +16,7 @@ final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
             options: []
         )
         let category = UNNotificationCategory(
-            identifier: "MONGLE_SCHEDULE",
+            identifier: "DINGROW_SCHEDULE",
             actions: [complete, snooze],
             intentIdentifiers: [],
             options: []

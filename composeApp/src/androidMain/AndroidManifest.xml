@@ -12,7 +12,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
-        android:name=".MongleApp"
+        android:name="app.mongle.MongleApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -21,7 +21,7 @@
         android:theme="@style/Theme.Mongle">
 
         <activity
-            android:name=".MainActivity"
+            android:name="app.mongle.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize">
@@ -33,12 +33,13 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:host="schedule" android:path="/add" android:scheme="dingrow" />
                 <data android:host="schedule" android:path="/add" android:scheme="mongle" />
             </intent-filter>
         </activity>
 
         <receiver
-            android:name=".widget.SmallWidgetReceiver"
+            android:name="app.mongle.widget.SmallWidgetReceiver"
             android:exported="true"
             android:label="@string/widget_small_name">
             <intent-filter>
@@ -50,7 +51,7 @@
         </receiver>
 
         <receiver
-            android:name=".widget.LargeWidgetReceiver"
+            android:name="app.mongle.widget.LargeWidgetReceiver"
             android:exported="true"
             android:label="@string/widget_large_name">
             <intent-filter>
@@ -62,11 +63,11 @@
         </receiver>
 
         <receiver
-            android:name=".alarm.ReminderReceiver"
+            android:name="app.mongle.alarm.ReminderReceiver"
             android:exported="false" />
 
         <receiver
-            android:name=".alarm.BootReceiver"
+            android:name="app.mongle.alarm.BootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
@@ -75,7 +76,7 @@
         </receiver>
 
         <service
-            android:name=".wallpaper.PetWallpaperService"
+            android:name="app.mongle.wallpaper.PetWallpaperService"
             android:exported="true"
             android:label="@string/wallpaper_name"
             android:permission="android.permission.BIND_WALLPAPER">

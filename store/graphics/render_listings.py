@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""몽글 스토어 그래픽. Robolectric 캡처와 일러스트, Pretendard로 만든다."""
+"""딩그로(Dingrow) 스토어 그래픽. Robolectric 캡처와 일러스트, Pretendard로 만든다."""
 
 from __future__ import annotations
 
@@ -170,10 +170,10 @@ def feature() -> Image.Image:
     icon = fit(Image.open(ROOT / "store/icon-1024.png").convert("RGBA"), 72, 72)
     icon_mask = rounded_mask(icon.size, 20)
     icon.putalpha(icon_mask)
-    canvas.paste(icon, (64, 78), icon)
+    canvas.paste(icon, (64, 56), icon)
     draw = ImageDraw.Draw(canvas)
-    word = font(36)
-    draw_text(draw, "몽글", 152, 96, word, INK)
+    draw_text(draw, "딩그로", 152, 58, font(40), INK)
+    draw_text(draw, "Dingrow", 152, 108, font(24), INK_SOFT)
 
     title = fit_font("할 일을 끝내면", 520, 64)
     draw_text(draw, "할 일을 끝내면", 64, 188, title, INK)
@@ -231,15 +231,20 @@ def place_phone(canvas: Image.Image, screen: Image.Image, top: int, max_w: int, 
 def eyebrow(canvas: Image.Image, y: int) -> int:
     draw = ImageDraw.Draw(canvas)
     face = font(max(22, canvas.width // 38))
-    label = "몽글"
+    under_face = font(max(16, canvas.width // 52))
+    label = "딩그로"
+    under = "Dingrow"
     gap = 10
     icon = fit(load_art("base_idle"), face.size + 8, face.size + 8)
-    tw = text_width(label, face)
-    total = icon.width + gap + tw
+    text_w = max(text_width(label, face), text_width(under, under_face))
+    total = icon.width + gap + text_w
     x = (canvas.width - total) // 2
     canvas.paste(icon, (x, y), icon)
-    draw_text(draw, label, x + icon.width + gap, y + 4, face, PEACH_DEEP)
-    return y + icon.height + int(canvas.height * 0.012)
+    text_x = x + icon.width + gap
+    name_h = draw_text(draw, label, text_x, y, face, PEACH_DEEP)
+    draw_text(draw, under, text_x, y + name_h + 2, under_face, INK_SOFT)
+    block = max(icon.height, name_h + under_face.size + 6)
+    return y + block + int(canvas.height * 0.012)
 
 
 def title_block(canvas: Image.Image, title: str, subtitle: str, y: int) -> int:
@@ -373,16 +378,20 @@ def build_launcher() -> Image.Image:
     canvas.alpha_composite(small, (lx, y))
 
     icon_box = lw - sw - 28
-    icon = fit(Image.open(ROOT / "store/icon-1024.png").convert("RGBA"), int(icon_box * 0.58), int(icon_box * 0.58))
+    icon = fit(Image.open(ROOT / "store/icon-1024.png").convert("RGBA"), int(icon_box * 0.52), int(icon_box * 0.52))
     icon.putalpha(rounded_mask(icon.size, icon.width // 4))
     ix = lx + sw + 28 + (icon_box - icon.width) // 2
     label = font(32)
-    label_h = 40
-    block = icon.height + 12 + label_h
+    under = font(22)
+    name_h = 36
+    under_h = 28
+    block = icon.height + 8 + name_h + under_h
     iy = y + max(0, (sh - block) // 2)
     canvas.paste(icon, (ix, iy), icon)
-    draw_center_in = text_width("몽글", label)
-    draw_text(draw, "몽글", ix + (icon.width - draw_center_in) // 2, iy + icon.height + 12, label, INK)
+    name_w = text_width("딩그로", label)
+    under_w = text_width("Dingrow", under)
+    draw_text(draw, "딩그로", ix + (icon.width - name_w) // 2, iy + icon.height + 8, label, INK)
+    draw_text(draw, "Dingrow", ix + (icon.width - under_w) // 2, iy + icon.height + 8 + name_h, under, INK_SOFT)
     return canvas
 
 

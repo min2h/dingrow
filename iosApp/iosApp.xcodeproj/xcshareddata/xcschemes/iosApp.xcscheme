@@ -29,7 +29,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "A20000000000000000000021"
-               BuildableName = "Mongle.app"
+               BuildableName = "Dingrow.app"
                BlueprintName = "iosApp"
                ReferencedContainer = "container:iosApp.xcodeproj">
             </BuildableReference>
@@ -57,7 +57,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A20000000000000000000021"
-            BuildableName = "Mongle.app"
+            BuildableName = "Dingrow.app"
             BlueprintName = "iosApp"
             ReferencedContainer = "container:iosApp.xcodeproj">
          </BuildableReference>
@@ -74,7 +74,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A20000000000000000000021"
-            BuildableName = "Mongle.app"
+            BuildableName = "Dingrow.app"
             BlueprintName = "iosApp"
             ReferencedContainer = "container:iosApp.xcodeproj">
          </BuildableReference>

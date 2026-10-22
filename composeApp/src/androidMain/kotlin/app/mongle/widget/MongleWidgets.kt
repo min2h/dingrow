@@ -38,6 +38,7 @@ import androidx.glance.ButtonDefaults
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.action.ActionParameters
 import app.mongle.AppGraph
+import app.mongle.appBrandName
 import app.mongle.MainActivity
 import androidx.glance.LocalContext
 import app.mongle.model.GameState
@@ -85,7 +86,7 @@ internal fun SmallBody(state: GameState? = currentState()) {
             .clickable(actionRunCallback<OpenAppAction>()),
     ) {
         if (state == null) {
-            Text("몽글", style = TextStyle(color = ink, fontWeight = FontWeight.Bold))
+            Text(appBrandName(), style = TextStyle(color = ink, fontWeight = FontWeight.Bold))
             return@Column
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -115,7 +116,7 @@ internal fun LargeBody(state: GameState? = currentState()) {
         modifier = GlanceModifier.fillMaxSize().background(cream).padding(12.dp),
     ) {
         if (state == null) {
-            Text("몽글", style = TextStyle(color = ink, fontWeight = FontWeight.Bold))
+            Text(appBrandName(), style = TextStyle(color = ink, fontWeight = FontWeight.Bold))
             return@Column
         }
         Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

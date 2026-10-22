@@ -3,7 +3,7 @@ import WidgetKit
 
 struct FeedPetIntent: AppIntent {
     static var title: LocalizedStringResource = "먹이 주기"
-    static var description = IntentDescription("몽이에게 먹이를 줍니다.")
+    static var description = IntentDescription("펫에게 먹이를 줍니다.")
 
     func perform() async throws -> some IntentResult {
         _ = MongleKit.feed()

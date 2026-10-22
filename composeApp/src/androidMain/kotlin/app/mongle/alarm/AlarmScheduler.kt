@@ -9,14 +9,14 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import app.dingrow.R
 import app.mongle.MainActivity
-import app.mongle.R
 import app.mongle.platform.ScheduledNotice
 
 class AlarmScheduler(private val context: Context) {
     private val alarms = context.getSystemService(AlarmManager::class.java)
     private val notifications = context.getSystemService(NotificationManager::class.java)
-    private val prefs = context.getSharedPreferences("mongle_alarms", Context.MODE_PRIVATE)
+    private val prefs = context.getSharedPreferences("dingrow_alarms", Context.MODE_PRIVATE)
 
     fun canScheduleExact(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) alarms.canScheduleExactAlarms() else true
@@ -92,7 +92,7 @@ class AlarmScheduler(private val context: Context) {
     private fun actionIntent(action: String, scheduleId: String): PendingIntent {
         val intent = Intent(context, ReminderReceiver::class.java).apply {
             this.action = action
-            data = Uri.parse("mongle://alarm/$scheduleId/$action")
+            data = Uri.parse("dingrow://alarm/$scheduleId/$action")
             putExtra(EXTRA_SCHEDULE_ID, scheduleId)
         }
         return PendingIntent.getBroadcast(
@@ -106,7 +106,7 @@ class AlarmScheduler(private val context: Context) {
     private fun broadcast(action: String, id: String, scheduleId: String, title: String, body: String): PendingIntent {
         val intent = Intent(context, ReminderReceiver::class.java).apply {
             this.action = action
-            data = Uri.parse("mongle://alarm/$id/$action")
+            data = Uri.parse("dingrow://alarm/$id/$action")
             putExtra(EXTRA_ID, id)
             putExtra(EXTRA_SCHEDULE_ID, scheduleId)
             putExtra(EXTRA_TITLE, title)
@@ -122,27 +122,35 @@ class AlarmScheduler(private val context: Context) {
 
     private fun ensureChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val schedule = NotificationChannel(CHANNEL_SCHEDULE, "일정 알림", NotificationManager.IMPORTANCE_HIGH).apply {
-            description = "몽이가 일정 시간에 불러요."
+        val schedule = NotificationChannel(
+            CHANNEL_SCHEDULE,
+            context.getString(R.string.channel_schedule),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = context.getString(R.string.channel_schedule_desc)
             enableVibration(true)
         }
-        val gift = NotificationChannel(CHANNEL_GIFT, "펫 소식", NotificationManager.IMPORTANCE_DEFAULT).apply {
-            description = "선물과 외출 소식."
+        val gift = NotificationChannel(
+            CHANNEL_GIFT,
+            context.getString(R.string.channel_gift),
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply {
+            description = context.getString(R.string.channel_gift_desc)
         }
         notifications.createNotificationChannel(schedule)
         notifications.createNotificationChannel(gift)
     }
 
     companion object {
-        const val ACTION_SHOW = "app.mongle.SHOW"
-        const val ACTION_DONE = "app.mongle.DONE"
-        const val ACTION_SNOOZE = "app.mongle.SNOOZE"
+        const val ACTION_SHOW = "app.dingrow.SHOW"
+        const val ACTION_DONE = "app.dingrow.DONE"
+        const val ACTION_SNOOZE = "app.dingrow.SNOOZE"
         const val EXTRA_ID = "id"
         const val EXTRA_SCHEDULE_ID = "scheduleId"
         const val EXTRA_TITLE = "title"
         const val EXTRA_BODY = "body"
-        const val CHANNEL_SCHEDULE = "mongle.schedule"
-        const val CHANNEL_GIFT = "mongle.gift"
+        const val CHANNEL_SCHEDULE = "dingrow.schedule"
+        const val CHANNEL_GIFT = "dingrow.gift"
         private const val KEY_IDS = "ids"
         private const val GIFT_ID = 4401
         private const val WINDOW_MILLIS = 15 * 60 * 1000L

@@ -59,7 +59,7 @@ if (iosEnabled) {
 }
 
 android {
-    namespace = "app.mongle.shared"
+    namespace = "app.dingrow.shared"
     compileSdk = 36
     defaultConfig {
         minSdk = 26

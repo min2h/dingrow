@@ -70,7 +70,7 @@ import androidx.compose.ui.unit.DpSize
 import android.os.Looper
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], qualifiers = "w360dp-h740dp-hdpi")
+@Config(sdk = [34], qualifiers = "ko-rKR-w360dp-h740dp-hdpi")
 class MongleFlowScreenshotTest {
     @get:Rule
     val composeRule = createComposeRule()

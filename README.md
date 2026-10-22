@@ -1,8 +1,8 @@
-# 몽글
+# 딩그로 (Dingrow)
 
-홈 화면에 사는 작은 펫이 일정을 알려 주고, 할 일을 마치면 함께 자라는 앱입니다. 화면 문구는 한국어입니다. 펫은 배고파도 죽지 않고, 포만감과 행복, 경험치로 알 → 아기 → 어린이 → 어른이 됩니다. 가끔 외출했다가 선물을 가져오고, 선물을 팔아 코인을 모은 뒤 옷과 가구로 방을 바꿉니다.
+홈 화면에 사는 작은 펫이 일정을 알려 주고, 할 일을 마치면 함께 자라는 앱입니다. 화면 문구는 한국어입니다. 런처와 위젯, 배경화면에 보이는 앱 이름은 한국어 로케일에서 딩그로, 영어와 기본 로케일에서 Dingrow입니다. 종 이름 몽글과 처음 펫 이름 몽이는 앱 이름이 아닙니다. 펫은 배고파도 죽지 않고, 포만감과 행복, 경험치로 알 → 아기 → 어린이 → 어른이 됩니다. 가끔 외출했다가 선물을 가져오고, 선물을 팔아 코인을 모은 뒤 옷과 가구로 방을 바꿉니다.
 
-패키지 이름은 `app.mongle`, 버전은 0.1.0 (versionCode 1)입니다. 스토어 제출 전에 남은 사람 일은 `RELEASE.md`에 있습니다. 개인정보 처리방침과 스토어 문구는 `store/`에 있습니다.
+패키지 이름은 `app.dingrow`, 버전은 0.1.0 (versionCode 1)입니다. 스토어 제출 전에 남은 사람 일은 `RELEASE.md`에 있습니다. 개인정보 처리방침과 스토어 문구는 `store/`에 있습니다. 한국어 스토어 제목은 `딩그로(Dingrow)`이고, 부제와 짧은 설명은 `할 일 하면 자라는 위젯 친구`로 시작합니다. 영어 제목은 `Dingrow - Tasks help you grow`입니다.
 
 ## 검증 범위
 
@@ -21,7 +21,7 @@
 
 ## 지금 되는 것
 
-- 로컬 저장. 펫, 일정, 먹이, 선물, 코인, 장부, 방 프리셋은 SQLDelight(`mongle.db`)에 있습니다. 계정과 서버는 없습니다.
+- 로컬 저장. 펫, 일정, 먹이, 선물, 코인, 장부, 방 프리셋은 SQLDelight(`dingrow.db`)에 있습니다. 같은 폴더에 `mongle.db`만 있으면 처음 열 때 `dingrow.db`로 복사합니다. 계정과 서버는 없습니다. Android 패키지가 바뀌면 이전 앱 샌드박스는 열 수 없습니다. iOS는 새 App Group만 권한에 있고, 예전 그룹 컨테이너가 이미 열려 있을 때만 복사합니다. 예전 종·아이템 id는 불러올 때 `LegacyIds`로 바꿉니다.
 - 일정 추가, 완료, 10분 미루기, 삭제. 완료하면 경험치와 코인, 행복이 오릅니다. 만든 지 2분 안 된 일정, 10분보다 일찍 완료한 일정, 하루 8번을 넘긴 완료는 보상이 줄어듭니다. 같은 반복 일정을 15초 안에 다시 완료하면 무시합니다.
 - 알은 일정 3번을 마치면 부화합니다. 아기에서 어린이는 경험치 50, 어린이에서 어른은 경험치 160입니다. 날짜 게이트 기본값은 0이라 데모에서 바로 자랍니다.
 - 포만감은 시간당 4, 행복은 시간당 2씩 줄고, 포만감이 30 미만이면 행복이 시간당 5 줄습니다. 집에 있으면 기력은 시간당 10 회복합니다. 72시간을 넘긴 공백은 72시간만 계산하고, 알은 수치가 줄지 않습니다. 앱을 열 때와 15분마다 게으르게 반영합니다.
@@ -29,7 +29,7 @@
 - 친구 50종과 물건 50종은 `shared`의 `mongle-manifest.json`에서 만든 `SpeciesCatalog`, `Catalog`입니다. 그림은 코드로 그리지 않고 Compose 리소스의 WebP 일러스트입니다. 기본 몽글(`base`)은 숨쉬기, 눈 깜빡임, 기쁨, 먹기, 잠, 걷기가 있고, 다른 종은 같은 움직임에 정지 그림을 올립니다. 방 배경은 나무, 민트, 밤하늘과 낮·밤입니다. 예전 저장의 id는 불러올 때 매니페스트 id로 바꿉니다. 가격이 0인 복숭아와 달걀은 처음부터 데려올 수 있고, 나머지는 도감에서 사거나 산책에서 만납니다. 오늘의 상점은 먹이만 돌리고, 가구와 옷은 방 그리드에서 삽니다.
 - 화면은 홈, 일정, 방 꾸미기, 마이(도감)입니다. 글꼴은 Pretendard Medium이고 SIL Open Font License입니다.
 - 상점의 오늘 상품은 날짜마다 바뀌고, 이미 가진 단일 아이템은 건너뜁니다. 위젯에서 사면 45초 안에 한 번 더 눌러 확정합니다. 앱 안에서는 한 번에 삽니다.
-- Android 작은 위젯(오늘의 기분, 다음 일정, 완료)과 큰 위젯(아늑한 방, 밥주기, 선물 팔기, 오늘의 상품, 꾸미기). 일정 추가는 `mongle://schedule/add`로 앱의 작성 화면을 엽니다.
+- Android 작은 위젯(오늘의 기분, 다음 일정, 완료)과 큰 위젯(아늑한 방, 밥주기, 선물 팔기, 오늘의 상품, 꾸미기). 위젯 이름은 한국어에서 딩그로, 딩그로의 방이고 영어에서 Dingrow, Dingrow room입니다. 일정 추가는 `dingrow://schedule/add`로 앱의 작성 화면을 엽니다. 예전 `mongle://schedule/add`도 같은 화면을 엽니다.
 - 일정 시각 알림. Android 12 이상에서 정확한 알람을 허용하면 `setExactAndAllowWhileIdle`, 아니면 15분 창입니다. 알림 액션은 완료와 10분 뒤입니다. 재부팅과 앱 업데이트 뒤 다시 등록합니다.
 - 앱 안에서 펫이 방 그림 위에 올라가고, 숨쉬듯 늘어났다 줄었다가 하며 가끔 눈을 깜빡입니다. 밥을 주면 먹는 그림, 밤이나 기력이 낮으면 잠, 밖에 나가면 기울며 걷습니다. Android 라이브 배경화면도 같은 그림과 움직임입니다. 위젯은 상태와 시간에 맞는 정지 장면입니다. Compose 화면은 WebP를 그대로 쓰고, Glance 위젯과 배경화면은 `androidMain/assets/mongle`의 PNG를 줄여 그립니다. iOS 위젯은 `PetWidget/Art`의 WebP를 읽습니다.
 - 온라인 세계, 채팅, 유저 간 거래는 인터페이스만 있습니다. `EconomyAuthority`와 `CommunityRepository`를 나중에 서버 구현으로 바꾸면 됩니다. 지금은 `LocalEconomyAuthority`와 `UnavailableCommunityRepository`입니다.
@@ -60,13 +60,13 @@ iosApp/          SwiftUI 셸, WidgetKit, App Intents, Xcode 프로젝트
 
 iOS 타깃(`iosX64`, `iosArm64`, `iosSimulatorArm64`)은 `os.name`에 `mac`이 있을 때만 Gradle에 붙습니다. Linux에서는 공유 모듈의 JVM과 Android만 컴파일합니다.
 
-상태는 한 프로세스 안에서 `GameService`가 잠그고 저장합니다. 위젯은 앱과 같은 데이터베이스를 봅니다. Android는 앱 프로세스의 Glance가 상태를 읽고, iOS는 앱과 위젯 익스텐션이 App Group `group.app.mongle` 아래 `mongle.db`를 같이 엽니다. 위젯용 요약은 `WidgetSnapshot` JSON입니다.
+상태는 한 프로세스 안에서 `GameService`가 잠그고 저장합니다. 위젯은 앱과 같은 데이터베이스를 봅니다. Android는 앱 프로세스의 Glance가 상태를 읽고, iOS는 앱과 위젯 익스텐션이 App Group `group.app.dingrow` 아래 `dingrow.db`를 같이 엽니다. 위젯용 요약은 `WidgetSnapshot` JSON입니다.
 
 ## Android에서 빌드하고 설치
 
 JDK 17 이상, Android SDK(compileSdk 36, 플랫폼 android-36)가 필요합니다. SDK 경로는 `local.properties`의 `sdk.dir`에 둡니다. 이 파일은 저장소에 넣지 않습니다. 2026-08-31부터 Play는 대상 API 36을 요구합니다.
 
-릴리스 AAB는 R8이 켜져 있습니다. 서명은 환경 변수 `MONGLE_STORE_FILE`, `MONGLE_STORE_PASSWORD`, `MONGLE_KEY_ALIAS`, `MONGLE_KEY_PASSWORD`가 있을 때만 붙고, 키 파일은 커밋하지 않습니다.
+릴리스 AAB는 R8이 켜져 있습니다. 서명은 환경 변수 `DINGROW_STORE_FILE`, `DINGROW_STORE_PASSWORD`, `DINGROW_KEY_ALIAS`, `DINGROW_KEY_PASSWORD`가 있을 때만 붙습니다. 같은 역할의 `MONGLE_*` 변수도 폴백으로 읽습니다. 키 파일은 커밋하지 않습니다.
 
 ```bash
 ./gradlew :composeApp:bundleRelease
@@ -83,18 +83,18 @@ UI 테스트는 에뮬레이터 없이 Robolectric(API 34, `graphicsMode=NATIVE`
 
 처음 켜면 이름을 정합니다. 알림을 허용하고, Android 12 이상이면 방 화면의 링크나 시스템 설정에서 알람 및 리마인더(정확한 알람)를 켜야 제시간에 울립니다. Android 13 이상은 알림 권한도 필요합니다.
 
-위젯은 홈 화면을 길게 눌러 위젯 목록에서 **몽이**(2×2) 또는 **몽이의 방**(4×4)을 추가합니다. 배경화면은 방 화면의 버튼으로 고릅니다.
+위젯은 홈 화면을 길게 눌러 위젯 목록에서 **딩그로**(2×2) 또는 **딩그로의 방**(4×4)을 추가합니다. 영어 로케일에서는 Dingrow와 Dingrow room입니다. 배경화면은 방 화면의 버튼으로 고릅니다. 배경화면 이름은 딩그로 배경 / Dingrow wallpaper입니다.
 
 ## iOS에서 빌드 (미검증)
 
 Mac, Xcode 16 전후, iOS 17 이상 시뮬레이터 또는 기기가 필요합니다. 이 저장소를 Mac에서 연 뒤:
 
-1. `iosApp/Configuration/Config.xcconfig`의 `TEAM_ID`에 Apple Developer Team ID를 넣습니다. 번들은 `app.mongle`, 위젯은 `app.mongle.widget`, App Group은 `group.app.mongle`입니다. 개발자 사이트에서 앱과 위젯 둘 다에 App Groups 기능을 켜고 같은 그룹을 등록해야 합니다. 번들 ID가 이미 쓰였으면 xcconfig만 바꾸면 됩니다. entitlements 파일의 그룹 문자열도 같이 바꾸세요.
+1. `iosApp/Configuration/Config.xcconfig`의 `TEAM_ID`에 Apple Developer Team ID를 넣습니다. 번들은 `app.dingrow`, 위젯은 `app.dingrow.widget`, App Group은 `group.app.dingrow`입니다. 개발자 사이트에서 앱과 위젯 둘 다에 App Groups 기능을 켜고 같은 그룹을 등록해야 합니다. 번들 ID가 이미 쓰였으면 xcconfig만 바꾸면 됩니다. entitlements 파일의 그룹 문자열도 같이 바꾸세요. 표시 이름은 `InfoPlist.strings`에서 영어 Dingrow, 한국어 딩그로입니다.
 2. Xcode에서 `iosApp/iosApp.xcodeproj`를 엽니다. 스킴은 `iosApp`입니다.
 3. 앱 타깃의 빌드 스크립트가 `./gradlew :composeApp:embedAndSignAppleFrameworkForXcode`를 실행하고 `ComposeApp.framework`(shared를 export한 정적 프레임워크)를 링크합니다. 위젯 타깃은 `./gradlew :shared:embedAndSignAppleFrameworkForXcode`로 `Shared.framework`만 링크합니다. 위젯 소스는 `WIDGET` 컴파일 조건으로 `Shared`를 import합니다.
 4. 서명 팀이 비어 있으면 빌드가 실패합니다. 사용자 스크립트 샌드박스는 프로젝트에서 꺼 두었습니다. Gradle이 저장소 루트에 프레임워크를 써야 하기 때문입니다.
-5. 홈 화면에 위젯 **몽이**를 추가합니다. 작은 위젯은 오늘의 기분과 완료, 큰 위젯은 밥주기, 선물 팔기, 오늘의 상품(한 번 누르면 확인, 다시 누르면 구매), 꾸미기, `mongle://schedule/add` 일정 추가입니다. 버튼은 iOS 17 App Intents입니다.
-6. 일정 알림은 `UNUserNotificationCenter`이고 카테고리 `MONGLE_SCHEDULE`에 완료, 10분 뒤 액션이 있습니다. Swift `NotificationRouter`가 카테고리를 다시 등록하므로, Kotlin 쪽 UserNotifications 시그니처가 한 단계 어긋나도 액션 문구는 남길 수 있습니다. 그 경우 `shared/src/iosMain`의 컴파일 오류를 그 버전의 cinterop에 맞게 고치면 됩니다.
+5. 홈 화면에 위젯 **딩그로**(영어 Dingrow)를 추가합니다. 작은 위젯은 오늘의 기분과 완료, 큰 위젯은 밥주기, 선물 팔기, 오늘의 상품(한 번 누르면 확인, 다시 누르면 구매), 꾸미기, `dingrow://schedule/add` 일정 추가입니다. 버튼은 iOS 17 App Intents입니다.
+6. 일정 알림은 `UNUserNotificationCenter`이고 카테고리 `DINGROW_SCHEDULE`에 완료, 10분 뒤 액션이 있습니다. Swift `NotificationRouter`가 카테고리를 다시 등록하므로, Kotlin 쪽 UserNotifications 시그니처가 한 단계 어긋나도 액션 문구는 남길 수 있습니다. 그 경우 `shared/src/iosMain`의 컴파일 오류를 그 버전의 cinterop에 맞게 고치면 됩니다.
 
 iOS에서 처음 깨질 수 있는 곳:
 

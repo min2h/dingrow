@@ -55,28 +55,30 @@ kotlin {
     }
 }
 
-fun mongleProp(name: String): String? =
+fun buildProp(name: String): String? =
     System.getenv(name)?.takeIf { it.isNotBlank() }
         ?: (findProperty(name) as String?)?.takeIf { it.isNotBlank() }
 
+fun buildProp(primary: String, legacy: String): String? = buildProp(primary) ?: buildProp(legacy)
+
 android {
-    namespace = "app.mongle"
+    namespace = "app.dingrow"
     compileSdk = 36
     defaultConfig {
-        applicationId = "app.mongle"
+        applicationId = "app.dingrow"
         minSdk = 26
         targetSdk = 36
-        versionCode = mongleProp("MONGLE_VERSION_CODE")?.toIntOrNull() ?: 1
-        versionName = mongleProp("MONGLE_VERSION_NAME") ?: "0.1.0"
+        versionCode = buildProp("DINGROW_VERSION_CODE", "MONGLE_VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = buildProp("DINGROW_VERSION_NAME", "MONGLE_VERSION_NAME") ?: "0.1.0"
     }
-    val releaseStore = mongleProp("MONGLE_STORE_FILE")
+    val releaseStore = buildProp("DINGROW_STORE_FILE", "MONGLE_STORE_FILE")
     signingConfigs {
         if (!releaseStore.isNullOrBlank()) {
             create("release") {
                 storeFile = file(releaseStore)
-                storePassword = mongleProp("MONGLE_STORE_PASSWORD")
-                keyAlias = mongleProp("MONGLE_KEY_ALIAS")
-                keyPassword = mongleProp("MONGLE_KEY_PASSWORD")
+                storePassword = buildProp("DINGROW_STORE_PASSWORD", "MONGLE_STORE_PASSWORD")
+                keyAlias = buildProp("DINGROW_KEY_ALIAS", "MONGLE_KEY_ALIAS")
+                keyPassword = buildProp("DINGROW_KEY_PASSWORD", "MONGLE_KEY_PASSWORD")
             }
         }
     }

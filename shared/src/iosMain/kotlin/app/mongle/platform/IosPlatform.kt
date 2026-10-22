@@ -12,6 +12,7 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import platform.Foundation.NSDateComponents
+import platform.Foundation.NSFileManager
 import platform.UserNotifications.UNAuthorizationOptionAlert
 import platform.UserNotifications.UNAuthorizationOptionBadge
 import platform.UserNotifications.UNAuthorizationOptionSound
@@ -78,7 +79,7 @@ private fun ensureCategory(center: UNUserNotificationCenter) {
     val complete = UNNotificationAction.actionWithIdentifier("COMPLETE", "완료", UNNotificationActionOptionForeground)
     val snooze = UNNotificationAction.actionWithIdentifier("SNOOZE", "10분 뒤", 0u)
     val category = UNNotificationCategory.categoryWithIdentifier(
-        "MONGLE_SCHEDULE",
+        "DINGROW_SCHEDULE",
         listOf(complete, snooze),
         emptyList<String>(),
         0u,
@@ -90,7 +91,7 @@ private fun requestFor(notice: ScheduledNotice): UNNotificationRequest {
     val content = UNMutableNotificationContent()
     content.title = notice.title
     content.body = notice.body
-    content.categoryIdentifier = "MONGLE_SCHEDULE"
+    content.categoryIdentifier = "DINGROW_SCHEDULE"
     content.userInfo = mapOf("scheduleId" to notice.scheduleId)
     val ldt = Instant.fromEpochMilliseconds(notice.triggerAtMillis).toLocalDateTime(TimeZone.currentSystemDefault())
     val comps = NSDateComponents()
@@ -106,13 +107,29 @@ private fun requestFor(notice: ScheduledNotice): UNNotificationRequest {
 
 fun createIosDriver(directory: String): SqlDriver {
     val base = directory.removePrefix("file://").substringBefore("?").removeSuffix("/")
+    copyLegacyDatabase(base)
     return NativeSqliteDriver(
         schema = MongleDatabase.Schema,
-        name = "mongle.db",
+        name = "dingrow.db",
         onConfiguration = { config ->
             config.copy(extendedConfig = config.extendedConfig.copy(basePath = base))
         },
     )
+}
+
+private fun copyLegacyDatabase(base: String) {
+    val files = NSFileManager.defaultManager
+    val dest = "$base/dingrow.db"
+    if (files.fileExistsAtPath(dest)) return
+    val source = "$base/mongle.db"
+    if (!files.fileExistsAtPath(source)) return
+    listOf("", "-wal", "-shm", "-journal").forEach { suffix ->
+        val from = source + suffix
+        val to = dest + suffix
+        if (files.fileExistsAtPath(from) && !files.fileExistsAtPath(to)) {
+            files.copyItemAtPath(from, to, null)
+        }
+    }
 }
 
 /**

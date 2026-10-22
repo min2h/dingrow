@@ -7,13 +7,34 @@ import ComposeApp
 #endif
 
 enum AppGroup {
-    static let identifier = "group.app.mongle"
+    static let identifier = "group.app.dingrow"
 
     static func databaseDirectory() -> String {
-        if let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: identifier) {
-            return url.path
+        let path = containerPath(identifier) ?? NSTemporaryDirectory()
+        if let legacy = containerPath("group.app.mongle"), legacy != path {
+            copyLegacyDatabase(from: legacy, to: path)
         }
-        return NSTemporaryDirectory()
+        copyLegacyDatabase(from: path, to: path)
+        return path
+    }
+
+    private static func containerPath(_ group: String) -> String? {
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group)?.path
+    }
+
+    private static func copyLegacyDatabase(from sourceDir: String, to destDir: String) {
+        let files = FileManager.default
+        let dest = (destDir as NSString).appendingPathComponent("dingrow.db")
+        if files.fileExists(atPath: dest) { return }
+        let source = (sourceDir as NSString).appendingPathComponent("mongle.db")
+        guard files.fileExists(atPath: source) else { return }
+        for suffix in ["", "-wal", "-shm", "-journal"] {
+            let from = source + suffix
+            let to = dest + suffix
+            if files.fileExists(atPath: from), !files.fileExists(atPath: to) {
+                try? files.copyItem(atPath: from, toPath: to)
+            }
+        }
     }
 }
 

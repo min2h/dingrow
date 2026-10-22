@@ -21,6 +21,12 @@ jobs:
       - name: local.properties
         run: echo "sdk.dir=$ANDROID_HOME" >> local.properties
 
+      - name: Check bundle identifiers
+        run: |
+          grep -q '^BUNDLE_ID=app.dingrow$' iosApp/Configuration/Config.xcconfig
+          grep -q '^WIDGET_BUNDLE_ID=app.dingrow.widget$' iosApp/Configuration/Config.xcconfig
+          grep -q '^APP_GROUP=group.app.dingrow$' iosApp/Configuration/Config.xcconfig
+
       - name: Build app and widget
         working-directory: iosApp
         run: |

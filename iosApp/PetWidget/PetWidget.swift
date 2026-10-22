@@ -25,7 +25,7 @@ struct PetTimelineProvider: TimelineProvider {
 }
 
 struct PetHomeWidget: Widget {
-    let kind = "app.mongle.pet"
+    let kind = "app.dingrow.pet"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: PetTimelineProvider()) { entry in
@@ -34,8 +34,8 @@ struct PetHomeWidget: Widget {
                     Color(hex: entry.snapshot.wallHex)
                 }
         }
-        .configurationDisplayName("몽이")
-        .description("홈 화면에서 몽이를 돌보고 일정을 마쳐요.")
+        .configurationDisplayName(Text("widget_name"))
+        .description(Text("widget_description"))
         .supportedFamilies([.systemSmall, .systemLarge])
     }
 }
@@ -156,7 +156,7 @@ struct PetWidgetView: View {
                 }
                 .font(.caption2)
                 .buttonStyle(.bordered)
-                Link(destination: URL(string: "mongle://schedule/add")!) {
+                Link(destination: URL(string: "dingrow://schedule/add")!) {
                     Text("일정 추가")
                         .font(.caption2)
                         .foregroundStyle(Color(hex: "#8A6A55"))

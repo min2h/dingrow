@@ -61,7 +61,8 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         val route = intent?.getStringExtra("route")
         val data = intent?.data
-        if (route == "add-schedule" || (data?.scheme == "mongle" && data.host == "schedule")) {
+        val scheme = data?.scheme
+        if (route == "add-schedule" || ((scheme == "dingrow" || scheme == "mongle") && data?.host == "schedule")) {
             NavigationBus.request("add-schedule")
         }
     }

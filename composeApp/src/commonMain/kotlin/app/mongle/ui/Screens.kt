@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.mongle.appBrandName
 import app.mongle.logic.Korean
 import app.mongle.model.Catalog
 import app.mongle.model.DecorSlot
@@ -131,7 +132,7 @@ fun MongleAppScreen(
         topBar = {
             TopBar(
                 title = when (tab) {
-                    Tab.Home -> "몽글"
+                    Tab.Home -> appBrandName()
                     Tab.Schedule -> "일정"
                     Tab.Room -> "방 꾸미기"
                     Tab.My -> "도감"
@@ -249,9 +250,9 @@ private fun Onboarding(name: String, onName: (String) -> Unit, onStart: () -> Un
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ArtImage("onboarding", Modifier.fillMaxWidth().height(280.dp).clip(RoundedCornerShape(28.dp)), "몽글")
+        ArtImage("onboarding", Modifier.fillMaxWidth().height(280.dp).clip(RoundedCornerShape(28.dp)), appBrandName())
         Spacer(Modifier.height(16.dp))
-        Text("몽글", style = MaterialTheme.typography.headlineMedium)
+        Text(appBrandName(), style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(8.dp))
         Text("같이 지낼 이름을 정해 주세요", color = InkSoft)
         Spacer(Modifier.height(16.dp))

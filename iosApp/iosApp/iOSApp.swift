@@ -18,7 +18,7 @@ struct iOSApp: App {
     private func open(_ url: URL) {
         let host = url.host?.lowercased() ?? ""
         let path = url.path.lowercased()
-        if url.scheme == "mongle", host == "schedule" || path.contains("schedule") {
+        if url.scheme == "dingrow" || url.scheme == "mongle", host == "schedule" || path.contains("schedule") {
             NavigationBus.shared.request(route: "add-schedule")
         }
     }

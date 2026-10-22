@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>ko</string>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>몽글</string>
+	<string>Dingrow</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -24,9 +24,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>app.mongle</string>
+			<string>app.dingrow</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<string>dingrow</string>
 				<string>mongle</string>
 			</array>
 		</dict>

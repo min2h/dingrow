@@ -1,7 +1,7 @@
 TEAM_ID=
-BUNDLE_ID=app.mongle
-WIDGET_BUNDLE_ID=app.mongle.widget
-APP_NAME=Mongle
-APP_GROUP=group.app.mongle
+BUNDLE_ID=app.dingrow
+WIDGET_BUNDLE_ID=app.dingrow.widget
+APP_NAME=Dingrow
+APP_GROUP=group.app.dingrow
 MARKETING_VERSION=0.1.0
 CURRENT_PROJECT_VERSION=1
