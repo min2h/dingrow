@@ -72,7 +72,7 @@ object IosAuth {
                     }
                 }
             },
-        )
+        ).also { it.restore() } // without this `restored` stays false and AuthGate shows a blank cream box forever
     }
 }
 // touch
