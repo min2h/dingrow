@@ -106,12 +106,33 @@ jobs:
           path: Dingrow-sim.zip
           retention-days: 14
 
+      - name: Smoke test on simulator (launch, screenshot, crash logs)
+        continue-on-error: true
+        run: |
+          mkdir -p smoke
+          APP="$(ls -d iosApp/build/dd/Build/Products/Debug-iphonesimulator/*.app | grep -v PetWidget | head -1)"
+          UDID=$(xcrun simctl list devices available -j | python3 -c "import json,sys;d=json.load(sys.stdin)['devices'];print(next(x['udid'] for k,v in d.items() if 'iOS' in k for x in v if 'iPhone' in x['name']))")
+          xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$APP"
+          BID=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")
+          (xcrun simctl launch --console-pty "$UDID" "$BID" > smoke/console.txt 2>&1 &)
+          sleep 30
+          xcrun simctl io "$UDID" screenshot smoke/launch.png || true
+          xcrun simctl spawn "$UDID" launchctl list | grep -i "$BID" > smoke/running.txt || echo "NOT RUNNING" > smoke/running.txt
+          xcrun simctl spawn "$UDID" log show --last 2m --style compact --predicate 'process == "Dingrow"' > smoke/oslog.txt 2>&1 || true
+          cp ~/Library/Logs/DiagnosticReports/Dingrow*.ips smoke/ 2>/dev/null || true
+          ls -la smoke; cat smoke/running.txt; tail -60 smoke/console.txt
+          for f in smoke/*.ips; do [ -f "$f" ] && head -c 6000 "$f"; done
+          tail -80 smoke/oslog.txt
+          (cd smoke && zip -q ../smoke.zip *)
+
       - name: Publish rolling pre-release (ios-sim)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete ios-sim --yes --cleanup-tag 2>/dev/null || true
-          gh release create ios-sim Dingrow-sim.zip --prerelease --target "$GITHUB_SHA" \
+          ASSETS="Dingrow-sim.zip"; [ -f smoke.zip ] && ASSETS="$ASSETS smoke.zip"; [ -f smoke/launch.png ] && ASSETS="$ASSETS smoke/launch.png"
+          gh release create ios-sim $ASSETS --prerelease --target "$GITHUB_SHA" \
             --title "iOS simulator build ${GITHUB_SHA::7}" --notes "Unsigned Debug iphonesimulator build (arm64)."
 
       - name: Upload to Appetize (optional)
