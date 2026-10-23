@@ -162,9 +162,9 @@ final class CoinStore {
     private var updates: Task<Void, Never>?
 
     func start() {
-        updates = Task { for await result in Transaction.updates { await self.handle(result) } }
+        updates = Task { for await result in StoreKit.Transaction.updates { await self.handle(result) } }
         // Consumables not yet finished (app killed mid-purchase, Ask to Buy approved later): grant (idempotent by transaction id) + finish.
-        Task { for await result in Transaction.unfinished { await self.handle(result) } }
+        Task { for await result in StoreKit.Transaction.unfinished { await self.handle(result) } }
         Task {
             products = (try? await Product.products(for: MongleKit.productIds())) ?? []
             MongleKit.updatePrices(Dictionary(uniqueKeysWithValues: products.map { ($0.id, $0.displayPrice) }))
@@ -179,14 +179,14 @@ final class CoinStore {
         do {
             switch try await product.purchase() {
             case .success(let result): return await handle(result)
-            case .pending: return MongleKit.text("msg_billing_pending")   // Ask to Buy / SCA: granted later via Transaction.updates
+            case .pending: return MongleKit.text("msg_billing_pending")   // Ask to Buy / SCA: granted later via StoreKit.Transaction.updates
             default: return ""
             }
         } catch { return error.localizedDescription }
     }
 
     @discardableResult
-    private func handle(_ result: VerificationResult<Transaction>) async -> String {
+    private func handle(_ result: VerificationResult<StoreKit.Transaction>) async -> String {
         guard case .verified(let tx) = result else { return "" }
         // Server verification (Cloud Functions -> App Store Server API). Rejected = no grant, no finish;
         // unavailable (no Firebase / offline) = local grant; the server credit later dedups on the same token.
