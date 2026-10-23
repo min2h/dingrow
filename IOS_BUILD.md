@@ -90,3 +90,45 @@ open iosApp/iosApp.xcodeproj
 - `No such module 'ComposeApp'` → 한 번 ⌘B로 빌드(Run Script가 프레임워크 생성) / `./gradlew :composeApp:embedAndSignAppleFrameworkForXcode` 로그 확인
 - 위젯이 빈 화면 → 앱을 한 번 실행해서 DB 생성, 두 타깃의 App Group 값이 같은지 확인
 - 서명 오류 "No profiles" → Team 선택, 번들 ID 중복 여부 확인
+
+---
+
+## Mac 없이 빌드하기 (GitHub Actions)
+
+### 1) 시뮬레이터 빌드 — `.github/workflows/ios.yml`
+- 실행 조건: `main`에 `iosApp/**`, `shared/**`, `composeApp/src/{commonMain,iosMain}/**`, gradle 파일이 바뀐 push가 들어올 때, 또는 Actions 탭에서 **Run workflow**(workflow_dispatch)를 눌렀을 때.
+- 하는 일: KMP 프레임워크 빌드(arm64 시뮬레이터 전용) → SPM resolve → `xcodebuild` (Debug, iphonesimulator, 서명 없음) → `Dingrow-sim.zip`.
+- 결과물 위치:
+  - Actions 아티팩트 `Dingrow-simulator`
+  - 롤링 pre-release **`ios-sim`** (매 빌드마다 새로 덮어씀). Actions 권한이 없는 토큰으로도 받을 수 있게 하려고 둔 경로입니다.
+- Firebase는 선택 사항입니다. `GoogleService-Info.plist`가 없으면 Firebase 초기화를 건너뛰니(`iOSApp.swift`), plist 없이도 빌드됩니다.
+- 캐시: Gradle(setup-gradle), `~/.konan`(빌드가 실패해도 저장), SPM.
+- Appetize 자동 업로드(선택): 저장소 secret `APPETIZE_API_TOKEN`과 variable `APPETIZE_IOS_KEY`(기존 iOS 앱 publicKey)가 **둘 다** 있을 때만 실행되고, 그 앱을 갱신합니다.
+
+### 2) TestFlight 업로드 — `.github/workflows/ios-testflight.yml` (수동 실행 전용)
+Apple Developer Program 가입 후에 쓸 수 있습니다. fastlane/match 없이 **App Store Connect API 키 + Xcode 자동 서명**을 사용합니다.
+
+준비:
+1. App Store Connect → 사용자 및 액세스 → 통합 → **App Store Connect API** → 키 생성 (역할: App Manager 이상). `.p8` 파일은 한 번만 내려받을 수 있습니다.
+2. App Store Connect에 번들 ID `app.dingrow`(위젯 `app.dingrow.widget`)로 앱을 등록하고, App Group `group.app.dingrow`를 만듭니다. 자동 서명이 프로필은 만들어 주지만, 앱 레코드는 직접 만들어야 업로드가 됩니다.
+3. 저장소 Settings → Secrets and variables → Actions에 아래 secret을 추가합니다.
+
+| Secret | 내용 |
+|---|---|
+| `ASC_KEY_ID` | API 키 ID (예: `ABC123DEFG`) |
+| `ASC_ISSUER_ID` | Issuer ID (UUID) |
+| `ASC_KEY_P8` | `.p8` 파일 내용 전체 (`-----BEGIN PRIVATE KEY-----` 포함) |
+| `TEAM_ID` | Apple 팀 ID (10자리) |
+| `GOOGLE_SERVICE_INFO_PLIST_B64` | (선택) `base64 -i GoogleService-Info.plist` 결과 |
+
+실행: Actions → **iOS TestFlight** → Run workflow → `build_number`를 입력합니다. 이전 업로드보다 큰 숫자여야 합니다.
+워크플로가 하는 일:
+1. p8을 `~/.appstoreconnect/private_keys`에 씁니다.
+2. `Config.xcconfig`에 TEAM_ID와 빌드 번호를 넣습니다.
+3. `xcodebuild archive -allowProvisioningUpdates`(API 키 인증, 자동 서명)를 실행합니다.
+4. `-exportArchive`(method `app-store-connect`, destination `upload`)로 TestFlight에 바로 업로드합니다.
+5. 끝나면 키를 삭제합니다.
+
+### 참고/제약
+- 현재 저장소 푸시용 PAT에는 Actions 권한이 없어서 API로 dispatch하거나 아티팩트를 내려받을 수 없습니다. 그래서 push로 빌드를 트리거하고, 결과는 `ios-sim` 릴리스로 받습니다.
+- macOS 러너는 private 저장소에서 분당 10배로 과금됩니다. 경로 필터와 동시 실행 취소(concurrency)로 불필요한 실행을 줄였습니다.
