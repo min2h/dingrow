@@ -273,8 +273,8 @@ fun ShopStudioScreen(state: GameState, service: GameService, scope: CoroutineSco
                     .shadow(12.dp).background(CardWhite).padding(horizontal = 8.dp, vertical = 6.dp).testTag("shop-cart"),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = { edit { revert() } }, modifier = Modifier.size(48.dp).semantics { contentDescription = L10n.t("shop_revert") }.testTag("shop-revert"), contentPadding = PaddingValues(0.dp)) { Text("↺", fontSize = 22.sp, color = Ink) }
-                TextButton(onClick = { edit { undo() } }, modifier = Modifier.size(48.dp).semantics { contentDescription = L10n.t("shop_undo") }.testTag("shop-undo"), contentPadding = PaddingValues(0.dp)) { Text("↶", fontSize = 22.sp, color = InkSoft) }
+                TextButton(onClick = { edit { revert() } }, modifier = Modifier.size(48.dp).semantics { contentDescription = L10n.t("shop_revert") }.testTag("shop-revert"), contentPadding = PaddingValues(0.dp)) { ArrowIcon(undo = false) }
+                TextButton(onClick = { edit { undo() } }, modifier = Modifier.size(48.dp).semantics { contentDescription = L10n.t("shop_undo") }.testTag("shop-undo"), contentPadding = PaddingValues(0.dp)) { ArrowIcon(undo = true) }
                 Spacer(Modifier.weight(1f))
                 Button(
                     onClick = { if (short) onEarn() else confirm = true },
@@ -506,3 +506,26 @@ fun DecorateScreen(state: GameState, service: GameService, scope: CoroutineScope
 /** Pinned room height: ~25% of the screen (2+ full item rows stay visible on a 1080x2400 phone), clamped so small phones keep room for the list. */
 internal fun pinnedStageHeight(screen: androidx.compose.ui.unit.Dp): androidx.compose.ui.unit.Dp =
     (screen * 0.25f).coerceIn(140.dp, 240.dp)
+
+/** Reset (circular arrow) and Undo (hook arrow) drawn in the same 22dp box and stroke so they read as one size. */
+@Composable
+internal fun ArrowIcon(undo: Boolean, color: Color = Ink) {
+    androidx.compose.foundation.Canvas(Modifier.size(22.dp).testTag(if (undo) "icon-undo" else "icon-reset")) {
+        val w = size.width; val st = w * 0.11f
+        val stroke = androidx.compose.ui.graphics.drawscope.Stroke(width = st, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round)
+        val path = androidx.compose.ui.graphics.Path()
+        if (!undo) {
+            val r = w * 0.38f; val c = androidx.compose.ui.geometry.Offset(w / 2, w / 2)
+            drawArc(color, startAngle = -60f, sweepAngle = -280f, useCenter = false, topLeft = androidx.compose.ui.geometry.Offset(c.x - r, c.y - r), size = androidx.compose.ui.geometry.Size(2 * r, 2 * r), style = stroke)
+            // arrowhead at the arc start (top-right)
+            val tip = androidx.compose.ui.geometry.Offset(c.x + r * 0.5f, c.y - r * 0.866f)
+            path.moveTo(tip.x - w * 0.20f, tip.y - w * 0.04f); path.lineTo(tip.x, tip.y); path.lineTo(tip.x - w * 0.02f, tip.y + w * 0.20f)
+        } else {
+            // hook: from bottom-right up and around to the left, arrowhead pointing left
+            path.moveTo(w * 0.86f, w * 0.86f)
+            path.cubicTo(w * 0.86f, w * 0.40f, w * 0.60f, w * 0.30f, w * 0.14f, w * 0.30f)
+            path.moveTo(w * 0.32f, w * 0.12f); path.lineTo(w * 0.14f, w * 0.30f); path.lineTo(w * 0.32f, w * 0.48f)
+        }
+        drawPath(path, color, style = stroke)
+    }
+}

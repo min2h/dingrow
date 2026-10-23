@@ -64,6 +64,24 @@ class AuthFlowTest {
         assertNull(load())
     }
 
+    @Test fun returningToLoginKeepsGuestSessionAndData() {
+        val (load, persist) = store()
+        var ids = 0
+        val auth = LocalAuthService(load, persist, guestId = { "guest-${++ids}" })
+        auth.restore()
+        show(auth)
+        rule.onNodeWithTag("login-guest").performClick(); settle()
+        val first = load()!!.userId
+        // Onboarding's back (after confirm) only requests the login screen; no sign-out.
+        app.mongle.ui.LoginReturn.requested = true; settle()
+        rule.onNodeWithTag("login").assertIsDisplayed()
+        assertEquals(first, load()!!.userId)
+        rule.onNodeWithTag("login-guest").performClick(); settle()
+        rule.onNodeWithText("HOME").assertIsDisplayed()
+        assertEquals("same guest id resumed, data kept", first, load()!!.userId)
+        assertEquals(1, ids)
+    }
+
     @Test fun unconfiguredGoogleFallsBackWithMessage() {
         val auth = LocalAuthService(debugFake = true).also { it.restore() }
         show(auth)

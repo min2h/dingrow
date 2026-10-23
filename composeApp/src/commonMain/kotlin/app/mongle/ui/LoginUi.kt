@@ -49,6 +49,9 @@ val LocalAuth = staticCompositionLocalOf<AuthService?> { null }
  * Shows login until there is a session, a short welcome-back splash on auto-login, a guest
  * confirmation after first guest sign-in, then [content].
  */
+/** Set by onboarding's back: show login again while KEEPING the current (guest) session and its data. */
+object LoginReturn { var requested by mutableStateOf(false) }
+
 @Composable
 fun AuthGate(auth: AuthService, splashMillis: Long = 1_200, content: @Composable () -> Unit) {
     val session by auth.session.collectAsState()
@@ -59,6 +62,10 @@ fun AuthGate(auth: AuthService, splashMillis: Long = 1_200, content: @Composable
         when {
             !restored -> Box(Modifier.fillMaxSize().background(Cream))
             session == null -> LoginScreen(auth, onGuest = {})
+            LoginReturn.requested -> {
+                Back { LoginReturn.requested = false }
+                LoginScreen(auth, resumeGuest = session!!.provider == "guest", onGuest = { LoginReturn.requested = false })
+            }
             !splashDone -> SplashScreen(session!!)
             else -> content()
         }
@@ -68,7 +75,7 @@ fun AuthGate(auth: AuthService, splashMillis: Long = 1_200, content: @Composable
 private val LoginBg = Brush.verticalGradient(listOf(Color(0xFFFFF0E8), Color(0xFFFFFAF4)))
 
 @Composable
-fun LoginScreen(auth: AuthService, onGuest: () -> Unit) {
+fun LoginScreen(auth: AuthService, resumeGuest: Boolean = false, onGuest: () -> Unit) {
     val scope = rememberCoroutineScope()
     var notice by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
@@ -105,7 +112,7 @@ fun LoginScreen(auth: AuthService, onGuest: () -> Unit) {
             Spacer(Modifier.height(12.dp))
             Box(Modifier.fillMaxWidth().then(if (notice != null) Modifier.border(2.5.dp, PeachDeep, RoundedCornerShape(30.dp)).padding(4.dp) else Modifier)) {
                 LoginButton(t("login_guest"), PeachSoft, Color(0xFFC45C4C), tag = "login-guest", shadow = false, enabled = !busy) {
-                    scope.launch { auth.signInGuest(); onGuest() }
+                    scope.launch { if (!resumeGuest) auth.signInGuest(); onGuest() }
                 }
             }
             Text(t("login_guest_note"), fontSize = 11.sp, color = InkSoft, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 6.dp).testTag("login-guest-note"))

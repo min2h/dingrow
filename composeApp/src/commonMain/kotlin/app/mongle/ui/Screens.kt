@@ -175,8 +175,16 @@ fun MongleAppScreen(
     LanguageProvider(state.settings.language) {
     if (!state.onboarded) {
         val auth = LocalAuth.current
-        // Back from the single setup step returns to login (the step before it).
-        Back(enabled = auth?.session?.value != null) { scope.launch { auth?.signOut() } }
+        // Back from the single setup step asks, then returns to login WITHOUT signing out (guest data kept).
+        var askBack by remember { mutableStateOf(false) }
+        Back(enabled = auth?.session?.value != null) { askBack = true }
+        if (askBack) androidx.compose.material3.AlertDialog(
+            onDismissRequest = { askBack = false },
+            modifier = Modifier.testTag("onb-back-dialog"),
+            text = { Text(L10n.t("onb_back_title")) },
+            confirmButton = { TextButton(onClick = { askBack = false; LoginReturn.requested = true }, modifier = Modifier.testTag("onb-back-yes")) { Text(L10n.t("onb_back_yes")) } },
+            dismissButton = { TextButton(onClick = { askBack = false }) { Text(L10n.t("onb_back_no")) } },
+        )
         Box(Modifier.fillMaxSize().background(Cream).windowInsetsPadding(WindowInsets.safeDrawing)) {
         Onboarding(
             name = name,
@@ -565,12 +573,12 @@ private fun HomeScreen(
                     val gift = state.pendingGift
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (gift != null) {
-                            ArtImage(Catalog.byId(gift.defId)?.pictureId() ?: gift.defId, Modifier.size(48.dp), gift.name)
+                            ArtImage(Catalog.byId(gift.defId)?.pictureId() ?: gift.defId, Modifier.size(48.dp), app.mongle.l10n.L10n.item(gift.defId))
                             Spacer(Modifier.width(8.dp))
                         }
                         Column(Modifier.weight(1f)) {
                             Text(
-                                if (gift != null) tf("gift_arrived_named", gift.name) else tf("coins_arrived", state.pendingDropCoins),
+                                if (gift != null) tf("gift_arrived_named", app.mongle.l10n.L10n.item(gift.defId)) else tf("coins_arrived", state.pendingDropCoins),
                                 style = MaterialTheme.typography.titleMedium,
                             )
                             Text(
@@ -820,7 +828,7 @@ private fun RoomScreen(
             PillButton(t("shop_open"), Mark.Coin, PeachSoft, Modifier.weight(1f).testTag("open-shop"), onItemShop)
         }
         state.gifts.firstOrNull()?.let { gift ->
-            TextButton(onClick = { onResell(gift.defId) }) { Text(tf("sell_named", gift.name)) }
+            TextButton(onClick = { onResell(gift.defId) }) { Text(tf("sell_named", app.mongle.l10n.L10n.item(gift.defId))) }
         }
         TextButton(onClick = onShop) { Text(t("coin_shop")) }
         Spacer(Modifier.height(12.dp))

@@ -55,7 +55,18 @@ object L10n {
     fun item(id: String): String {
         val key = "item_$id"
         val value = t(key)
-        return if (value == key) Catalog.byId(id)?.name ?: id else value
+        if (value != key) return value
+        if (Catalog.companions.any { it.id == id }) return species(id)
+        return Catalog.byId(id)?.name ?: id
+    }
+
+    /** Item description in the current language (catalog blurbs are the name plus a period). */
+    fun itemBlurb(id: String): String {
+        val key = "item_${id}_blurb"
+        val value = t(key)
+        if (value != key) return value
+        if (Catalog.companions.any { it.id == id }) return speciesBlurb(id)
+        return item(id) + "."
     }
 
     fun species(id: String): String {
