@@ -167,7 +167,7 @@ internal object WallpaperPainter {
         val mirror = walking && SpeciesPoses.mirrorSafeWalk(species) && motion.facing.value < 0f
         canvas.save()
         canvas.rotate(motion.rotation, cx, cy + dh * 0.28f)
-        drawPet(canvas, context, species, stage, act, petEdge, dest, paint, eased, mirror, phase)
+        drawPet(canvas, context, species, stage, act, petEdge, dest, paint, eased, mirror, phase, state?.outfitId)
         canvas.restore()
         if (act == PetAct.SLEEP) drawSleepMarks(canvas, dest, phase)
         val density = context.resources.displayMetrics.density
@@ -215,6 +215,33 @@ internal object WallpaperPainter {
     }
 
     private fun drawPet(
+        canvas: Canvas,
+        context: Context,
+        species: String,
+        stage: Stage,
+        act: PetAct,
+        petEdge: Int,
+        dest: Rect,
+        paint: Paint,
+        eased: Float,
+        mirror: Boolean,
+        phase: Float,
+        outfitId: String? = null,
+    ) {
+        val wornId = petAssetId(species, stage, act)
+        fun worn(layer: app.mongle.ui.WearLayer) {
+            if (outfitId == null) return
+            val pb = ArtBitmaps.decode(context, wornId, petEdge)
+            if (mirror) { canvas.save(); canvas.scale(-1f, 1f, dest.exactCenterX(), dest.exactCenterY()) }
+            app.mongle.widget.WornBitmap.draw(canvas, outfitId, wornId, pb, android.graphics.RectF(dest), layer)
+            if (mirror) canvas.restore()
+        }
+        worn(app.mongle.ui.WearLayer.BACK)
+        drawPetSprite(canvas, context, species, stage, act, petEdge, dest, paint, eased, mirror, phase)
+        worn(app.mongle.ui.WearLayer.FRONT)
+    }
+
+    private fun drawPetSprite(
         canvas: Canvas,
         context: Context,
         species: String,

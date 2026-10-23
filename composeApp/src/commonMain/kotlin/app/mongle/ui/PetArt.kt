@@ -282,6 +282,8 @@ internal fun PetFigure(
                     } else if (walking && mirrorSafe && sin(walk * 2 * PI) > 0) -1f else 1f
                 },
         ) {
+            val worn = outfitId?.takeIf { WornArt.known(it) }
+            if (worn != null && WornArt.hasBack(worn)) WornLayer(worn, speciesId, stage, act, WearLayer.BACK)
             val blinkOf: () -> Float = { if (animate) { frame.longValue; engine.blink } else 0f }
             if (animate && body.isBlank()) {
                 Crossfade(
@@ -295,30 +297,10 @@ internal fun PetFigure(
             } else {
                 PoseSprite(speciesId, stage, act, if (animate) blinkOf else ({ 0f }))
             }
+            if (worn != null) WornLayer(worn, speciesId, stage, act, WearLayer.FRONT)
         }
         if (sleeping && !animate) {
             SleepMarks(phase = walk, modifier = Modifier.fillMaxSize())
-        }
-        if (outfitId != null && Art.known(outfitId)) {
-            // Worn accessory at its slot anchor; rides the same body transform (idle/walk), so it follows the sprite.
-            val a = OutfitAnchors.of(outfitId, egg = stage == Stage.EGG || act == PetAct.EGG)
-            Image(
-                painter = painterResource(Art.drawable(outfitId)),
-                contentDescription = null,
-                modifier = Modifier
-                    .align(androidx.compose.ui.BiasAlignment(0f, a.yBias))
-                    .fillMaxWidth(a.width)
-                    .aspectRatio(1f)
-                    .graphicsLayer {
-                        frame.longValue
-                        if (animate && a.slot == OutfitSlot.HEAD) {
-                            translationY = engine.accessoryYdp.dp.toPx()
-                            rotationZ = engine.accessoryYdp * 0.8f
-                        }
-                    }
-                    .testTag("pet-outfit-$outfitId"),
-                contentScale = ContentScale.Fit,
-            )
         }
         if (animate) {
             Canvas(Modifier.fillMaxSize()) {
@@ -422,26 +404,19 @@ private fun SleepMarks(phase: Float, modifier: Modifier = Modifier) {
 
 
 
-enum class OutfitSlot { HEAD, FACE, NECK, BODY, FEET }
-
-/** Where each wearable sits on the pet sprite (fractions of the pet box). Every outfit must be listed. */
+/** Back-compat view over [WornArt.slots]. */
 object OutfitAnchors {
-    data class Anchor(val slot: OutfitSlot, val yBias: Float, val width: Float)
-    private val slots = mapOf(
-        "ribbon" to OutfitSlot.HEAD, "beret" to OutfitSlot.HEAD, "crown" to OutfitSlot.HEAD, "sprout_hat" to OutfitSlot.HEAD,
-        "straw_hat" to OutfitSlot.HEAD, "bunny_ears" to OutfitSlot.HEAD, "flower_crown" to OutfitSlot.HEAD, "beanie" to OutfitSlot.HEAD,
-        "heart_hairpin" to OutfitSlot.HEAD, "sunglasses" to OutfitSlot.FACE,
-        "knit_scarf" to OutfitSlot.NECK, "bow_tie" to OutfitSlot.NECK, "sailor_collar" to OutfitSlot.NECK, "pearl_necklace" to OutfitSlot.NECK,
-        "raincoat" to OutfitSlot.BODY, "hoodie" to OutfitSlot.BODY, "cardigan" to OutfitSlot.BODY, "overalls" to OutfitSlot.BODY,
-        "tiny_backpack" to OutfitSlot.BODY, "rain_boots" to OutfitSlot.FEET, "cozy_socks" to OutfitSlot.FEET,
-    )
-    fun known(id: String) = id in slots
-    fun slot(id: String): OutfitSlot = slots[id] ?: OutfitSlot.HEAD
-    fun of(id: String, egg: Boolean = false): Anchor = when (slot(id)) {
-        OutfitSlot.HEAD -> Anchor(OutfitSlot.HEAD, if (egg) -0.55f else -1f, 0.40f)
-        OutfitSlot.FACE -> Anchor(OutfitSlot.FACE, -0.25f, 0.44f)
-        OutfitSlot.NECK -> Anchor(OutfitSlot.NECK, 0.18f, 0.40f)
-        OutfitSlot.BODY -> Anchor(OutfitSlot.BODY, 0.45f, 0.50f)
-        OutfitSlot.FEET -> Anchor(OutfitSlot.FEET, 0.95f, 0.46f)
+    fun known(id: String) = WornArt.known(id)
+    fun slot(id: String): WearSlot = WornArt.slots[id] ?: WearSlot.HEAD
+}
+
+/** One layer of the dedicated worn art, fitted to the sprite currently shown for [act]. */
+@Composable
+internal fun WornLayer(outfitId: String, speciesId: String, stage: Stage, act: PetAct, layer: WearLayer) {
+    val assetId = petAssetId(speciesId, stage, act)
+    val mask = if (layer == WearLayer.FRONT) org.jetbrains.compose.resources.imageResource(Art.pet(speciesId, stage, act)) else null
+    val fit = WearFit.of(assetId)
+    Canvas(Modifier.fillMaxSize().testTag(if (layer == WearLayer.FRONT) "pet-outfit-$outfitId" else "pet-outfit-back-$outfitId")) {
+        with(WornArt) { drawWear(outfitId, fit, layer, mask) }
     }
 }

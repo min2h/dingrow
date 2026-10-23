@@ -90,7 +90,10 @@ object WidgetScene {
         val pb = ArtBitmaps.decode(context, petAssetId(state.speciesId, state.stage, act), pet * 2)
         val shadow = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x33000000 }
         c.drawOval(RectF(left + pet * 0.2f, top + pet * 0.86f, left + pet * 0.8f, top + pet * 0.98f), shadow)
+        val petId = petAssetId(state.speciesId, state.stage, act)
+        WornBitmap.draw(c, state.outfitId, petId, pb, petRect, app.mongle.ui.WearLayer.BACK)
         c.drawBitmap(pb, null, petRect, Paint(Paint.FILTER_BITMAP_FLAG))
+        WornBitmap.draw(c, state.outfitId, petId, pb, petRect, app.mongle.ui.WearLayer.FRONT)
         if (state.stage != app.mongle.model.Stage.EGG || true) {
             val fx = Bitmap.createBitmap(pet, pet, Bitmap.Config.ARGB_8888)
             CanvasDrawScope().draw(dens, LayoutDirection.Ltr, androidx.compose.ui.graphics.Canvas(fx.asImageBitmap()), Size(pet.toFloat(), pet.toFloat())) { drawCondition(state.condition, 0.3f, density) }

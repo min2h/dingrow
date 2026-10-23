@@ -124,6 +124,7 @@ internal fun RoomStage(
     editable: Boolean = false,
     onSelect: (String) -> Unit = {},
     onMove: (String, Int, Int) -> Unit = { _, _, _ -> },
+    petScale: Float = 0.28f,
 ) {
     val night = state.timeOfDay == TimeOfDay.NIGHT
     Box(modifier.aspectRatio(3f / 4f, matchHeightConstraintsFirst = true).clip(RoundedCornerShape(28.dp))) {
@@ -134,7 +135,7 @@ internal fun RoomStage(
         PlacedItems(layout, selected, editable, onSelect, onMove)
         PetFigure(
             speciesId = state.speciesId, stage = state.stage, act0 = PetAct.IDLE, outfitId = layout.outfitId,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp).fillMaxWidth(0.28f).aspectRatio(1f),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp).fillMaxWidth(petScale).aspectRatio(1f).testTag("room-pet"),
             animate = false, breath = 0.35f, walk = 0.2f,
         )
     }
@@ -193,7 +194,10 @@ fun ShopStudioScreen(state: GameState, service: GameService, scope: CoroutineSco
         // Pinned preview: stays put while only the list below scrolls.
         Column(Modifier.fillMaxWidth().background(Cream).padding(horizontal = 16.dp).testTag("shop-pinned")) {
             Box(Modifier.fillMaxWidth().height(stageH), contentAlignment = Alignment.Center) {
-                RoomStage(state, preview, Modifier.fillMaxHeight().testTag("shop-preview"))
+                // 몽이 is shown large in the shop; trying on an outfit zooms in further so the fit is easy to see.
+                val tryingOn = preview.outfitId != null && preview.outfitId != state.outfitId
+                val petScale by androidx.compose.animation.core.animateFloatAsState(if (tryingOn) 0.62f else 0.46f, label = "shop-pet-zoom")
+                RoomStage(state, preview, Modifier.fillMaxHeight().testTag("shop-preview"), petScale = petScale)
                 Text(t("shop_preview"), Modifier.align(Alignment.TopStart).padding(8.dp).clip(StudioPill).background(BubbleInk.copy(alpha = 0.7f)).padding(horizontal = 10.dp, vertical = 4.dp), color = Color.White, fontSize = 11.sp)
             }
             Text(t("shop_preview_note"), color = InkSoft, fontSize = 12.sp, modifier = Modifier.padding(vertical = 6.dp).testTag("shop-preview-note"))
