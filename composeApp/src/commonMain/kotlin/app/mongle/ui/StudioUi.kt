@@ -23,6 +23,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -72,12 +73,13 @@ internal fun PlacedItems(
     val haptics = LocalHapticFeedback.current
     BoxWithConstraints(Modifier.fillMaxSize().onSizeChanged { box = it }) {
         val itemW = maxWidth * 0.24f
-        layout.placements.forEach { p ->
+        app.mongle.logic.RoomFloor.drawOrder(layout.placements).forEach { p ->
             key(p.defId) {
                 var drag by remember(p.x, p.y) { mutableStateOf(Offset.Zero) }
                 val flipped = p.defId in layout.flipped
                 Box(
                     Modifier
+                        .zIndex(p.y.toFloat())
                         .offset(x = maxWidth * (p.x / 100f) - itemW / 2, y = maxHeight * (p.y / 100f) - itemW / 2)
                         .size(itemW)
                         .graphicsLayer {
@@ -132,12 +134,21 @@ internal fun RoomStage(
             painterResource(Art.room(roomTheme(layout.roomId), night, square = false)), null,
             Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Fit,
         )
-        PlacedItems(layout, selected, editable, onSelect, onMove)
+        // Depth by y: furniture above 몽이's feet line is drawn behind it, the rest in front.
+        // Tap 몽이 (dressed or not): a short live reaction, then back to the still pose used for screenshots.
+        var taps by remember { mutableIntStateOf(0) }
+        var reacting by remember { mutableStateOf(false) }
+        LaunchedEffect(taps) { if (taps > 0) { kotlinx.coroutines.delay(1600); reacting = false } }
+        val (behind, front) = layout.placements.partition { it.y < app.mongle.logic.RoomFloor.PET_DEPTH }
+        PlacedItems(layout.copy(placements = behind), selected, editable, onSelect, onMove)
         PetFigure(
             speciesId = state.speciesId, stage = state.stage, act0 = PetAct.IDLE, outfitId = layout.outfitId,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp).fillMaxWidth(petScale).aspectRatio(1f).testTag("room-pet"),
-            animate = false, breath = 0.35f, walk = 0.2f,
+            animate = taps > 0 && reacting, breath = 0.35f, walk = 0.2f,
+            body = if (taps > 0 && reacting) RoomTap.reaction(taps) else "",
+            onClick = { taps++; reacting = true },
         )
+        if (front.isNotEmpty()) PlacedItems(layout.copy(placements = front), selected, editable, onSelect, onMove)
     }
 }
 
@@ -176,6 +187,7 @@ fun ShopStudioScreen(state: GameState, service: GameService, scope: CoroutineSco
     val preview = remember(version) { editor.current }
     var tab by remember { mutableStateOf("all") }
     var hideOwned by remember { mutableStateOf(false) }
+    var shopSel by remember { mutableStateOf<String?>(null) }
     var confirm by remember { mutableStateOf(false) }
     var roomAsk by remember { mutableStateOf<String?>(null) }
     var applyAsk by remember { mutableStateOf(false) }
@@ -196,8 +208,8 @@ fun ShopStudioScreen(state: GameState, service: GameService, scope: CoroutineSco
             Box(Modifier.fillMaxWidth().height(stageH), contentAlignment = Alignment.Center) {
                 // 몽이 is shown large in the shop; trying on an outfit zooms in further so the fit is easy to see.
                 val tryingOn = app.mongle.logic.Wardrobe.decode(preview.outfitId).any { it !in app.mongle.logic.Wardrobe.decode(state.outfitId) }
-                val petScale by androidx.compose.animation.core.animateFloatAsState(if (tryingOn) 0.62f else 0.46f, label = "shop-pet-zoom")
-                RoomStage(state, preview, Modifier.fillMaxHeight().testTag("shop-preview"), petScale = petScale)
+                val petScale by androidx.compose.animation.core.animateFloatAsState(if (preview.placements.any { p -> state.placements.none { it.defId == p.defId } }) 0.38f else if (tryingOn) 0.62f else 0.46f, label = "shop-pet-zoom")
+                RoomStage(state, preview, Modifier.fillMaxHeight().testTag("shop-preview"), shopSel, editable = true, onSelect = { shopSel = it }, onMove = { id, x, y -> edit { move(id, x, y) } }, petScale = petScale)
                 Text(t("shop_preview"), Modifier.align(Alignment.TopStart).padding(8.dp).clip(StudioPill).background(BubbleInk.copy(alpha = 0.7f)).padding(horizontal = 10.dp, vertical = 4.dp), color = Color.White, fontSize = 11.sp)
             }
             Text(t("shop_preview_note"), color = InkSoft, fontSize = 12.sp, modifier = Modifier.padding(vertical = 6.dp).testTag("shop-preview-note"))
@@ -247,7 +259,7 @@ fun ShopStudioScreen(state: GameState, service: GameService, scope: CoroutineSco
                                 edit {
                                     if (item.kind == ItemKind.OUTFIT) toggleWear(item.id)
                                     else if (current.placements.any { it.defId == item.id }) remove(item.id)
-                                    else place(item.id, 30 + (current.placements.size * 15) % 45, 72)
+                                    else placeFree(item.id)
                                 }
                             },
                             onUse = {
@@ -473,7 +485,7 @@ fun DecorateScreen(state: GameState, service: GameService, scope: CoroutineScope
                                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     edit {
                                         if (item.kind == ItemKind.OUTFIT) toggleWear(item.id)
-                                        else if (!on) place(item.id, 50, 70)
+                                        else if (!on) placeFree(item.id)
                                     }
                                     if (item.kind != ItemKind.OUTFIT) selected = item.id
                                 }
@@ -510,7 +522,7 @@ fun DecorateScreen(state: GameState, service: GameService, scope: CoroutineScope
 
 /** Pinned room height: ~25% of the screen (2+ full item rows stay visible on a 1080x2400 phone), clamped so small phones keep room for the list. */
 internal fun pinnedStageHeight(screen: androidx.compose.ui.unit.Dp): androidx.compose.ui.unit.Dp =
-    (screen * 0.25f).coerceIn(140.dp, 240.dp)
+    (screen * 0.3f).coerceIn(160.dp, 280.dp)
 
 /** Reset (circular arrow) and Undo (hook arrow) drawn in the same 22dp box and stroke so they read as one size. */
 @Composable
@@ -533,4 +545,10 @@ internal fun ArrowIcon(undo: Boolean, color: Color = Ink) {
         }
         drawPath(path, color, style = stroke)
     }
+}
+
+/** Varied cute tap reactions for the room/shop stages (shape names from PetMotionEngine). */
+internal object RoomTap {
+    val shapes = listOf("squish", "heart", "jump", "blush", "spin")
+    fun reaction(taps: Int) = shapes[(taps - 1).mod(shapes.size)] + "#$taps"
 }

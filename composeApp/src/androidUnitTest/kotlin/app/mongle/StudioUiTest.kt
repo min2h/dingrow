@@ -4,6 +4,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.printToString
@@ -276,5 +278,30 @@ class StudioUiTest {
         app("en", coins = 1000) { buyAll(listOf("mug", "beanie")) }
         click("open-decorate")
         rule.onRoot().captureRoboImage(artifact("decorate-en.png"))
+    }
+
+    @Test fun shopPreviewShowsFurnitureDraggableWithMultiSlotOutfit() {
+        val s = app(coins = 0)
+        click("open-shop")
+        listOf("wood_bed", "bookshelf", "round_table", "raincoat", "bow_tie", "sunglasses", "crown").forEach { click("try-$it") }
+        listOf("wood_bed", "bookshelf", "round_table").forEach { tag("placed-$it").assertIsDisplayed() }
+        listOf("raincoat", "bow_tie", "sunglasses", "crown").forEach { tag("pet-outfit-$it").fetchSemanticsNode() }
+        val f = java.io.File("/workspace/dingrow-combos").apply { mkdirs() }
+        tag("shop-pinned").captureRoboImage(java.io.File(f, "shop-preview-placed.png").path)
+        rule.mainClock.autoAdvance = true
+        rule.onNodeWithTag("placed-round_table", useUnmergedTree = true).performTouchInput { down(center); repeat(10) { advanceEventTime(16); moveBy(androidx.compose.ui.geometry.Offset(-8f, 6f)) }; up() }
+        rule.waitForIdle(); rule.mainClock.autoAdvance = false
+        settle()
+        tag("shop-pinned").captureRoboImage(java.io.File(f, "shop-preview-dragged.png").path)
+        assertTrue(s.state.value.placements.none { it.defId == "round_table" }) // real room untouched
+        // Tap the fully dressed 몽이 through the worn layers and furniture overlay: a live reaction plays.
+        listOf("rain_boots", "tiny_backpack", "knit_scarf").forEach { click("try-$it") }
+        rule.onNodeWithTag("room-pet").performClick()
+        repeat(12) { i ->
+            rule.mainClock.advanceTimeBy(80); rule.waitForIdle()
+            tag("shop-preview").captureRoboImage(java.io.File(f, "frames/tap-%02d.png".format(i)).path)
+        }
+        assertEquals("heart#2", app.mongle.ui.RoomTap.reaction(2))
+        rule.mainClock.advanceTimeBy(2000); rule.waitForIdle()
     }
 }

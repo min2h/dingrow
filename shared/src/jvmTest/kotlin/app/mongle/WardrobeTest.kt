@@ -109,3 +109,27 @@ class WardrobeTest {
         assertFalse(OutfitClimate.rainproof("crown"))
     }
 }
+
+class RoomFloorTest {
+    @Test fun defaultSpotsAvoidPetAndEachOther() {
+        val ed = app.mongle.logic.LayoutEditor(app.mongle.logic.Layout(emptyList(), null, "wood"))
+        listOf("wood_bed", "bookshelf", "round_table").forEach { ed.placeFree(it) }
+        val ps = ed.current.placements
+        assertEquals(3, ps.size)
+        ps.forEach { assertFalse(app.mongle.logic.RoomFloor.overlapsPet(it.x, it.y), it.toString()) }
+        assertEquals(3, ps.map { it.x to it.y }.toSet().size)
+    }
+    @Test fun dragIsClampedToFloor() {
+        val ed = app.mongle.logic.LayoutEditor(app.mongle.logic.Layout(emptyList(), null, "wood"))
+        ed.placeFree("canopy_bed")
+        ed.move("canopy_bed", -40, 160)
+        val p = ed.current.placements.single()
+        assertEquals(10, p.x); assertEquals(90, p.y) // 92 snapped to grid 5 → 90
+        ed.move("canopy_bed", 120, 0)
+        assertEquals(90 to 45, ed.current.placements.single().let { it.x to it.y })
+    }
+    @Test fun depthOrderLowerIsInFront() {
+        val ps = listOf(app.mongle.model.Placement("a", 20, 80, 0), app.mongle.model.Placement("b", 50, 50, 0), app.mongle.model.Placement("c", 70, 65, 0))
+        assertEquals(listOf("b", "c", "a"), app.mongle.logic.RoomFloor.drawOrder(ps).map { it.defId })
+    }
+}

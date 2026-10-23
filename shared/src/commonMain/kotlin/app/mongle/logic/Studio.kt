@@ -30,7 +30,9 @@ class LayoutEditor(val start: Layout, private val grid: Int = 5) {
         val others = current.placements.filterNot { it.defId == defId }
         push(current.copy(placements = others + Placement(defId, snap(x), snap(y), current.placements.find { it.defId == defId }?.rotation ?: 0)))
     }
-    fun move(defId: String, x: Int, y: Int) = place(defId, x, y)
+    fun move(defId: String, x: Int, y: Int) = RoomFloor.clamp(x, y).let { (cx, cy) -> place(defId, cx, cy) }
+    /** Adds an item at the first free floor spot that keeps clear of 몽이 (see [RoomFloor.defaultSpot]). */
+    fun placeFree(defId: String) = RoomFloor.defaultSpot(current.placements.filterNot { it.defId == defId }).let { (x, y) -> place(defId, x, y) }
     fun rotate(defId: String) {
         push(current.copy(placements = current.placements.map { if (it.defId == defId) it.copy(rotation = (it.rotation + 90) % 360) else it }))
     }
@@ -88,3 +90,22 @@ fun layoutOf(placements: List<Placement>, outfitId: String?, roomId: String): La
 /** Placements with flips encoded, ready to persist. */
 fun Layout.encodedPlacements(): List<Placement> =
     placements.map { if (it.defId in flipped) it.copy(rotation = it.baseRotation() + FLIP) else it }
+
+
+/**
+ * Floor geometry of the 3:4 room stage, in the same 0..100 percent space as [Placement].
+ * 몽이 stands bottom-centre (roughly x 36..64, y 68..96), so default spots ring around it.
+ * Depth: items are drawn by ascending y (lower on screen = in front); 몽이 sits at [PET_DEPTH].
+ */
+object RoomFloor {
+    val X = 10..90
+    val Y = 45..92
+    const val PET_DEPTH = 86
+    private val spots = listOf(20 to 70, 80 to 70, 25 to 52, 75 to 52, 50 to 50, 15 to 88, 85 to 88, 50 to 62)
+    fun clamp(x: Int, y: Int) = x.coerceIn(X.first, X.last) to y.coerceIn(Y.first, Y.last)
+    fun overlapsPet(x: Int, y: Int) = x in 36..64 && y >= 66
+    fun defaultSpot(taken: List<Placement>): Pair<Int, Int> =
+        spots.firstOrNull { (x, y) -> taken.none { kotlin.math.abs(it.x - x) < 15 && kotlin.math.abs(it.y - y) < 12 } }
+            ?: spots[taken.size % spots.size]
+    fun drawOrder(placements: List<Placement>) = placements.sortedBy { it.y }
+}
