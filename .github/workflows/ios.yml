@@ -4,10 +4,29 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    paths:
+      - "iosApp/**"
+      - "shared/**"
+      - "composeApp/src/commonMain/**"
+      - "composeApp/src/iosMain/**"
+      - "composeApp/build.gradle.kts"
+      - "shared/build.gradle.kts"
+      - "gradle/**"
+      - ".github/workflows/ios.yml"
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write   # publish the simulator .app zip as the rolling "ios-sim" pre-release
 
 jobs:
-  ios:
-    runs-on: macos-14
+  simulator:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      GRADLE_OPTS: -Dorg.gradle.daemon=false -Dkotlin.incremental=false
     steps:
       - uses: actions/checkout@v4
 
@@ -16,26 +35,76 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
 
+      - name: Cache Kotlin/Native toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', '**/*.gradle.kts') }}
+          restore-keys: konan-${{ runner.os }}-
+
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('iosApp/**/Package.resolved') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      # Android SDK is not needed for the iOS frameworks; local.properties only silences AGP.
       - name: local.properties
-        run: echo "sdk.dir=$ANDROID_HOME" >> local.properties
+        run: echo "sdk.dir=${ANDROID_HOME:-$HOME/Library/Android/sdk}" > local.properties
 
-      - name: Check bundle identifiers
-        run: |
-          grep -q '^BUNDLE_ID=app.dingrow$' iosApp/Configuration/Config.xcconfig
-          grep -q '^WIDGET_BUNDLE_ID=app.dingrow.widget$' iosApp/Configuration/Config.xcconfig
-          grep -q '^APP_GROUP=group.app.dingrow$' iosApp/Configuration/Config.xcconfig
+      - name: Build KMP frameworks (simulator arm64)
+        run: ./gradlew --stacktrace :shared:linkDebugFrameworkIosSimulatorArm64 :composeApp:linkDebugFrameworkIosSimulatorArm64
 
-      - name: Build app and widget
+      - name: Resolve Swift packages
+        working-directory: iosApp
+        run: xcodebuild -resolvePackageDependencies -project iosApp.xcodeproj -scheme iosApp || true
+
+      # Firebase is optional: without GoogleService-Info.plist the app skips FirebaseApp.configure().
+      - name: xcodebuild (iphonesimulator, Debug, unsigned)
         working-directory: iosApp
         run: |
+          set -o pipefail
           xcodebuild \
-            -project iosApp.xcodeproj \
-            -scheme iosApp \
-            -configuration Release \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            DEVELOPMENT_TEAM="" \
-            build
+            -project iosApp.xcodeproj -scheme iosApp -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/dd ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" \
+            build 2>&1 | tee build/xcodebuild.log | grep -E "error:|warning: unable|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build/xcodebuild.log
+
+      - name: Show compile errors
+        if: failure()
+        working-directory: iosApp
+        run: grep -E -B2 -A6 "error:" build/xcodebuild.log | head -300 || true
+
+      - name: Zip .app
+        working-directory: iosApp/build/dd/Build/Products/Debug-iphonesimulator
+        run: ditto -c -k --sequesterRsrc --keepParent "$(ls -d *.app | grep -v PetWidget | head -1)" "$GITHUB_WORKSPACE/Dingrow-sim.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Dingrow-simulator
+          path: Dingrow-sim.zip
+          retention-days: 14
+
+      - name: Publish rolling pre-release (ios-sim)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete ios-sim --yes --cleanup-tag 2>/dev/null || true
+          gh release create ios-sim Dingrow-sim.zip --prerelease --target "$GITHUB_SHA" \
+            --title "iOS simulator build ${GITHUB_SHA::7}" --notes "Unsigned Debug iphonesimulator build (arm64)."
+
+      - name: Upload to Appetize (optional)
+        env:
+          APPETIZE_API_TOKEN: ${{ secrets.APPETIZE_API_TOKEN }}
+          APPETIZE_IOS_KEY: ${{ vars.APPETIZE_IOS_KEY }}
+        if: env.APPETIZE_API_TOKEN != '' && env.APPETIZE_IOS_KEY != ''
+        run: |
+          curl -sf -X POST -H "X-API-KEY: $APPETIZE_API_TOKEN" -F "file=@Dingrow-sim.zip" -F "platform=ios" \
+            "https://api.appetize.io/v1/apps/$APPETIZE_IOS_KEY" -o /dev/null && echo "Appetize updated"
