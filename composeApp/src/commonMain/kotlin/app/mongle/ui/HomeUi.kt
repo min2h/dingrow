@@ -162,7 +162,7 @@ fun LiveRoom(
             engine.onRoamRest = onRoamRest
             engine.wander.frequency = state.settings.bubbleFrequency
         }
-        Image(painterResource(Art.room(theme, night, square = false)), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        RoomBackdrop(theme, night, state.placements, ContentScale.Crop)
         val grade = gradeFor(state.phase, wx)
         if (grade.alpha > 0f) Box(Modifier.fillMaxSize().background(grade))
         if (wx == WeatherKind.RAIN || wx == WeatherKind.STORM || wx == WeatherKind.SNOW) {

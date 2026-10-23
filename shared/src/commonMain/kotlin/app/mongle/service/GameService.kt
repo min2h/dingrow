@@ -706,10 +706,17 @@ class GameService(
                 return@mutate done(state, ActionResult(false, L10n.t("msg_bad_slot")))
             }
         }
+        val name = if (defId == null) L10n.t("msg_slot_cleared") else L10n.fmt("msg_slot_set", L10n.item(defId))
+        if (slot == DecorSlot.WALL || slot == DecorSlot.FLOOR) {
+            // Wallpaper / floor are surfaces kept with the layout, never a room theme switch.
+            val kind = if (slot == DecorSlot.WALL) app.mongle.model.ItemKind.WALL else app.mongle.model.ItemKind.FLOOR
+            val placements = if (defId == null) state.placements.filterNot { app.mongle.logic.RoomSurfaces.kindOf(it.defId) == kind }
+                else app.mongle.logic.RoomSurfaces.apply(state.placements, defId)
+            return@mutate done(state.copy(placements = placements), ActionResult(true, name))
+        }
         val presets = state.presets.map { preset ->
             if (preset.index != state.activePreset) preset else applySlot(preset, slot, defId)
         }
-        val name = if (defId == null) L10n.t("msg_slot_cleared") else L10n.fmt("msg_slot_set", L10n.item(defId))
         done(state.copy(presets = presets), ActionResult(true, name))
     }
 
@@ -749,7 +756,7 @@ class GameService(
     /** Saves a 방꾸미기 session (owned things only; unowned ids are dropped, never granted). */
     suspend fun applyLayout(layout: app.mongle.logic.Layout): ActionResult = mutate { state, _ ->
         val okIds = state.owned + app.mongle.logic.FreeDecor.ids
-        val placements = layout.encodedPlacements().filter { it.defId in okIds }
+        val placements = app.mongle.logic.RoomSurfaces.normalize(layout.encodedPlacements().filter { it.defId in okIds })
         val outfit = app.mongle.logic.Wardrobe.encode(app.mongle.logic.Wardrobe.decode(layout.outfitId).filter { it in state.owned })
         val preset = state.presets.firstOrNull { it.wallpaperId == layout.roomId && app.mongle.logic.Shop.roomOwned(it.wallpaperId, state.owned) }?.index ?: state.activePreset
         done(state.copy(placements = placements, pet = state.pet.copy(outfitId = outfit), activePreset = preset), ActionResult(true, L10n.t("msg_layout_saved")))

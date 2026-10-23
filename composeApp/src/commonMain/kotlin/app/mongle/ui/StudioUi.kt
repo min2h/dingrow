@@ -75,13 +75,14 @@ internal fun PlacedItems(
     BoxWithConstraints(Modifier.fillMaxSize().onSizeChanged { box = it }) {
         app.mongle.logic.RoomFloor.drawOrder(layout.placements).forEach { p ->
             // Real-world size relative to 몽이 (one table, FurnitureScale), smaller toward the back wall.
-            val itemW = maxWidth * (app.mongle.logic.FurnitureScale.boxFactor(p.defId) * petScale * app.mongle.logic.FurnitureScale.perspective(p.y))
+            val itemW = maxWidth * (app.mongle.logic.FurnitureScale.boxFactor(p.defId) * petScale * app.mongle.logic.FurnitureScale.scaleAt(p.defId, p.y))
+            val wall = app.mongle.logic.FurnitureScale.spec(p.defId).wall
             key(p.defId) {
                 var drag by remember(p.x, p.y) { mutableStateOf(Offset.Zero) }
                 val flipped = p.defId in layout.flipped
                 Box(
                     Modifier
-                        .zIndex(if (app.mongle.logic.FurnitureScale.isRug(p.defId)) -1f else p.y.toFloat())
+                        .zIndex(if (wall) -2f else if (app.mongle.logic.FurnitureScale.isRug(p.defId)) -1f else p.y.toFloat())
                         .offset(
                             // Kept inside the stage; rugs are centred on their spot, everything else stands on it.
                             x = (maxWidth * (p.x / 100f) - itemW / 2).coerceIn(0.dp, (maxWidth - itemW).coerceAtLeast(0.dp)),
@@ -91,6 +92,7 @@ internal fun PlacedItems(
                         .graphicsLayer {
                             translationX = drag.x; translationY = drag.y
                             rotationZ = p.rotation.toFloat()
+                            if (wall) { rotationY = app.mongle.logic.RoomFloor.wallTilt(roomTheme(layout.roomId), p.x); cameraDistance = 12f * density }
                             scaleX = if (flipped) -1f else 1f
                             val lift = if (drag != Offset.Zero) 1.08f else 1f
                             scaleX *= lift; scaleY = lift
@@ -136,16 +138,13 @@ internal fun RoomStage(
 ) {
     val night = state.timeOfDay == TimeOfDay.NIGHT
     Box(modifier.aspectRatio(3f / 4f, matchHeightConstraintsFirst = true).clip(RoundedCornerShape(28.dp))) {
-        androidx.compose.foundation.Image(
-            painterResource(Art.room(roomTheme(layout.roomId), night, square = false)), null,
-            Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Fit,
-        )
+        RoomBackdrop(roomTheme(layout.roomId), night, layout.placements, androidx.compose.ui.layout.ContentScale.Fit)
         // Depth by y: furniture above 몽이's feet line is drawn behind it, the rest in front.
         // Tap 몽이 (dressed or not): a short live reaction, then back to the still pose used for screenshots.
         var taps by remember { mutableIntStateOf(0) }
         var reacting by remember { mutableStateOf(false) }
         LaunchedEffect(taps) { if (taps > 0) { kotlinx.coroutines.delay(1600); reacting = false } }
-        val (behind, front) = layout.placements.partition { app.mongle.logic.FurnitureScale.isRug(it.defId) || it.y < app.mongle.logic.RoomFloor.PET_DEPTH }
+        val (behind, front) = app.mongle.logic.RoomSurfaces.furniture(layout.placements).partition { app.mongle.logic.RoomFloor.alwaysBehind(it.defId) || it.y < app.mongle.logic.RoomFloor.PET_DEPTH }
         PlacedItems(layout.copy(placements = behind), selected, editable, onSelect, onMove, petScale)
         PetFigure(
             speciesId = state.speciesId, stage = state.stage, act0 = PetAct.IDLE, outfitId = layout.outfitId,
@@ -492,8 +491,10 @@ fun DecorateScreen(state: GameState, service: GameService, scope: CoroutineScope
                                     edit {
                                         if (item.kind == ItemKind.OUTFIT) toggleWear(item.id)
                                         else if (!on) placeFree(item.id)
+                                        else if (app.mongle.logic.RoomSurfaces.isSurface(item.id)) remove(item.id)
                                     }
-                                    if (item.kind != ItemKind.OUTFIT) selected = item.id
+                                    // Surfaces (wallpaper / floor) are not movable, so never "selected".
+                                    if (item.kind != ItemKind.OUTFIT && !app.mongle.logic.RoomSurfaces.isSurface(item.id)) selected = item.id
                                 }
                                 .testTag("deco-item-${item.id}").padding(6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,

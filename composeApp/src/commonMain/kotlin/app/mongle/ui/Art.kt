@@ -220,6 +220,30 @@ object Art {
         "room_starry_night_3x4" -> Res.drawable.room_starry_night_3x4
         "room_wood_day_1x1" -> Res.drawable.room_wood_day_1x1
         "room_wood_day_3x4" -> Res.drawable.room_wood_day_3x4
+        "surf_mint_day_floor_herringbone" -> Res.drawable.surf_mint_day_floor_herringbone
+        "surf_mint_day_floor_mint_tile" -> Res.drawable.surf_mint_day_floor_mint_tile
+        "surf_mint_day_wall_starry" -> Res.drawable.surf_mint_day_wall_starry
+        "surf_mint_day_wall_stripe" -> Res.drawable.surf_mint_day_wall_stripe
+        "surf_mint_night_floor_herringbone" -> Res.drawable.surf_mint_night_floor_herringbone
+        "surf_mint_night_floor_mint_tile" -> Res.drawable.surf_mint_night_floor_mint_tile
+        "surf_mint_night_wall_starry" -> Res.drawable.surf_mint_night_wall_starry
+        "surf_mint_night_wall_stripe" -> Res.drawable.surf_mint_night_wall_stripe
+        "surf_starry_day_floor_herringbone" -> Res.drawable.surf_starry_day_floor_herringbone
+        "surf_starry_day_floor_mint_tile" -> Res.drawable.surf_starry_day_floor_mint_tile
+        "surf_starry_day_wall_starry" -> Res.drawable.surf_starry_day_wall_starry
+        "surf_starry_day_wall_stripe" -> Res.drawable.surf_starry_day_wall_stripe
+        "surf_starry_night_floor_herringbone" -> Res.drawable.surf_starry_night_floor_herringbone
+        "surf_starry_night_floor_mint_tile" -> Res.drawable.surf_starry_night_floor_mint_tile
+        "surf_starry_night_wall_starry" -> Res.drawable.surf_starry_night_wall_starry
+        "surf_starry_night_wall_stripe" -> Res.drawable.surf_starry_night_wall_stripe
+        "surf_wood_day_floor_herringbone" -> Res.drawable.surf_wood_day_floor_herringbone
+        "surf_wood_day_floor_mint_tile" -> Res.drawable.surf_wood_day_floor_mint_tile
+        "surf_wood_day_wall_starry" -> Res.drawable.surf_wood_day_wall_starry
+        "surf_wood_day_wall_stripe" -> Res.drawable.surf_wood_day_wall_stripe
+        "surf_wood_night_floor_herringbone" -> Res.drawable.surf_wood_night_floor_herringbone
+        "surf_wood_night_floor_mint_tile" -> Res.drawable.surf_wood_night_floor_mint_tile
+        "surf_wood_night_wall_starry" -> Res.drawable.surf_wood_night_wall_starry
+        "surf_wood_night_wall_stripe" -> Res.drawable.surf_wood_night_wall_stripe
         "room_wood_night_1x1" -> Res.drawable.room_wood_night_1x1
         "room_wood_night_3x4" -> Res.drawable.room_wood_night_3x4
         "round_chair" -> Res.drawable.round_chair

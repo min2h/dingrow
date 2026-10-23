@@ -79,10 +79,12 @@ object FurnitureScale {
         val t = ((y - RoomFloor.Y.first).toFloat() / (FRONT_Y - RoomFloor.Y.first)).coerceIn(0f, 1f)
         return 0.75f + 0.25f * t
     }
+    /** Wall-mounted items hang on the back wall, so they always read at back-wall size. */
+    fun scaleAt(id: String, y: Int): Float = if (spec(id).wall) 0.75f else perspective(y)
     /** 몽이's feet line (% of stage height); 몽이 itself is drawn at scale 1 there. */
     const val FRONT_Y = 97
 
     /** Visible width of the item in % of stage width when 몽이's box is [petScale] of the stage width. */
     fun widthPct(id: String, y: Int, petScale: Float): Float =
-        boxFactor(id) * petScale * spec(id).artW * perspective(y) * 100f
+        boxFactor(id) * petScale * spec(id).artW * scaleAt(id, y) * 100f
 }

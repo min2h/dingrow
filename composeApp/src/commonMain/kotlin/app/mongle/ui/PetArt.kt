@@ -140,13 +140,7 @@ fun RoomScene(
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(28.dp)),
         ) {
-            Image(
-                painter = painterResource(Art.room(theme, night, square = false)),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit,
-                alignment = Alignment.Center,
-            )
+            RoomBackdrop(theme, night, state.placements, ContentScale.Fit)
             PlacedItems(app.mongle.logic.layoutOf(state.placements, state.outfitId, state.activeRoom.wallpaperId), petScale = petScale)
             PetFigure(
                 speciesId = state.speciesId,

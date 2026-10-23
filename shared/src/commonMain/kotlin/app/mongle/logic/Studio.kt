@@ -27,12 +27,19 @@ class LayoutEditor(val start: Layout, private val grid: Int = 5) {
     private fun snap(v: Int) = ((v + grid / 2) / grid * grid).coerceIn(0, 100)
 
     fun place(defId: String, x: Int = 50, y: Int = 70) {
+        if (RoomSurfaces.isSurface(defId)) { push(current.copy(placements = RoomSurfaces.apply(current.placements, defId))); return }
         val others = current.placements.filterNot { it.defId == defId }
         push(current.copy(placements = others + Placement(defId, snap(x), snap(y), current.placements.find { it.defId == defId }?.rotation ?: 0)))
     }
-    fun move(defId: String, x: Int, y: Int) = RoomFloor.clamp(x, y).let { (cx, cy) -> place(defId, cx, cy) }
+    fun move(defId: String, x: Int, y: Int) {
+        if (RoomSurfaces.isSurface(defId)) return // surfaces are not draggable
+        RoomFloor.clamp(x, y, defId).let { (cx, cy) -> place(defId, cx, cy) }
+    }
     /** Adds an item at the first free floor spot that keeps clear of 몽이 (see [RoomFloor.defaultSpot]). */
-    fun placeFree(defId: String) = RoomFloor.defaultSpot(current.placements.filterNot { it.defId == defId }, defId).let { (x, y) -> place(defId, x, y) }
+    fun placeFree(defId: String) {
+        if (RoomSurfaces.isSurface(defId)) return place(defId)
+        RoomFloor.defaultSpot(RoomSurfaces.furniture(current.placements).filterNot { it.defId == defId }, defId, app.mongle.model.roomTheme(current.roomId)).let { (x, y) -> place(defId, x, y) }
+    }
     fun rotate(defId: String) {
         push(current.copy(placements = current.placements.map { if (it.defId == defId) it.copy(rotation = (it.rotation + 90) % 360) else it }))
     }
@@ -102,28 +109,55 @@ object RoomFloor {
     val Y = 45..92
     const val PET_DEPTH = 86
     private val spots = listOf(22 to 66, 78 to 66, 28 to 52, 72 to 52, 50 to 50, 16 to 86, 84 to 86, 50 to 62, 15 to 56, 85 to 56)
-    fun clamp(x: Int, y: Int) = x.coerceIn(X.first, X.last) to y.coerceIn(Y.first, Y.last)
+    /** Wall-mounted items hang on the back wall: bottom edge in this band (above every theme's floor line). */
+    /** Band (bottom-anchor y, % of stage) where wall-mounted items hang: on the back walls, above furniture. */
+    val WALL_Y = 12..40
+    /** Free wall spots per theme art, clear of its windows, shelf, moon lamp and corner. */
+    fun wallSpots(theme: String): List<Pair<Int, Int>> = when (theme) {
+        "mint" -> listOf(12 to 18, 84 to 22, 84 to 40, 34 to 14, 66 to 14, 94 to 32, 76 to 40, 50 to 12)
+        "starry" -> listOf(36 to 26, 52 to 24, 30 to 40, 46 to 40, 58 to 36, 22 to 20, 8 to 22, 44 to 14)
+        else -> listOf(10 to 18, 24 to 16, 38 to 14, 54 to 18, 12 to 32, 26 to 30, 40 to 28, 56 to 30)
+    }
+    fun clamp(x: Int, y: Int, id: String = "") =
+        if (FurnitureScale.spec(id).wall) x.coerceIn(X.first, X.last) to y.coerceIn(WALL_Y.first, WALL_Y.last)
+        else x.coerceIn(X.first, X.last) to y.coerceIn(Y.first, Y.last)
+    /** Older saves put wall items on the floor; they are shown hanging on the wall instead. */
+    fun hang(p: Placement): Placement = if (FurnitureScale.spec(p.defId).wall && p.y !in WALL_Y) p.copy(y = p.y.coerceIn(WALL_Y.first, WALL_Y.last)) else p
     fun overlapsPet(x: Int, y: Int) = x in 36..64 && y >= 66
     /** Room scale every collision check assumes (home room / 방꾸미기 몽이 box = 28% of stage width). */
     const val ROOM_PET_SCALE = 0.28f
     private fun halfW(id: String, y: Int) = FurnitureScale.widthPct(id, y, ROOM_PET_SCALE) / 2
     /** Visible height in % of the 3:4 stage height (how far up the floor an item covers what stands behind it). */
-    private fun heightPct(id: String, y: Int) = FurnitureScale.boxFactor(id) * ROOM_PET_SCALE * FurnitureScale.spec(id).artH * FurnitureScale.perspective(y) * 75f
+    private fun heightPct(id: String, y: Int) = FurnitureScale.boxFactor(id) * ROOM_PET_SCALE * FurnitureScale.spec(id).artH * FurnitureScale.scaleAt(id, y) * 75f
     /** True when [id] at (x, y) overlaps another placed item's floor footprint or 몽이's spot (front centre). */
     fun collides(id: String, x: Int, y: Int, taken: List<Placement>): Boolean {
         val wall = FurnitureScale.spec(id).wall
         val hw = halfW(id, y)
         val rug = FurnitureScale.isRug(id)
         if (!wall && !rug && x + hw > 38 && x - hw < 62 && y >= 74) return true
-        return taken.any { o ->
+        return taken.filterNot { RoomSurfaces.isSurface(it.defId) }.map(::hang).any { o ->
             FurnitureScale.spec(o.defId).wall == wall && FurnitureScale.isRug(o.defId) == rug &&
                 kotlin.math.abs(o.x - x) < hw + halfW(o.defId, o.y) - 2 &&
                 kotlin.math.abs(o.y - y) < maxOf(9f, 0.6f * heightPct(if (o.y > y) o.defId else id, maxOf(o.y, y)))
         }
     }
-    fun defaultSpot(taken: List<Placement>, id: String = ""): Pair<Int, Int> =
-        (if (FurnitureScale.isRug(id)) listOf(50 to 92) + spots else spots).firstOrNull { (x, y) -> !collides(id, x, y, taken) }
+    fun defaultSpot(taken: List<Placement>, id: String = "", theme: String = "wood"): Pair<Int, Int> =
+        if (FurnitureScale.spec(id).wall) wallSpots(theme).let { ws -> ws.firstOrNull { (x, y) -> !collides(id, x, y, taken.map(::hang)) } ?: ws[taken.size % ws.size] }
+        else (if (FurnitureScale.isRug(id)) listOf(50 to 92) + spots else spots).firstOrNull { (x, y) -> !collides(id, x, y, taken) }
             ?: spots.firstOrNull { (x, y) -> taken.none { kotlin.math.abs(it.x - x) < 15 && kotlin.math.abs(it.y - y) < 12 } }
             ?: spots[taken.size % spots.size]
-    fun drawOrder(placements: List<Placement>) = placements.sortedWith(compareBy({ !FurnitureScale.isRug(it.defId) }, { it.y }))
+    /** Furniture draw order: wall-mounted items, then rugs, then by depth. Surfaces are not furniture. */
+    fun drawOrder(placements: List<Placement>) = RoomSurfaces.furniture(placements).map(::hang)
+        .sortedWith(compareBy({ !FurnitureScale.spec(it.defId).wall }, { !FurnitureScale.isRug(it.defId) }, { it.y }))
+    /** Drawn behind 몽이 regardless of depth. */
+    fun alwaysBehind(id: String) = FurnitureScale.isRug(id) || FurnitureScale.spec(id).wall
+    /**
+     * Y-rotation (degrees) that turns a wall item onto the wall plane it hangs on, per room art:
+     * wood has a left wall (x < 48) and a right wall; Night Sky a big left wall and the window wall; Mint is frontal.
+     */
+    fun wallTilt(theme: String, x: Int): Float = when (theme) {
+        "wood" -> if (x < 48) 22f else -10f
+        "starry" -> if (x < 62) 12f else -30f
+        else -> 0f
+    }
 }

@@ -220,9 +220,10 @@ fun floorHex(id: String?): String = when (roomTheme(id)) {
     else -> "#E7C8A4"
 }
 
+/** Room theme (art) for a preset/room id. Surface items (wall_stripe, floor_* ...) are NOT themes: see RoomSurfaces. */
 fun roomTheme(id: String?): String = when (id) {
-    "mint", "wall_mint", "floor_tile", "wall_stripe", "floor_mint_tile" -> "mint"
-    "starry", "wall_night", "wall_starry" -> "starry"
+    "mint", "wall_mint", "floor_tile" -> "mint"
+    "starry", "wall_night" -> "starry"
     else -> "wood"
 }
 
