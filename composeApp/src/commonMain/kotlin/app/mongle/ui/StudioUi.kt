@@ -68,19 +68,25 @@ internal fun PlacedItems(
     editable: Boolean = false,
     onSelect: (String) -> Unit = {},
     onMove: (String, Int, Int) -> Unit = { _, _, _ -> },
+    petScale: Float = app.mongle.logic.RoomFloor.ROOM_PET_SCALE,
 ) {
     var box by remember { mutableStateOf(IntSize.Zero) }
     val haptics = LocalHapticFeedback.current
     BoxWithConstraints(Modifier.fillMaxSize().onSizeChanged { box = it }) {
-        val itemW = maxWidth * 0.24f
         app.mongle.logic.RoomFloor.drawOrder(layout.placements).forEach { p ->
+            // Real-world size relative to 몽이 (one table, FurnitureScale), smaller toward the back wall.
+            val itemW = maxWidth * (app.mongle.logic.FurnitureScale.boxFactor(p.defId) * petScale * app.mongle.logic.FurnitureScale.perspective(p.y))
             key(p.defId) {
                 var drag by remember(p.x, p.y) { mutableStateOf(Offset.Zero) }
                 val flipped = p.defId in layout.flipped
                 Box(
                     Modifier
-                        .zIndex(p.y.toFloat())
-                        .offset(x = maxWidth * (p.x / 100f) - itemW / 2, y = maxHeight * (p.y / 100f) - itemW / 2)
+                        .zIndex(if (app.mongle.logic.FurnitureScale.isRug(p.defId)) -1f else p.y.toFloat())
+                        .offset(
+                            // Kept inside the stage; rugs are centred on their spot, everything else stands on it.
+                            x = (maxWidth * (p.x / 100f) - itemW / 2).coerceIn(0.dp, (maxWidth - itemW).coerceAtLeast(0.dp)),
+                            y = maxHeight * (p.y / 100f) - itemW * (if (app.mongle.logic.FurnitureScale.isRug(p.defId)) 0.5f else 0.95f),
+                        )
                         .size(itemW)
                         .graphicsLayer {
                             translationX = drag.x; translationY = drag.y
@@ -139,8 +145,8 @@ internal fun RoomStage(
         var taps by remember { mutableIntStateOf(0) }
         var reacting by remember { mutableStateOf(false) }
         LaunchedEffect(taps) { if (taps > 0) { kotlinx.coroutines.delay(1600); reacting = false } }
-        val (behind, front) = layout.placements.partition { it.y < app.mongle.logic.RoomFloor.PET_DEPTH }
-        PlacedItems(layout.copy(placements = behind), selected, editable, onSelect, onMove)
+        val (behind, front) = layout.placements.partition { app.mongle.logic.FurnitureScale.isRug(it.defId) || it.y < app.mongle.logic.RoomFloor.PET_DEPTH }
+        PlacedItems(layout.copy(placements = behind), selected, editable, onSelect, onMove, petScale)
         PetFigure(
             speciesId = state.speciesId, stage = state.stage, act0 = PetAct.IDLE, outfitId = layout.outfitId,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp).fillMaxWidth(petScale).aspectRatio(1f).testTag("room-pet"),
@@ -148,7 +154,7 @@ internal fun RoomStage(
             body = if (taps > 0 && reacting) RoomTap.reaction(taps) else "",
             onClick = { taps++; reacting = true },
         )
-        if (front.isNotEmpty()) PlacedItems(layout.copy(placements = front), selected, editable, onSelect, onMove)
+        if (front.isNotEmpty()) PlacedItems(layout.copy(placements = front), selected, editable, onSelect, onMove, petScale)
     }
 }
 
@@ -208,7 +214,7 @@ fun ShopStudioScreen(state: GameState, service: GameService, scope: CoroutineSco
             Box(Modifier.fillMaxWidth().height(stageH), contentAlignment = Alignment.Center) {
                 // 몽이 is shown large in the shop; trying on an outfit zooms in further so the fit is easy to see.
                 val tryingOn = app.mongle.logic.Wardrobe.decode(preview.outfitId).any { it !in app.mongle.logic.Wardrobe.decode(state.outfitId) }
-                val petScale by androidx.compose.animation.core.animateFloatAsState(if (preview.placements.any { p -> state.placements.none { it.defId == p.defId } }) 0.38f else if (tryingOn) 0.62f else 0.46f, label = "shop-pet-zoom")
+                val petScale by androidx.compose.animation.core.animateFloatAsState(if (preview.placements.any { p -> state.placements.none { it.defId == p.defId } }) 0.34f else if (tryingOn) 0.62f else 0.46f, label = "shop-pet-zoom")
                 RoomStage(state, preview, Modifier.fillMaxHeight().testTag("shop-preview"), shopSel, editable = true, onSelect = { shopSel = it }, onMove = { id, x, y -> edit { move(id, x, y) } }, petScale = petScale)
                 Text(t("shop_preview"), Modifier.align(Alignment.TopStart).padding(8.dp).clip(StudioPill).background(BubbleInk.copy(alpha = 0.7f)).padding(horizontal = 10.dp, vertical = 4.dp), color = Color.White, fontSize = 11.sp)
             }
