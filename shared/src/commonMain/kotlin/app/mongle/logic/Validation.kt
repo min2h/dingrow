@@ -29,10 +29,10 @@ object DraftValidator {
     }
 
     /** Pet naming: 1–10 characters after trimming. */
-    const val NAME_MAX = 12
+    const val PET_NAME_MAX = 12
     fun petNameError(name: String): String? = when {
         name.isBlank() -> "err_name_required"
-        name.trim().length > NAME_MAX -> "err_name_long"
+        name.trim().length > PET_NAME_MAX -> "err_name_long"
         else -> null
     }
 }
