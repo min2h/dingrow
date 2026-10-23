@@ -236,6 +236,11 @@ enum MongleKit {
         return MongleBridge.shared.clearWeather()
     }
 
+    /// App-language string from the shared Kotlin tables (same source as the Compose UI).
+    static func text(_ key: String) -> String {
+        L10n.shared.t(key: key, lang: L10n.shared.code())
+    }
+
     @discardableResult
     static func grantPurchase(productId: String, transactionId: String) -> String {
         start()

@@ -320,9 +320,16 @@ final class FirebaseCloud {
     func verify(productId: String, transactionId: String) async -> String {
         guard let hook = IosCloudBridge.shared.verify, let ensure = IosCloudBridge.shared.ensureUser else { return "unavailable" }
         return await withCheckedContinuation { cont in
-            ensure { uid in
-                guard uid != nil else { cont.resume(returning: "unavailable"); return }
-                hook("ios", productId, transactionId) { status, _ in cont.resume(returning: status) }
+            _ = ensure { uid in
+                if uid == nil {
+                    cont.resume(returning: "unavailable")
+                } else {
+                    _ = hook("ios", productId, transactionId) { status, _ in
+                        cont.resume(returning: status)
+                        return KotlinUnit()
+                    }
+                }
+                return KotlinUnit()
             }
         }
     }
