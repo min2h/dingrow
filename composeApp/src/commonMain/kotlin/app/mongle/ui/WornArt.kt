@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.unit.IntSize
 import kotlin.math.PI
 import kotlin.math.cos
@@ -44,10 +45,14 @@ object WornArt {
         if (layer == WearLayer.BACK) { if (hoodUp || id !in app.mongle.logic.Wardrobe.hooded) back(id, g); return }
         val clipped = id in setOf("raincoat", "hoodie", "cardigan", "overalls", "sailor_collar", "tiny_backpack", "knit_scarf")
         if (clipped && mask != null) {
-            val bounds = Rect(Offset.Zero, size)
-            drawContext.canvas.saveLayer(bounds, Paint())
-            onBody(id, g, hoodUp)
-            drawImage(mask, dstSize = IntSize(size.width.toInt(), size.height.toInt()), blendMode = BlendMode.DstIn)
+            // Keep the offscreen layer off the composable's edge: on a fractional offset the layer's outermost column
+            // (where the stretched mask's clamped edge texels leave a sliver of alpha) composited as a 1px seam.
+            val e = maxOf(2f, 1.5f * size.width / mask.width)
+            drawContext.canvas.saveLayer(Rect(e, e, size.width - e, size.height - e), Paint())
+            clipRect(e, e, size.width - e, size.height - e) {
+                onBody(id, g, hoodUp)
+                drawImage(mask, dstSize = IntSize(size.width.toInt(), size.height.toInt()), blendMode = BlendMode.DstIn)
+            }
             drawContext.canvas.restore()
         } else if (clipped) onBody(id, g, hoodUp)
         front(id, g)
