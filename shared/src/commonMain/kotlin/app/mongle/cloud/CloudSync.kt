@@ -47,6 +47,7 @@ fun summaryOf(s: PersistedState): Map<String, Any?> = mapOf(
     "stage" to s.pet.stage.name,
     "xp" to s.pet.xp,
     "outfit" to s.pet.outfitId,
+    "outfits" to app.mongle.logic.Wardrobe.decode(s.pet.outfitId),
     "species" to s.pet.speciesId,
     "condition" to s.extras["cond"],
     "schedules" to s.schedules.size,
@@ -68,7 +69,7 @@ class CloudSync(private val backend: CloudBackend, private val service: GameServ
             val remote = backend.fetch(uid)
             val credits = runCatching { backend.credits(uid) }.getOrDefault(emptyList())
             val merged = service.mergeCloud { local, now ->
-                val remoteState = remote?.let { Backup.decode(it.state) }
+                val remoteState = remote?.let { Backup.decode(it.state) }?.let { app.mongle.model.LegacyIds.migrate(it) } // old single-outfit docs → slot list
                 CloudMerge.applyCredits(CloudMerge.merge(local, remoteState, remote?.updatedAt ?: 0L), credits, now)
             }
             val at = backend.push(uid, CloudDoc(Backup.encode(merged), 0L, summaryOf(merged))) ?: return@runCatching false

@@ -999,6 +999,7 @@
     <string name="shop_use">사용하기</string>
     <string name="shop_place">배치하기</string>
     <string name="shop_wear">입기</string>
+    <string name="shop_take_off">벗기</string>
     <string name="shop_hide_owned">보유 중 숨기기</string>
     <string name="shop_preview">미리보기</string>
     <string name="shop_try">입어보기·놓아보기</string>

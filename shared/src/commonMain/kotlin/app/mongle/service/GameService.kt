@@ -677,8 +677,11 @@ class GameService(
         if (defId != null && (defId !in state.owned || Catalog.byId(defId)?.kind != ItemKind.OUTFIT)) {
             return@mutate done(state, ActionResult(false, L10n.t("msg_not_outfit")))
         }
-        val label = if (defId == null) L10n.t("msg_outfit_off") else L10n.fmt("msg_outfit_on", L10n.item(defId))
-        done(state.copy(pet = state.pet.copy(outfitId = defId)), ActionResult(true, label))
+        // Slot-based: wearing toggles this item; others in different slots stay on. null takes everything off.
+        val next = if (defId == null) null else app.mongle.logic.Wardrobe.toggle(state.pet.outfitId, defId)
+        val on = defId != null && app.mongle.logic.Wardrobe.wears(next, defId)
+        val label = if (!on) L10n.t("msg_outfit_off") else L10n.fmt("msg_outfit_on", L10n.item(defId!!))
+        done(state.copy(pet = state.pet.copy(outfitId = next)), ActionResult(true, label))
     }
 
     suspend fun equipSpecies(defId: String): ActionResult = mutate { state, now ->
@@ -747,7 +750,7 @@ class GameService(
     suspend fun applyLayout(layout: app.mongle.logic.Layout): ActionResult = mutate { state, _ ->
         val okIds = state.owned + app.mongle.logic.FreeDecor.ids
         val placements = layout.encodedPlacements().filter { it.defId in okIds }
-        val outfit = layout.outfitId?.takeIf { it in state.owned }
+        val outfit = app.mongle.logic.Wardrobe.encode(app.mongle.logic.Wardrobe.decode(layout.outfitId).filter { it in state.owned })
         val preset = state.presets.firstOrNull { it.wallpaperId == layout.roomId && app.mongle.logic.Shop.roomOwned(it.wallpaperId, state.owned) }?.index ?: state.activePreset
         done(state.copy(placements = placements, pet = state.pet.copy(outfitId = outfit), activePreset = preset), ActionResult(true, L10n.t("msg_layout_saved")))
     }

@@ -144,8 +144,9 @@ enum class Condition { GOOD, HAPPY, HUNGRY, COLD, HOT, SICK }
 object OutfitClimate {
     val warmth = mapOf("knit_scarf" to 2, "hoodie" to 1, "raincoat" to 1, "beret" to 1, "blanket" to 1,
         "straw_hat" to -2, "sunglasses" to -1)
-    fun of(id: String?) = warmth[id] ?: 0
-    fun rainproof(id: String?) = id == "raincoat" || id == "rain_boots"
+    /** Sum over every worn item (comma-separated, see [Wardrobe]). */
+    fun of(id: String?) = Wardrobe.decode(id).sumOf { warmth[it] ?: 0 }
+    fun rainproof(id: String?) = Wardrobe.decode(id).any { it == "raincoat" || it == "rain_boots" }
 }
 
 data class ConditionState(

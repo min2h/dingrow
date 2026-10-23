@@ -38,7 +38,10 @@ class LayoutEditor(val start: Layout, private val grid: Int = 5) {
         push(current.copy(flipped = if (defId in current.flipped) current.flipped - defId else current.flipped + defId))
     }
     fun remove(defId: String) = push(current.copy(placements = current.placements.filterNot { it.defId == defId }))
-    fun wear(outfitId: String?) = push(current.copy(outfitId = outfitId))
+    /** Sets the whole worn set (null = nothing). */
+    fun wear(outfitId: String?) = push(current.copy(outfitId = Wardrobe.normalize(outfitId)))
+    /** Slot-based toggle: put on (replacing the same slot) or take off. */
+    fun toggleWear(id: String) = push(current.copy(outfitId = Wardrobe.toggle(current.outfitId, id)))
     fun room(roomId: String) = push(current.copy(roomId = roomId))
     fun undo(): Boolean { val prev = history.removeLastOrNull() ?: return false; current = prev; return true }
     /** '원래대로': back to the state at session start. */
@@ -54,7 +57,7 @@ object Shop {
 
     /** Unowned things used in a preview layout → what the user would need to buy. */
     fun cart(layout: Layout, owned: Set<String>): List<String> {
-        val ids = layout.placements.map { it.defId } + listOfNotNull(layout.outfitId)
+        val ids = layout.placements.map { it.defId } + Wardrobe.decode(layout.outfitId)
         val items = ids.distinct().filter { it !in owned && (Catalog.byId(it)?.price ?: 0) > 0 }
         return items // rooms are never previewed before purchase, so never in the cart
     }

@@ -22,7 +22,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 
-enum class WearSlot { HEAD, FACE, NECK, BODY, FEET }
+typealias WearSlot = app.mongle.logic.WearSlot
 enum class WearLayer { BACK, FRONT }
 
 /**
@@ -32,31 +32,37 @@ enum class WearLayer { BACK, FRONT }
  * have a BACK layer drawn behind the body. Pure DrawScope, so the app, widget and wallpaper share it.
  */
 object WornArt {
-    val slots: Map<String, WearSlot> = mapOf(
-        "ribbon" to WearSlot.HEAD, "beret" to WearSlot.HEAD, "crown" to WearSlot.HEAD, "sprout_hat" to WearSlot.HEAD,
-        "straw_hat" to WearSlot.HEAD, "bunny_ears" to WearSlot.HEAD, "flower_crown" to WearSlot.HEAD, "beanie" to WearSlot.HEAD,
-        "heart_hairpin" to WearSlot.HEAD, "sunglasses" to WearSlot.FACE,
-        "knit_scarf" to WearSlot.NECK, "bow_tie" to WearSlot.NECK, "sailor_collar" to WearSlot.NECK, "pearl_necklace" to WearSlot.NECK,
-        "raincoat" to WearSlot.BODY, "hoodie" to WearSlot.BODY, "cardigan" to WearSlot.BODY, "overalls" to WearSlot.BODY,
-        "tiny_backpack" to WearSlot.BODY, "rain_boots" to WearSlot.FEET, "cozy_socks" to WearSlot.FEET,
-    )
+    /** Slot table lives in shared logic ([app.mongle.logic.Wardrobe]) so every platform agrees. */
+    val slots: Map<String, WearSlot> get() = app.mongle.logic.Wardrobe.slots
     fun known(id: String?) = id != null && id in slots
     fun hasBack(id: String) = id in setOf("raincoat", "hoodie", "bunny_ears", "tiny_backpack")
 
     /** Draws [layer] of [id] fitted to [fit]. [mask] is the pet sprite, used to keep garments on the body. */
-    fun DrawScope.drawWear(id: String, fit: SpriteFit, layer: WearLayer, mask: ImageBitmap?) {
+    fun DrawScope.drawWear(id: String, fit: SpriteFit, layer: WearLayer, mask: ImageBitmap?, hoodUp: Boolean = true) {
         if (!known(id)) return
         val g = Geo(fit, size.width)
-        if (layer == WearLayer.BACK) { back(id, g); return }
+        if (layer == WearLayer.BACK) { if (hoodUp || id !in app.mongle.logic.Wardrobe.hooded) back(id, g); return }
         val clipped = id in setOf("raincoat", "hoodie", "cardigan", "overalls", "sailor_collar", "tiny_backpack", "knit_scarf")
         if (clipped && mask != null) {
             val bounds = Rect(Offset.Zero, size)
             drawContext.canvas.saveLayer(bounds, Paint())
-            onBody(id, g)
+            onBody(id, g, hoodUp)
             drawImage(mask, dstSize = IntSize(size.width.toInt(), size.height.toInt()), blendMode = BlendMode.DstIn)
             drawContext.canvas.restore()
-        } else if (clipped) onBody(id, g)
+        } else if (clipped) onBody(id, g, hoodUp)
         front(id, g)
+    }
+
+    /**
+     * Draws every worn item of a stored worn set ([app.mongle.logic.Wardrobe] format) for [layer], in draw order
+     * (feet, body, back, neck, face, head). Each item is its own layer so garment clipping stays per item.
+     */
+    fun DrawScope.drawWorn(raw: String?, fit: SpriteFit, layer: WearLayer, mask: ImageBitmap?) {
+        val hoodUp = app.mongle.logic.Wardrobe.hoodUp(raw)
+        val ids = app.mongle.logic.Wardrobe.decode(raw)
+        // BACK pieces sit behind the body: front-most item first so e.g. bunny ears end up above the hood rim.
+        val order = if (layer == WearLayer.BACK) ids.filter { hasBack(it) } else ids
+        order.forEach { drawWear(it, fit, layer, mask, hoodUp) }
     }
 
     private class Geo(val f: SpriteFit, val s: Float) {
@@ -134,7 +140,7 @@ object WornArt {
     }
 
     // ---------------- garments clipped to the body ----------------
-    private fun DrawScope.onBody(id: String, g: Geo) {
+    private fun DrawScope.onBody(id: String, g: Geo, hoodUp: Boolean = true) {
         val f = g.f
         val y0 = f.faceBottom + 0.005f
         val l = 0f; val r = g.s
@@ -161,7 +167,7 @@ object WornArt {
             "raincoat" -> {
                 val hem = g.bot - 0.045f
                 coat(RainBlue, hem)
-                hood(RainBlue)
+                if (hoodUp) hood(RainBlue)
                 drawLine(RainBlue.shade(0.65f), g.p(g.cx, y0 + 0.07f), g.p(g.cx, hem + 0.02f), g.ow)
                 for (k in 0..2) {
                     val y = y0 + 0.11f + k * (hem - y0 - 0.14f) / 2
@@ -176,7 +182,7 @@ object WornArt {
             "hoodie" -> {
                 val hem = g.bot - 0.05f
                 coat(Lilac, hem)
-                hood(Lilac)
+                if (hoodUp) hood(Lilac)
                 drawRect(Lilac.shade(0.85f), g.p(0f, hem - 0.04f), Size(g.s, 0.06f * g.s))
                 val pocket = Path().apply {
                     moveTo((g.cx - 0.14f) * g.s, (hem - 0.05f) * g.s); lineTo((g.cx - 0.10f) * g.s, (hem - 0.15f) * g.s)

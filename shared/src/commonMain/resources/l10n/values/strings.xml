@@ -999,6 +999,7 @@
     <string name="shop_use">Use</string>
     <string name="shop_place">Place</string>
     <string name="shop_wear">Wear</string>
+    <string name="shop_take_off">Take off</string>
     <string name="shop_hide_owned">Hide owned</string>
     <string name="shop_preview">Preview</string>
     <string name="shop_try">Try it on</string>

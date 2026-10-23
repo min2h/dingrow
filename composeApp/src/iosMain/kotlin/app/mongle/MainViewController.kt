@@ -24,7 +24,10 @@ fun MainViewController(): UIViewController {
         supportsExactAlarm = false,
         supportsWallpaper = false,
     )
-    return ComposeUIViewController {
+    // Keyboard: the root Box pads by WindowInsets.safeDrawing (includes the IME inset), so Compose's default
+    // FocusableAboveKeyboard view shift doubled it and left the form lifted/clipped after the keyboard closed.
+    // Insets alone now move the bottom Save button above the keyboard and back down when it hides.
+    return ComposeUIViewController(configure = { onFocusBehavior = androidx.compose.ui.uikit.OnFocusBehavior.DoNothing }) {
         val permissions by PermissionCenter.snapshot.collectAsState()
         MongleTheme {
           app.mongle.ui.AuthGate(IosAuth.service) {

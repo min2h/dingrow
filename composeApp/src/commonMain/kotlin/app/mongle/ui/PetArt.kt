@@ -282,8 +282,11 @@ internal fun PetFigure(
                     } else if (walking && mirrorSafe && sin(walk * 2 * PI) > 0) -1f else 1f
                 },
         ) {
-            val worn = outfitId?.takeIf { WornArt.known(it) }
-            if (worn != null && WornArt.hasBack(worn)) WornLayer(worn, speciesId, stage, act, WearLayer.BACK)
+            // Slot-based worn set: every item drawn inside this same transformed Box as the sprite, so all
+            // layers share its bounce/squash/mirror transform and pivot (no drift or lag between pieces).
+            val worn = app.mongle.logic.Wardrobe.decode(outfitId)
+            val hoodUp = app.mongle.logic.Wardrobe.hoodUp(outfitId)
+            worn.filter { WornArt.hasBack(it) }.forEach { WornLayer(it, speciesId, stage, act, WearLayer.BACK, hoodUp) }
             val blinkOf: () -> Float = { if (animate) { frame.longValue; engine.blink } else 0f }
             if (animate && body.isBlank()) {
                 Crossfade(
@@ -297,7 +300,7 @@ internal fun PetFigure(
             } else {
                 PoseSprite(speciesId, stage, act, if (animate) blinkOf else ({ 0f }))
             }
-            if (worn != null) WornLayer(worn, speciesId, stage, act, WearLayer.FRONT)
+            worn.forEach { WornLayer(it, speciesId, stage, act, WearLayer.FRONT, hoodUp) }
         }
         if (sleeping && !animate) {
             SleepMarks(phase = walk, modifier = Modifier.fillMaxSize())
@@ -412,11 +415,11 @@ object OutfitAnchors {
 
 /** One layer of the dedicated worn art, fitted to the sprite currently shown for [act]. */
 @Composable
-internal fun WornLayer(outfitId: String, speciesId: String, stage: Stage, act: PetAct, layer: WearLayer) {
+internal fun WornLayer(outfitId: String, speciesId: String, stage: Stage, act: PetAct, layer: WearLayer, hoodUp: Boolean = true) {
     val assetId = petAssetId(speciesId, stage, act)
     val mask = if (layer == WearLayer.FRONT) org.jetbrains.compose.resources.imageResource(Art.pet(speciesId, stage, act)) else null
     val fit = WearFit.of(assetId)
     Canvas(Modifier.fillMaxSize().testTag(if (layer == WearLayer.FRONT) "pet-outfit-$outfitId" else "pet-outfit-back-$outfitId")) {
-        with(WornArt) { drawWear(outfitId, fit, layer, mask) }
+        with(WornArt) { drawWear(outfitId, fit, layer, mask, hoodUp) }
     }
 }

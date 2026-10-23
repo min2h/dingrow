@@ -119,6 +119,11 @@ jobs:
           sleep 30
           xcrun simctl io "$UDID" screenshot smoke/launch.png || true
           xcrun simctl spawn "$UDID" launchctl list | grep -i "$BID" > smoke/running.txt || echo "NOT RUNNING" > smoke/running.txt
+          # Widget: is the extension embedded and registered with the simulator's PlugInKit?
+          { ls "$APP/PlugIns"; plutil -p "$APP/PlugIns/PetWidget.appex/Info.plist" | grep -E "CFBundleIdentifier|NSExtensionPointIdentifier"; \
+            xcrun simctl spawn "$UDID" pluginkit -m -A -v -p com.apple.widgetkit-extension; } > smoke/widget.txt 2>&1 || true
+          cat smoke/widget.txt
+          grep -q "app.dingrow.widget" smoke/widget.txt && echo "WIDGET REGISTERED" || echo "::warning::PetWidget not registered with pluginkit"
           xcrun simctl spawn "$UDID" log show --last 2m --style compact --predicate 'process == "Dingrow"' > smoke/oslog.txt 2>&1 || true
           cp ~/Library/Logs/DiagnosticReports/Dingrow*.ips smoke/ 2>/dev/null || true
           ls -la smoke; cat smoke/running.txt; tail -60 smoke/console.txt

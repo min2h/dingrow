@@ -195,7 +195,7 @@ fun ShopStudioScreen(state: GameState, service: GameService, scope: CoroutineSco
         Column(Modifier.fillMaxWidth().background(Cream).padding(horizontal = 16.dp).testTag("shop-pinned")) {
             Box(Modifier.fillMaxWidth().height(stageH), contentAlignment = Alignment.Center) {
                 // 몽이 is shown large in the shop; trying on an outfit zooms in further so the fit is easy to see.
-                val tryingOn = preview.outfitId != null && preview.outfitId != state.outfitId
+                val tryingOn = app.mongle.logic.Wardrobe.decode(preview.outfitId).any { it !in app.mongle.logic.Wardrobe.decode(state.outfitId) }
                 val petScale by androidx.compose.animation.core.animateFloatAsState(if (tryingOn) 0.62f else 0.46f, label = "shop-pet-zoom")
                 RoomStage(state, preview, Modifier.fillMaxHeight().testTag("shop-preview"), petScale = petScale)
                 Text(t("shop_preview"), Modifier.align(Alignment.TopStart).padding(8.dp).clip(StudioPill).background(BubbleInk.copy(alpha = 0.7f)).padding(horizontal = 10.dp, vertical = 4.dp), color = Color.White, fontSize = 11.sp)
@@ -240,11 +240,12 @@ fun ShopStudioScreen(state: GameState, service: GameService, scope: CoroutineSco
                     row.forEach { item ->
                         ShopCard(
                             item = item, owned = item.id in owned, count = state.foods.firstOrNull { it.defId == item.id }?.quantity ?: 0,
-                            inPreview = preview.placements.any { it.defId == item.id } || preview.outfitId == item.id,
+                            inPreview = preview.placements.any { it.defId == item.id } || app.mongle.logic.Wardrobe.wears(preview.outfitId, item.id),
                             modifier = Modifier.weight(1f),
+                            worn = app.mongle.logic.Wardrobe.wears(state.outfitId, item.id),
                             onTry = {
                                 edit {
-                                    if (item.kind == ItemKind.OUTFIT) wear(if (current.outfitId == item.id) null else item.id)
+                                    if (item.kind == ItemKind.OUTFIT) toggleWear(item.id)
                                     else if (current.placements.any { it.defId == item.id }) remove(item.id)
                                     else place(item.id, 30 + (current.placements.size * 15) % 45, 72)
                                 }
@@ -372,7 +373,7 @@ private fun MedicineRow(state: GameState, scope: CoroutineScope, service: GameSe
 }
 
 @Composable
-private fun ShopCard(item: ItemDef, owned: Boolean, count: Int, inPreview: Boolean, modifier: Modifier, onTry: () -> Unit, onUse: () -> Unit, onBuyOne: () -> Unit) {
+private fun ShopCard(item: ItemDef, owned: Boolean, count: Int, inPreview: Boolean, modifier: Modifier, worn: Boolean = false, onTry: () -> Unit, onUse: () -> Unit, onBuyOne: () -> Unit) {
     val food = item.kind == ItemKind.FOOD
     Column(
         modifier.shadow(3.dp, StudioCard, clip = false).clip(StudioCard).background(CardWhite)
@@ -400,7 +401,7 @@ private fun ShopCard(item: ItemDef, owned: Boolean, count: Int, inPreview: Boole
         val (label, tag, action) = when {
             food && count > 0 -> Triple(t("shop_use"), "use-${item.id}", onUse)
             food -> Triple(t("shop_buy"), "buy-${item.id}", onBuyOne)
-            owned -> Triple(if (item.kind == ItemKind.OUTFIT) t("shop_wear") else t("shop_place"), "use-${item.id}", onUse)
+            owned -> Triple(if (item.kind == ItemKind.OUTFIT) t(if (worn) "shop_take_off" else "shop_wear") else t("shop_place"), "use-${item.id}", onUse)
             else -> Triple(if (inPreview) t("shop_in_preview") else if (item.kind == ItemKind.OUTFIT) t("shop_try_wear") else t("shop_try_place"), "try-${item.id}", onTry)
         }
         Text(
@@ -465,13 +466,13 @@ fun DecorateScreen(state: GameState, service: GameService, scope: CoroutineScope
             shown.chunked(4).forEach { row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     row.forEach { item ->
-                        val on = layout.placements.any { it.defId == item.id } || layout.outfitId == item.id
+                        val on = layout.placements.any { it.defId == item.id } || app.mongle.logic.Wardrobe.wears(layout.outfitId, item.id)
                         Column(
                             Modifier.weight(1f).clip(StudioCard).background(if (on) PeachSoft else CardWhite)
                                 .clickable {
                                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     edit {
-                                        if (item.kind == ItemKind.OUTFIT) wear(if (current.outfitId == item.id) null else item.id)
+                                        if (item.kind == ItemKind.OUTFIT) toggleWear(item.id)
                                         else if (!on) place(item.id, 50, 70)
                                     }
                                     if (item.kind != ItemKind.OUTFIT) selected = item.id

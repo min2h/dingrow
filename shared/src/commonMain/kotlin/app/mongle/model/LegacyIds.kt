@@ -93,7 +93,7 @@ object LegacyIds {
     fun migrate(state: PersistedState): PersistedState {
         val pet = state.pet.copy(
             speciesId = speciesId(state.pet.speciesId),
-            outfitId = itemId(state.pet.outfitId),
+            outfitId = app.mongle.logic.Wardrobe.normalize(state.pet.outfitId) { itemId(it) ?: it },
             outingGiftDefId = itemId(state.pet.outingGiftDefId),
             pendingGiftDefId = itemId(state.pet.pendingGiftDefId),
         )
