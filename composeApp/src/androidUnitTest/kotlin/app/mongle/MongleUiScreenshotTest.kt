@@ -84,11 +84,21 @@ class MongleFlowScreenshotTest {
     val composeRule = createComposeRule()
 
     @Test
+    fun onboardingSingleScreenEn() {
+        val harness = Harness()
+        runBlocking { harness.service.updateSettings(harness.service.state.value.settings.copy(language = "en")) }
+        harness.show()
+        harness.capture("en-onboarding.png")
+        app.mongle.ui.LocationBridge.request = null
+        composeRule.onNodeWithTag("onb-location").performClick(); harness.settle()
+        composeRule.onNodeWithTag("onb-start").performClick(); harness.settle()
+        assertTrue(harness.service.state.value.onboarded)
+    }
+
+    @Test
     fun onboardingNamingAndHome() {
         val harness = Harness()
         harness.show()
-        composeRule.onNodeWithText("다음").performClick()
-        harness.settle()
         composeRule.onNode(hasSetTextAction()).performTextReplacement("보리")
         composeRule.onNodeWithText("시작하기").performClick()
         harness.settle()
@@ -100,8 +110,6 @@ class MongleFlowScreenshotTest {
     fun scheduleAddListAndComplete() {
         val harness = Harness()
         harness.show()
-        composeRule.onNodeWithText("다음").performClick()
-        harness.settle()
         composeRule.onNode(hasSetTextAction()).performTextReplacement("보리")
         composeRule.onNodeWithText("시작하기").performClick()
         harness.settle()
@@ -245,9 +253,6 @@ class MongleFlowScreenshotTest {
         val harness = Harness()
         harness.show()
         harness.capture("ko-onboarding.png")
-        composeRule.onNodeWithText("다음").performClick()
-        harness.settle()
-        harness.capture("ko-onboarding-gift.png")
         composeRule.onNode(hasSetTextAction()).performTextReplacement("보리")
         composeRule.onNodeWithText("시작하기").performClick()
         harness.settle()

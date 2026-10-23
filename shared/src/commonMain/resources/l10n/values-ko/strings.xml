@@ -1105,4 +1105,16 @@
     <string name="set_delete_account_confirm">삭제하기</string>
     <string name="msg_account_deleted">계정과 서버 데이터를 삭제했어요</string>
     <string name="msg_account_delete_failed">서버 데이터를 지우지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.</string>
+    <string name="shop_need_more">%d코인 더 필요해요</string>
+    <string name="discard_title">변경사항을 버릴까요?</string>
+    <string name="discard_yes">버리기</string>
+    <string name="discard_no">계속 편집</string>
+    <string name="back_exit_hint">한 번 더 누르면 앱이 닫혀요</string>
+    <string name="onb_b1">일정을 완료하면 EXP가 쌓여 몽이가 자라요</string>
+    <string name="onb_b2">몽이가 산책하고 선물을 가져와요</string>
+    <string name="onb_b3">코인으로 방을 꾸며요</string>
+    <string name="onb_name_label">이름</string>
+    <string name="onb_notify">일정 알림 받기</string>
+    <string name="onb_location">날씨용 위치 사용 (선택)</string>
+    <string name="login_guest_note">게스트 데이터는 이 기기에만 저장돼요. 나중에 설정에서 연결할 수 있어요</string>
 </resources>

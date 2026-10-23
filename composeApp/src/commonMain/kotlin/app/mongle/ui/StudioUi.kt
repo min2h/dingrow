@@ -1,5 +1,11 @@
 package app.mongle.ui
 
+import androidx.compose.ui.semantics.contentDescription
+
+import androidx.compose.ui.semantics.semantics
+
+import androidx.compose.foundation.layout.PaddingValues
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -177,15 +183,24 @@ fun ShopStudioScreen(state: GameState, service: GameService, scope: CoroutineSco
     val cart = Shop.cart(preview, owned)
     val total = Shop.total(cart)
     val short = total > state.coins
-    Column(Modifier.fillMaxSize().background(Cream).testTag("shop-screen")) {
-        StudioHeader(t("shop_title"), state.coins, onClose, "shop")
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-            Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) {
+    var cartPx by remember { mutableIntStateOf(0) }
+    val leave = rememberDiscardGuard(cart.isNotEmpty() || editor.dirty, onClose)
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().background(Cream).testTag("shop-screen")) {
+    val stageH = pinnedStageHeight(maxHeight)
+    Column(Modifier.fillMaxSize()) {
+        StudioHeader(t("shop_title"), state.coins, leave, "shop")
+        // Pinned preview: stays put while only the list below scrolls.
+        Column(Modifier.fillMaxWidth().background(Cream).padding(horizontal = 16.dp).testTag("shop-pinned")) {
+            Box(Modifier.fillMaxWidth().height(stageH), contentAlignment = Alignment.Center) {
                 RoomStage(state, preview, Modifier.fillMaxHeight().testTag("shop-preview"))
                 Text(t("shop_preview"), Modifier.align(Alignment.TopStart).padding(8.dp).clip(StudioPill).background(BubbleInk.copy(alpha = 0.7f)).padding(horizontal = 10.dp, vertical = 4.dp), color = Color.White, fontSize = 11.sp)
             }
-            Text(t("shop_preview_note"), color = InkSoft, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
-            Spacer(Modifier.height(8.dp))
+            Text(t("shop_preview_note"), color = InkSoft, fontSize = 12.sp, modifier = Modifier.padding(vertical = 6.dp).testTag("shop-preview-note"))
+        }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Line))
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).testTag("shop-list")) {
+            Spacer(Modifier.height(12.dp))
             // Rooms: unowned rooms can't be applied, even in the preview.
             Text(t("shop_rooms"), fontWeight = FontWeight.Bold, color = Ink)
             Spacer(Modifier.height(8.dp))
@@ -246,28 +261,30 @@ fun ShopStudioScreen(state: GameState, service: GameService, scope: CoroutineSco
                 }
                 Spacer(Modifier.height(8.dp))
             }
-            Spacer(Modifier.height(96.dp))
+            // Room for the overlaid cart bar so the last row's buttons stay reachable.
+            Spacer(Modifier.height(with(density) { cartPx.toDp() } + 16.dp).testTag("shop-list-end"))
         }
-        // Cart bar
+    }
+        // Cart bar (overlay at the bottom; list is padded by its measured height)
         if (cart.isNotEmpty() || editor.dirty) {
-            Column(Modifier.fillMaxWidth().shadow(12.dp).background(CardWhite).padding(16.dp).testTag("shop-cart")) {
-                if (short) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(t("shop_short"), color = PeachDeep, fontSize = 13.sp, modifier = Modifier.weight(1f).testTag("shop-short"))
-                        TextButton(onClick = onEarn, modifier = Modifier.testTag("shop-earn")) { Text(t("shop_earn")) }
-                    }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = { edit { revert() } }, modifier = Modifier.heightIn(min = 48.dp).testTag("shop-revert")) { Text(t("shop_revert"), color = Ink) }
-                    TextButton(onClick = { edit { undo() } }, modifier = Modifier.heightIn(min = 48.dp).testTag("shop-undo")) { Text(t("shop_undo"), color = InkSoft) }
-                    Spacer(Modifier.weight(1f))
-                    Button(
-                        onClick = { confirm = true },
-                        enabled = cart.isNotEmpty() && !short && !busy,
-                        shape = StudioPill,
-                        modifier = Modifier.heightIn(min = 48.dp).testTag("shop-buy-cart"),
-                        colors = ButtonDefaults.buttonColors(containerColor = PeachDeep, contentColor = Color.White),
-                    ) { Text(tf("shop_buy_total", cart.size, total)) }
+            // One compact row: small reset/undo icons + a single buy button that also carries the coin shortfall.
+            Row(
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().onSizeChanged { cartPx = it.height }
+                    .shadow(12.dp).background(CardWhite).padding(horizontal = 8.dp, vertical = 6.dp).testTag("shop-cart"),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = { edit { revert() } }, modifier = Modifier.size(48.dp).semantics { contentDescription = L10n.t("shop_revert") }.testTag("shop-revert"), contentPadding = PaddingValues(0.dp)) { Text("↺", fontSize = 22.sp, color = Ink) }
+                TextButton(onClick = { edit { undo() } }, modifier = Modifier.size(48.dp).semantics { contentDescription = L10n.t("shop_undo") }.testTag("shop-undo"), contentPadding = PaddingValues(0.dp)) { Text("↶", fontSize = 22.sp, color = InkSoft) }
+                Spacer(Modifier.weight(1f))
+                Button(
+                    onClick = { if (short) onEarn() else confirm = true },
+                    enabled = cart.isNotEmpty() && !busy,
+                    shape = StudioPill,
+                    modifier = Modifier.heightIn(min = 48.dp).testTag(if (short) "shop-earn" else "shop-buy-cart"),
+                    colors = ButtonDefaults.buttonColors(containerColor = if (short) Butter else PeachDeep, contentColor = if (short) BubbleInk else Color.White),
+                ) {
+                    if (short) Text(tf("shop_need_more", total - state.coins), modifier = Modifier.testTag("shop-short"), maxLines = 1)
+                    else Text(tf("shop_buy_total", cart.size, total), maxLines = 1)
                 }
             }
         }
@@ -403,9 +420,12 @@ fun DecorateScreen(state: GameState, service: GameService, scope: CoroutineScope
     var noChangeHint by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
     val items = Shop.decoratable(state.owned)
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+    val stageH = pinnedStageHeight(maxHeight)
     Column(Modifier.fillMaxSize().background(Cream).testTag("decorate-screen")) {
-        StudioHeader(t("deco_title"), state.coins, onClose, "deco")
-        Box(Modifier.fillMaxWidth().height(300.dp).padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+        val leave = rememberDiscardGuard(editor.dirty, onClose)
+        StudioHeader(t("deco_title"), state.coins, leave, "deco")
+        Box(Modifier.fillMaxWidth().height(stageH).padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
             RoomStage(
                 state, layout, Modifier.fillMaxHeight().testTag("deco-stage"), selected, editable = true,
                 onSelect = { selected = it },
@@ -480,4 +500,9 @@ fun DecorateScreen(state: GameState, service: GameService, scope: CoroutineScope
             ) { Text(t("deco_save")) }
         }
     }
+    }
 }
+
+/** Pinned room height: ~25% of the screen (2+ full item rows stay visible on a 1080x2400 phone), clamped so small phones keep room for the list. */
+internal fun pinnedStageHeight(screen: androidx.compose.ui.unit.Dp): androidx.compose.ui.unit.Dp =
+    (screen * 0.25f).coerceIn(140.dp, 240.dp)

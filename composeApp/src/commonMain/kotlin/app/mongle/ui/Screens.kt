@@ -174,24 +174,49 @@ fun MongleAppScreen(
 
     LanguageProvider(state.settings.language) {
     if (!state.onboarded) {
+        val auth = LocalAuth.current
+        // Back from the single setup step returns to login (the step before it).
+        Back(enabled = auth?.session?.value != null) { scope.launch { auth?.signOut() } }
         Box(Modifier.fillMaxSize().background(Cream).windowInsetsPadding(WindowInsets.safeDrawing)) {
         Onboarding(
             name = name,
             onName = { name = it },
-            onStart = {
+            onStart = { notify, location ->
                 scope.launch {
                     service.completeOnboarding(name)
-                    if (!permissions.notificationsOn) NotifExplain.show = true
+                    if (notify && !permissions.notificationsOn) onRequestNotifications()
+                    if (location) LocationBridge.request?.invoke() ?: service.updateSettings(state.settings.copy(useLocation = true))
                 }
             },
-            onPinWidget = { onPinWidget(false) },
-            onWallpaper = onOpenWallpaper,
         )
         }
         return@LanguageProvider
     }
 
+    // Back: sheets close first, then the open screen, then any tab returns Home; only Home root exits (after a second press).
+    var exitArmed by remember { mutableStateOf(false) }
+    LaunchedEffect(exitArmed) { if (exitArmed) { delay(2_000); exitArmed = false } }
+    val atRoot = !showComposer && overlay == "none" && tab == Tab.Home && !offerOpen && resellId == null && !decorate
+    Back(enabled = !(atRoot && exitArmed)) {
+        when {
+            offerOpen -> offerOpen = false
+            resellId != null -> resellId = null
+            showComposer -> { showComposer = false; editingId = null }
+            overlay == "shop" && shopPhase != "list" -> shopPhase = "list"
+            overlay != "none" -> overlayState.value = "none"
+            decorate -> decorate = false
+            tab != Tab.Home -> tabState.value = Tab.Home
+            else -> exitArmed = true
+        }
+    }
     Box(Modifier.fillMaxSize().background(Cream).windowInsetsPadding(WindowInsets.safeDrawing)) {
+    if (exitArmed && atRoot) {
+        Text(
+            t("back_exit_hint"),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 92.dp).testTag("exit-hint").clip(Pill).background(BubbleInk).padding(horizontal = 16.dp, vertical = 8.dp),
+            color = Color.White, fontSize = 13.sp,
+        )
+    }
     if (showComposer) {
         var rejected by remember(editingId) { mutableStateOf<String?>(null) }
         val editingSource = editingId?.let { id -> state.schedules.firstOrNull { it.id == id } ?: state.schedules.firstOrNull { it.id == id.substringBefore('@') } }
@@ -454,53 +479,55 @@ private fun NavMark(tab: Tab, selected: Boolean) {
 private fun Onboarding(
     name: String,
     onName: (String) -> Unit,
-    onStart: () -> Unit,
-    onPinWidget: () -> Unit,
-    onWallpaper: () -> Unit,
+    onStart: (notify: Boolean, location: Boolean) -> Unit,
 ) {
-    var page by remember { mutableIntStateOf(0) }
+    // One screen: hero, what you get, name + permission toggles, Start. Guests reach Home in two taps (guest → Start).
+    var notify by remember { mutableStateOf(true) }
+    var location by remember { mutableStateOf(false) }
+    val nameError = app.mongle.logic.DraftValidator.petNameError(name)
     Column(
-        Modifier.fillMaxSize().background(Cream).padding(horizontal = 28.dp, vertical = 24.dp),
+        Modifier.fillMaxSize().background(Cream).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp).testTag("onboarding"),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (page == 0) {
-            Spacer(Modifier.height(24.dp))
-            Text(t("onb_title"), style = MaterialTheme.typography.headlineMedium, color = Ink, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(12.dp))
-            ArtImage("onboarding", Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(28.dp)), appBrandName())
-            Spacer(Modifier.height(12.dp))
-            Text(t("onb_body"), color = InkSoft, textAlign = TextAlign.Center)
-            Spacer(Modifier.weight(1f))
-            Button(
-                onClick = { page = 1 },
-                shape = Pill,
-                colors = ButtonDefaults.buttonColors(containerColor = PeachDeep, contentColor = Color.White),
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-            ) { Text(t("onb_next")) }
-        } else {
-            Text(t("onb_gift_title"), style = MaterialTheme.typography.headlineMedium, color = Ink, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(8.dp))
-            StillPet("base", app.mongle.model.Stage.BABY, app.mongle.model.Pose.HAPPY, Modifier.size(140.dp))
-            Text(t("onb_tip"), color = InkSoft, fontSize = 13.sp)
-            Spacer(Modifier.height(8.dp))
-            TextField(value = name, onValueChange = onName, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("field-pet-name"), isError = app.mongle.logic.DraftValidator.petNameError(name) != null)
-            app.mongle.logic.DraftValidator.petNameError(name)?.let { Text(t(it), color = Color(0xFFD9604F), fontSize = 12.sp, modifier = Modifier.testTag("err-name")) }
-            Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = onStart,
-                enabled = app.mongle.logic.DraftValidator.petNameError(name) == null,
-                shape = Pill,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PeachDeep,
-                    contentColor = Color.White,
-                    disabledContainerColor = PeachDeep.copy(alpha = 0.45f),
-                    disabledContentColor = Color.White,
-                ),
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-            ) { Text(t("onb_start")) }
-            TextButton(onClick = onPinWidget) { Text(t("add_widget")) }
-            TextButton(onClick = onWallpaper) { Text(t("set_wallpaper")) }
+        Box(Modifier.fillMaxWidth().height(170.dp).clip(RoundedCornerShape(28.dp))) {
+            ArtImage("onboarding", Modifier.fillMaxSize(), appBrandName())
+            StillPet("base", app.mongle.model.Stage.BABY, app.mongle.model.Pose.HAPPY, Modifier.size(96.dp).align(Alignment.BottomCenter))
         }
+        Spacer(Modifier.height(12.dp))
+        Text(t("onb_title"), style = MaterialTheme.typography.headlineSmall, color = Ink, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(10.dp))
+        listOf("onb_b1", "onb_b2", "onb_b3").forEachIndexed { i, k ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 3.dp).testTag("onb-bullet-$i"), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(8.dp).clip(CircleShape).background(PeachDeep))
+                Spacer(Modifier.width(10.dp))
+                Text(t(k), color = Ink, fontSize = 14.sp)
+            }
+        }
+        Spacer(Modifier.height(14.dp))
+        TextField(
+            value = name, onValueChange = onName, singleLine = true, label = { Text(t("onb_name_label")) },
+            modifier = Modifier.fillMaxWidth().testTag("field-pet-name"), isError = nameError != null,
+        )
+        nameError?.let { Text(t(it), color = Color(0xFFD9604F), fontSize = 12.sp, modifier = Modifier.testTag("err-name")) }
+        Spacer(Modifier.height(6.dp))
+        OnbToggle(t("onb_notify"), notify, "onb-notify") { notify = it }
+        OnbToggle(t("onb_location"), location, "onb-location") { location = it }
+        Spacer(Modifier.height(12.dp))
+        Button(
+            onClick = { onStart(notify, location) },
+            enabled = nameError == null,
+            shape = Pill,
+            colors = ButtonDefaults.buttonColors(containerColor = PeachDeep, contentColor = Color.White, disabledContainerColor = PeachDeep.copy(alpha = 0.45f), disabledContentColor = Color.White),
+            modifier = Modifier.fillMaxWidth().height(52.dp).testTag("onb-start"),
+        ) { Text(t("onb_start")) }
+    }
+}
+
+@Composable
+private fun OnbToggle(label: String, on: Boolean, tag: String, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { onChange(!on) }.testTag(tag), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = Ink, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        androidx.compose.material3.Switch(checked = on, onCheckedChange = onChange)
     }
 }
 

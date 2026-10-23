@@ -1,5 +1,7 @@
 package app.mongle.ui
 
+import androidx.compose.ui.platform.testTag
+
 import androidx.compose.runtime.SideEffect
 
 import androidx.compose.runtime.withFrameNanos
@@ -297,22 +299,24 @@ internal fun PetFigure(
         if (sleeping && !animate) {
             SleepMarks(phase = walk, modifier = Modifier.fillMaxSize())
         }
-        if (stage != Stage.EGG && act != PetAct.EGG && outfitId != null && Art.known(outfitId)) {
+        if (outfitId != null && Art.known(outfitId)) {
+            // Worn accessory at its slot anchor; rides the same body transform (idle/walk), so it follows the sprite.
+            val a = OutfitAnchors.of(outfitId, egg = stage == Stage.EGG || act == PetAct.EGG)
             Image(
                 painter = painterResource(Art.drawable(outfitId)),
                 contentDescription = null,
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth(0.38f)
+                    .align(androidx.compose.ui.BiasAlignment(0f, a.yBias))
+                    .fillMaxWidth(a.width)
                     .aspectRatio(1f)
-                    .offset(y = (-4).dp)
                     .graphicsLayer {
                         frame.longValue
-                        if (animate) {
+                        if (animate && a.slot == OutfitSlot.HEAD) {
                             translationY = engine.accessoryYdp.dp.toPx()
                             rotationZ = engine.accessoryYdp * 0.8f
                         }
-                    },
+                    }
+                    .testTag("pet-outfit-$outfitId"),
                 contentScale = ContentScale.Fit,
             )
         }
@@ -416,3 +420,28 @@ private fun SleepMarks(phase: Float, modifier: Modifier = Modifier) {
     }
 }
 
+
+
+enum class OutfitSlot { HEAD, FACE, NECK, BODY, FEET }
+
+/** Where each wearable sits on the pet sprite (fractions of the pet box). Every outfit must be listed. */
+object OutfitAnchors {
+    data class Anchor(val slot: OutfitSlot, val yBias: Float, val width: Float)
+    private val slots = mapOf(
+        "ribbon" to OutfitSlot.HEAD, "beret" to OutfitSlot.HEAD, "crown" to OutfitSlot.HEAD, "sprout_hat" to OutfitSlot.HEAD,
+        "straw_hat" to OutfitSlot.HEAD, "bunny_ears" to OutfitSlot.HEAD, "flower_crown" to OutfitSlot.HEAD, "beanie" to OutfitSlot.HEAD,
+        "heart_hairpin" to OutfitSlot.HEAD, "sunglasses" to OutfitSlot.FACE,
+        "knit_scarf" to OutfitSlot.NECK, "bow_tie" to OutfitSlot.NECK, "sailor_collar" to OutfitSlot.NECK, "pearl_necklace" to OutfitSlot.NECK,
+        "raincoat" to OutfitSlot.BODY, "hoodie" to OutfitSlot.BODY, "cardigan" to OutfitSlot.BODY, "overalls" to OutfitSlot.BODY,
+        "tiny_backpack" to OutfitSlot.BODY, "rain_boots" to OutfitSlot.FEET, "cozy_socks" to OutfitSlot.FEET,
+    )
+    fun known(id: String) = id in slots
+    fun slot(id: String): OutfitSlot = slots[id] ?: OutfitSlot.HEAD
+    fun of(id: String, egg: Boolean = false): Anchor = when (slot(id)) {
+        OutfitSlot.HEAD -> Anchor(OutfitSlot.HEAD, if (egg) -0.55f else -1f, 0.40f)
+        OutfitSlot.FACE -> Anchor(OutfitSlot.FACE, -0.25f, 0.44f)
+        OutfitSlot.NECK -> Anchor(OutfitSlot.NECK, 0.18f, 0.40f)
+        OutfitSlot.BODY -> Anchor(OutfitSlot.BODY, 0.45f, 0.50f)
+        OutfitSlot.FEET -> Anchor(OutfitSlot.FEET, 0.95f, 0.46f)
+    }
+}

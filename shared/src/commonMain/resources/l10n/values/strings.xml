@@ -1105,4 +1105,16 @@
     <string name="set_delete_account_confirm">Delete</string>
     <string name="msg_account_deleted">Your account and server data were deleted</string>
     <string name="msg_account_delete_failed">Couldn\'t delete server data. Check your connection and try again.</string>
+    <string name="shop_need_more">Need %d more</string>
+    <string name="discard_title">Discard changes?</string>
+    <string name="discard_yes">Discard</string>
+    <string name="discard_no">Keep editing</string>
+    <string name="back_exit_hint">Press back again to exit</string>
+    <string name="onb_b1">Finish plans to earn EXP and grow Mongi</string>
+    <string name="onb_b2">Mongi goes out and brings back gifts</string>
+    <string name="onb_b3">Decorate your room with coins</string>
+    <string name="onb_name_label">Name</string>
+    <string name="onb_notify">Schedule reminders</string>
+    <string name="onb_location">Use location for weather (optional)</string>
+    <string name="login_guest_note">Guest data stays on this device. You can link an account later in Settings.</string>
 </resources>

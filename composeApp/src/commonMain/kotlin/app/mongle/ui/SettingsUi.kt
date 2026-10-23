@@ -52,6 +52,7 @@ fun SettingsV2(
     var confirmReset by remember { mutableStateOf(false) }
     var confirmSignOut by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    Back { if (langSheet) langSheet = false else if (page != "home") page = "home" else onClose() }
     var cloudStatus by remember { mutableStateOf(app.mongle.cloud.CloudHooks.status()) }
     var cloudNote by remember { mutableStateOf("") }
     val authForSignOut = LocalAuth.current

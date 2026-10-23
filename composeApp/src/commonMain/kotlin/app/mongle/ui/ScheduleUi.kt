@@ -163,6 +163,10 @@ fun ScheduleForm(
     var picking by remember { mutableStateOf<String?>(null) }
     var durationMin by remember { mutableIntStateOf(source?.let { v -> if (v.endMillis > v.timeMillis) ((v.endMillis - v.timeMillis) / 60_000L).toInt() else 0 } ?: 0) }
     var touched by remember { mutableStateOf(false) }
+    val snap = listOf(title, date, isPm, hour12, minute, repeat, interval, weekdays, monthOrdinal, endKind, endCount, endDate, leads, alert, category, place, memo, durationMin)
+    val initialSnap = remember { snap }
+    val leave = rememberDiscardGuard(snap != initialSnap, onClose)
+    Back(enabled = picking != null) { picking = null }
 
     fun draft() = ScheduleDraft(
                         title = title,
@@ -210,7 +214,7 @@ fun ScheduleForm(
             Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onClose, modifier = Modifier.heightIn(min = 48.dp).testTag("overlay-back")) {
+            TextButton(onClick = leave, modifier = Modifier.heightIn(min = 48.dp).testTag("overlay-back")) {
                 Text("‹", color = Ink, fontSize = 22.sp)
             }
             Text(t("add_schedule"), modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Ink)

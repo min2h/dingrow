@@ -99,7 +99,8 @@ class StudioUiTest {
         click("open-shop")
         click("try-canopy_bed")
         tag("shop-short").fetchSemanticsNode()
-        rule.onNodeWithTag("shop-buy-cart").assertIsNotEnabled()
+        assertTrue(rule.onAllNodesWithTag("shop-buy-cart").fetchSemanticsNodes().isEmpty()) // one row: buy button turns into "Need N more"
+        rule.onNodeWithText("코인 더 필요해요", substring = true, useUnmergedTree = true).fetchSemanticsNode()
         clickNoScroll("shop-earn")
         assertEquals(100, s.state.value.coins)
         assertTrue(rule.onAllNodesWithTag("shop-screen").fetchSemanticsNodes().isEmpty()) // left the shop to earn coins
@@ -203,5 +204,77 @@ class StudioUiTest {
         tag("err-memo").fetchSemanticsNode()
         tag("save-blocked").fetchSemanticsNode()
         rule.onRoot().captureRoboImage(artifact("form-errors.png"))
+    }
+
+    @Test fun shopPreviewStaysPinnedAndLastItemReachable() {
+        app("en", coins = 5000)
+        click("open-shop")
+        click("try-beanie")   // cart bar visible
+        val previewTop = tag("shop-preview").fetchSemanticsNode().boundsInRoot.top
+        val last = app.mongle.model.Catalog.shop.last().id
+        rule.mainClock.autoAdvance = true; tag("shop-list-end").performScrollTo(); rule.mainClock.autoAdvance = false; settle()
+        val preview = tag("shop-preview").fetchSemanticsNode().boundsInRoot
+        assertEquals(previewTop, preview.top, 0.5f)
+        assertTrue(preview.height > 100f)
+        rule.onRoot().captureRoboImage(artifact("shop-scrolled-end.png"))
+        // The last card's button sits fully above the cart bar.
+        val cartTop = tag("shop-cart").fetchSemanticsNode().boundsInRoot.top
+        val btn = tag("try-$last").fetchSemanticsNode().boundsInRoot
+        assertTrue("last button bottom ${btn.bottom} must be above cart $cartTop", btn.bottom <= cartTop + 0.5f)
+        rule.onNodeWithTag("try-$last").performClick(); settle()   // real touch at its center
+        tag("pet-outfit-beanie").fetchSemanticsNode()
+    }
+
+    @Test fun everyOutfitRendersWornInPinnedPreview() {
+        app("en", coins = 0) { debugSetStage(app.mongle.model.Stage.BABY) }
+        rule.onAllNodesWithTag("levelup-ok").fetchSemanticsNodes().takeIf { it.isNotEmpty() }?.let { clickNoScroll("levelup-ok") }
+        click("open-shop")
+        click("shop-tab-outfit")
+        val outfits = app.mongle.model.Catalog.shop.filter { it.kind == app.mongle.model.ItemKind.OUTFIT }
+        val all = app.mongle.model.Catalog.all.filter { it.kind == app.mongle.model.ItemKind.OUTFIT }
+        all.forEach { assertTrue("anchor for ${it.id}", app.mongle.ui.OutfitAnchors.known(it.id)); assertTrue("art for ${it.id}", app.mongle.ui.Art.known(it.id)) }
+        outfits.forEach { o ->
+            click("try-${o.id}")
+            tag("pet-outfit-${o.id}").fetchSemanticsNode()
+            if (o.id == "ribbon" || o.id == "beret") tag("shop-pinned").captureRoboImage(artifact("tryon-${o.id}.png"))
+        }
+    }
+
+    @Test fun shopPinnedPreviewDarkEn() {
+        app("en", coins = 5000) { updateSettings(state.value.settings.copy(theme = "dark")) }
+        click("open-shop")
+        rule.onRoot().captureRoboImage(artifact("shop-dark-en-before.png"))
+        click("try-ribbon")
+        tag("pet-outfit-ribbon").fetchSemanticsNode()
+        rule.onRoot().captureRoboImage(artifact("shop-dark-en-after.png"))
+    }
+
+    @Test @Config(qualifiers = "ko-rKR-w320dp-h568dp-mdpi") fun shopPinnedPreviewSmallScreen() {
+        app("ko", coins = 5000)
+        click("open-shop")
+        click("try-beret")
+        tag("pet-outfit-beret").fetchSemanticsNode()
+        rule.onRoot().captureRoboImage(artifact("shop-small-ko.png"))
+        rule.mainClock.autoAdvance = true; tag("shop-list-end").performScrollTo(); rule.mainClock.autoAdvance = false; settle()
+        assertTrue(tag("shop-preview").fetchSemanticsNode().boundsInRoot.height > 80f)
+        rule.onRoot().captureRoboImage(artifact("shop-small-ko-end.png"))
+    }
+
+    @Test @Config(qualifiers = "en-w411dp-h914dp-xxhdpi") fun shopShowsTwoFullRowsOn1080x2400() {
+        app("en", coins = 5000)
+        click("open-shop")
+        click("try-beanie")
+        val list = tag("shop-list").fetchSemanticsNode().boundsInRoot
+        val cartTop = tag("shop-cart").fetchSemanticsNode().boundsInRoot.top
+        assertTrue("visible list height ${cartTop - list.top}", cartTop - list.top > 2 * 245 * 2.625f * 0.9f)
+        rule.onRoot().captureRoboImage(artifact("shop-1080x2400.png"))
+        rule.mainClock.autoAdvance = true; tag("shop-list-end").performScrollTo(); rule.mainClock.autoAdvance = false; settle()
+        rule.onRoot().captureRoboImage(artifact("shop-1080x2400-end.png"))
+    }
+
+    @Test @Config(qualifiers = "en-w360dp-h740dp-hdpi") fun decoratePinnedEn() {
+        app("en", coins = 1000) { buyAll(listOf("mug", "beanie")) }
+        click("open-decorate")
+        rule.onRoot().captureRoboImage(artifact("decorate-en.png"))
     }
 }

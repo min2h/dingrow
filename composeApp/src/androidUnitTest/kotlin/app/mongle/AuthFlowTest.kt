@@ -1,5 +1,7 @@
 package app.mongle
 
+import org.junit.Assert.assertTrue
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -50,11 +52,11 @@ class AuthFlowTest {
         auth.restore()
         show(auth)
         rule.onNodeWithTag("login").assertIsDisplayed()
+        rule.onNodeWithText("게스트 데이터는 이 기기에만 저장돼요. 나중에 설정에서 연결할 수 있어요").assertIsDisplayed()
         rule.onRoot().captureRoboImage(artifact("login.png"))
         rule.onNodeWithTag("login-guest").performClick(); settle()
-        rule.onNodeWithTag("guest").assertIsDisplayed()
-        rule.onRoot().captureRoboImage(artifact("login-guest.png"))
-        rule.onNodeWithTag("guest-continue").performClick(); settle()
+        // No separate account-details screen: guest lands straight in the app.
+        assertTrue(rule.onAllNodesWithTag("guest").fetchSemanticsNodes().isEmpty())
         rule.onNodeWithText("HOME").assertIsDisplayed()
         assertEquals("guest", load()!!.provider)
         runBlocking { auth.signOut() }; settle()

@@ -54,14 +54,12 @@ fun AuthGate(auth: AuthService, splashMillis: Long = 1_200, content: @Composable
     val session by auth.session.collectAsState()
     val restored by auth.restored.collectAsState()
     var splashDone by remember { mutableStateOf(!auth.autoLoggedIn) }
-    var guestIntro by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { if (!splashDone) { delay(splashMillis); splashDone = true } }
     CompositionLocalProvider(LocalAuth provides auth) {
         when {
             !restored -> Box(Modifier.fillMaxSize().background(Cream))
-            session == null -> LoginScreen(auth, onGuest = { guestIntro = true })
+            session == null -> LoginScreen(auth, onGuest = {})
             !splashDone -> SplashScreen(session!!)
-            guestIntro && session!!.provider == "guest" -> GuestScreen(session!!, onContinue = { guestIntro = false })
             else -> content()
         }
     }
@@ -110,6 +108,7 @@ fun LoginScreen(auth: AuthService, onGuest: () -> Unit) {
                     scope.launch { auth.signInGuest(); onGuest() }
                 }
             }
+            Text(t("login_guest_note"), fontSize = 11.sp, color = InkSoft, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 6.dp).testTag("login-guest-note"))
             if (auth.debugFake) {
                 Text(t("login_debug_fake"), fontSize = 11.sp, color = InkSoft, modifier = Modifier.padding(top = 8.dp).clickable(enabled = !busy) { busy = true; scope.launch { handle(auth.signInFake()) } }.testTag("login-fake"))
             }
