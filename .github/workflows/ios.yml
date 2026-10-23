@@ -37,8 +37,9 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Cache Kotlin/Native toolchain
-        uses: actions/cache@v4
+      - name: Restore Kotlin/Native toolchain
+        id: konan
+        uses: actions/cache/restore@v4
         with:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', '**/*.gradle.kts') }}
@@ -80,7 +81,18 @@ jobs:
       - name: Show compile errors
         if: failure()
         working-directory: iosApp
-        run: grep -E -B2 -A6 "error:" build/xcodebuild.log | head -300 || true
+        run: |
+          grep -E -B2 -A6 "error:" build/xcodebuild.log | head -300 || true
+          # Print the generated ObjC header lines the errors point at (Kotlin API names that clash with C/ObjC).
+          grep -oE '[^ ]+\.h:[0-9]+' build/xcodebuild.log | sort -u | head -20 | while IFS=: read -r f l; do
+            echo "== $f:$l"; sed -n "$((l-6)),$((l+2))p" "$f"; done || true
+
+      - name: Save Kotlin/Native toolchain
+        if: always() && steps.konan.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', '**/*.gradle.kts') }}
 
       - name: Zip .app
         working-directory: iosApp/build/dd/Build/Products/Debug-iphonesimulator
