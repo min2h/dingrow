@@ -69,6 +69,7 @@ jobs:
       - name: xcodebuild (iphonesimulator, Debug, unsigned)
         working-directory: iosApp
         run: |
+          mkdir -p build
           set -o pipefail
           xcodebuild \
             -project iosApp.xcodeproj -scheme iosApp -configuration Debug \
