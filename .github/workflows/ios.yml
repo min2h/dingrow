@@ -84,6 +84,7 @@ jobs:
         working-directory: iosApp
         run: |
           grep -E -B2 -A6 "error:" build/xcodebuild.log | head -300 || true
+          echo '== undefined symbols'; grep -E '^ +"_' build/xcodebuild.log | sort -u | head -60 || true
           # Print the generated ObjC header lines the errors point at (Kotlin API names that clash with C/ObjC).
           grep -oE '[^ ]+\.h:[0-9]+' build/xcodebuild.log | sort -u | head -20 | while IFS=: read -r f l; do
             echo "== $f:$l"; sed -n "$((l-6)),$((l+2))p" "$f"; done || true
