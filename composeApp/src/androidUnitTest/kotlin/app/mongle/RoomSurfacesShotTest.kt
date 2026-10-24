@@ -75,4 +75,23 @@ class RoomSurfacesShotTest {
         val st = state()
         shot("surface-wall-items", st) { layout(it, "wall_starry", "floor_mint_tile", "window", "picture_frame", "wall_clock", "sun_poster", "ribbon_garland", "string_lights", "moon_mirror") }
     }
+    /** Busy wallpaper behind the big light furniture: any punched hole in a sprite would show stripes/stars. */
+    @Test fun noHolesOnBusyWallpaper() {
+        val st = state()
+        rule.setContent {
+            Column(Modifier.testTag("grid").padding(4.dp)) {
+                listOf(listOf("wall_stripe", "floor_mint_tile"), listOf("wall_starry", "floor_herringbone")).forEach { surf ->
+                    Row(Modifier.padding(2.dp)) {
+                        listOf(
+                            listOf("wood_bed", "sofa", "mint_rug", "wall_clock", "picture_frame"),
+                            listOf("cushion_bed", "velvet_armchair", "round_mint_rug", "window", "bathtub"),
+                            listOf("canopy_bed", "fish_tank", "aroma_diffuser", "blanket", "floor_cushion"),
+                        ).forEach { ids -> RoomStage(st, layout("wood", *(surf + ids).toTypedArray()), Modifier.height(460.dp).padding(2.dp), petScale = 0.24f) }
+                    }
+                }
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("grid").captureRoboImage(File(File("/workspace/dingrow-combos").apply { mkdirs() }, "sprite-holes-after.png").path)
+    }
 }
